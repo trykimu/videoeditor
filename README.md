@@ -1,4 +1,4 @@
-# Remotion + Remix Starter Kit
+# Remotion + React Router 7 Starter Kit
 
 <p align="center">
   <a href="https://github.com/remotion-dev/logo">
@@ -9,12 +9,8 @@
   </a>
 </p>
 
-This is a [Remix starter kit](https://remix.run/docs) with [Remotion](https://remotion.dev), [`@remotion/player`](https://remotion.dev/player) and [`@remotion/lambda`](https://remotion.dev/lambda) built in.  
-It lets you render a video from a Remix app with AWS Lambda.
-
-Here is the output video:
-
-https://user-images.githubusercontent.com/11575645/195991193-f854448a-cdf1-4d61-acb8-ffae44d53b3b.mp4
+This is a [React Router 7 starter kit](https://reactrouter.com/home) with [Remotion](https://remotion.dev), [`@remotion/player`](https://remotion.dev/player) and [`@remotion/lambda`](https://remotion.dev/lambda) built in.  
+It lets you render a video from a React Router app with AWS Lambda.
 
 ## Getting started
 
@@ -26,7 +22,7 @@ Install dependencies using
 npm install
 ```
 
-## Run the Remix app
+## Run the React Router app
 
 Run the example app using:
 
@@ -48,18 +44,17 @@ Follow these steps to set up video rendering:
 
 1. Follow the steps in [Remotion Lambda setup guide](https://www.remotion.dev/docs/lambda/setup).
 2. Rename the `.env.example` file to `.env`.
-3. Fill in the `REMOTION_AWS_REGION` with the region that you would like to use, e.g. `us-east-1`.
-4. Fill in the `REMOTION_AWS_ACCESS_KEY_ID` and `REMOTION_AWS_SECRET_ACCESS_KEY` values that you got from the first step.
+3. Fill in the `REMOTION_AWS_ACCESS_KEY_ID` and `REMOTION_AWS_SECRET_ACCESS_KEY` values that you got from the first step.
 
-5. Run the following to deploy your Lambda function and Remotion site:
+4. Run the following to deploy your Lambda function and Remotion site:
 
 ```
-npm run remotion:deploy
+node deploy.mjs
 ```
 
 > Rerun this command whenever you have upgraded to a new Remotion version.
 
-6. Restart the Remix server.
+5. Restart the server.
 
 ## Commands
 
@@ -81,10 +76,10 @@ Start the app in production mode (after build is done):
 npm run dev
 ```
 
-Start the Remotion preview:
+Start the Remotion Studio:
 
 ```
-npm run remotion:preview
+npm run remotion:studio
 ```
 
 Render the example video locally:
@@ -108,7 +103,7 @@ npm run remotion:renderlambda
 Deploy/Update the Remotion video on S3 and the Lambda function:
 
 ```
-npm run remotion:deploy
+node deploy.mjs
 ```
 
 ## Upgrading Remotion
@@ -119,7 +114,7 @@ If your functions or sites are already used in production, make sure to not over
 ## Docs
 
 Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).  
-See the [Remix Docs](https://remix.run/docs) to read about the framework.
+See the [React Router Docs](https://reactrouter.com/) to read about the framework.
 
 ## Help
 
