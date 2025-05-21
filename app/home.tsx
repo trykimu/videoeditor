@@ -42,11 +42,52 @@ export default function Index() {
             loop
           />
         </div>
-        <RenderControls
+        {/* <RenderControls
           text={text}
           setText={setText}
           inputProps={inputProps}
-        ></RenderControls>
+        ></RenderControls> */}
+        <input
+          type="text"
+          name="text"
+          id="text"
+          className="border-2 border-gray-300 rounded-md p-2"
+          onChange={(e) => setText(e.target.value)}
+        />
+        <button 
+          className="bg-blue-500 text-white p-2 rounded-md"
+          onClick={async () => {
+            await fetch("http://localhost:8000/render", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ title: text })
+            });
+          }}
+        >
+          render
+        </button>
+        {/* <button
+          onClick={async () => {
+            const res = await fetch("http://localhost:8000/render", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ title: text }),
+            });
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "video.mp4";
+            a.click();
+          }}
+        >
+          Render & Download
+        </button> */}
       </div>
     </div>
   );
