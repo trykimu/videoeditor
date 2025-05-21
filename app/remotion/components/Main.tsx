@@ -5,6 +5,8 @@ import {
   spring,
   useCurrentFrame,
   useVideoConfig,
+  OffthreadVideo,
+  staticFile
 } from "remotion";
 import { ReactRouterLogo } from "./ReactRouterLogo";
 import { loadFont, fontFamily } from "@remotion/google-fonts/Inter";
@@ -30,7 +32,7 @@ const logo: React.CSSProperties = {
 
 export const Main = ({ title }: z.infer<typeof CompositionProps>) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
 
   const transitionStart = 2 * fps;
   const transitionDuration = 1 * fps;
@@ -50,17 +52,29 @@ export const Main = ({ title }: z.infer<typeof CompositionProps>) => {
   }, []);
 
   return (
+    // <AbsoluteFill style={container}>
+    //   <Sequence durationInFrames={transitionStart + transitionDuration}>
+    //     <Rings outProgress={logoOut}></Rings>
+    //     <AbsoluteFill style={logo}>
+    //       <ReactRouterLogo outProgress={logoOut}></ReactRouterLogo>
+    //     </AbsoluteFill>
+    //   </Sequence>
+    //   <Sequence from={transitionStart + transitionDuration / 2}>
+    //     <TextFade>
+    //       <h1 style={titleStyle}>{title}</h1>
+    //     </TextFade>
+    //   </Sequence>
+    // </AbsoluteFill>
     <AbsoluteFill style={container}>
-      <Sequence durationInFrames={transitionStart + transitionDuration}>
-        <Rings outProgress={logoOut}></Rings>
-        <AbsoluteFill style={logo}>
-          <ReactRouterLogo outProgress={logoOut}></ReactRouterLogo>
-        </AbsoluteFill>
+      <Sequence from={0} durationInFrames={35}>
+        <h1 style={titleStyle}>hello</h1>
       </Sequence>
-      <Sequence from={transitionStart + transitionDuration / 2}>
-        <TextFade>
-          <h1 style={titleStyle}>{title}</h1>
-        </TextFade>
+      <Sequence from={35} durationInFrames={35}>
+        <h1 style={titleStyle}>world</h1>
+      </Sequence>
+      <Sequence from={70} durationInFrames={durationInFrames - 70}>
+        {/* <h1 style={titleStyle}>{title}</h1> */}
+        <OffthreadVideo src={staticFile(title)}/>
       </Sequence>
     </AbsoluteFill>
   );

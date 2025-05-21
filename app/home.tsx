@@ -9,7 +9,7 @@ import {
 import "./app.css";
 import { z } from "zod";
 import { Main } from "./remotion/components/Main";
-import { RenderControls } from "./components/RenderControls";
+// import { RenderControls } from "./components/RenderControls";
 import { CompositionProps } from "./remotion/schemata";
 
 export default function Index() {

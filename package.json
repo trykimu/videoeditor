@@ -21,6 +21,7 @@
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
     "@remotion/lambda": "^4.0.0",
+    "@remotion/media-parser": "4.0.306",
     "@remotion/paths": "^4.0.0",
     "@remotion/player": "^4.0.0",
     "@remotion/renderer": "^4.0.305",
