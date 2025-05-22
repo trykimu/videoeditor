@@ -47,35 +47,37 @@ export const Main = ({ title }: z.infer<typeof CompositionProps>) => {
     delay: transitionStart,
   });
 
+  // console.log(`title: ${title}`);
+
   // const titleStyle: React.CSSProperties = useMemo(() => {
   //   return { fontFamily, fontSize: 70, fontWeight: weight };
   // }, []);
 
   return (
-    <AbsoluteFill style={container}>
-      <Sequence durationInFrames={transitionStart + transitionDuration}>
-        <Rings outProgress={logoOut}></Rings>
-        <AbsoluteFill style={logo}>
-          <ReactRouterLogo outProgress={logoOut}></ReactRouterLogo>
-        </AbsoluteFill>
-      </Sequence>
-      <Sequence from={transitionStart + transitionDuration / 2}>
-        <TextFade>
-          <h1>{title}</h1>
-        </TextFade>
-      </Sequence>
-    </AbsoluteFill>
     // <AbsoluteFill style={container}>
-    //   <Sequence from={0} durationInFrames={35}>
-    //     <h1 style={titleStyle}>hello</h1>
+    //   <Sequence durationInFrames={transitionStart + transitionDuration}>
+    //     <Rings outProgress={logoOut}></Rings>
+    //     <AbsoluteFill style={logo}>
+    //       <ReactRouterLogo outProgress={logoOut}></ReactRouterLogo>
+    //     </AbsoluteFill>
     //   </Sequence>
-    //   <Sequence from={35} durationInFrames={35}>
-    //     <h1 style={titleStyle}>world</h1>
-    //   </Sequence>
-    //   <Sequence from={70} durationInFrames={durationInFrames - 70}>
-    //     {/* <h1 style={titleStyle}>{title}</h1> */}
-    //     <OffthreadVideo src={staticFile(title)}/>
+    //   <Sequence from={transitionStart + transitionDuration / 2}>
+    //     <TextFade>
+    //       <h1>{title}</h1>
+    //     </TextFade>
     //   </Sequence>
     // </AbsoluteFill>
+    <AbsoluteFill style={container}>
+      <Sequence from={0} durationInFrames={35}>
+        <h1>hello</h1>
+      </Sequence>
+      <Sequence from={35} durationInFrames={35}>
+        <h1>world</h1>
+      </Sequence>
+      <Sequence from={70} durationInFrames={durationInFrames - 70}>
+        {/* <h1 style={titleStyle}>{title}</h1> */}
+        <OffthreadVideo src={title} />
+      </Sequence>
+    </AbsoluteFill>
   );
 };

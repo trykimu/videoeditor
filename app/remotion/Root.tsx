@@ -15,7 +15,8 @@ export const RemotionRoot = () => {
     console.log('aaaaaaaaaaaaaa');
     console.log(props);
     // The 'width' property must be a number.
-    return { width: Number(props.title) };
+    // return { durationInFrames: Number(props.title) };
+    return {};
   };
 
   return (
