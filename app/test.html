@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Timeline Drag</title>
+    <style>
+        .timeline {
+            width: 600px;
+            height: 60px;
+            background: #eee;
+            position: relative;
+            margin: 100px auto;
+            border-radius: 10px;
+        }
+
+        .scrubber {
+            width: 40px;
+            height: 100%;
+            background: #3498db;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: grab;
+            border-radius: 10px;
+            min-width: 20px;
+        }
+
+        .scrubber:active {
+            cursor: grabbing;
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 8px;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+
+        .resize-handle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .resize-handle.left {
+            left: 0;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .resize-handle.right {
+            right: 0;
+            border-radius: 0 10px 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="timeline" id="timeline">
+        <div class="scrubber" id="scrubber">
+            <div class="resize-handle left" id="leftHandle"></div>
+            <div class="resize-handle right" id="rightHandle"></div>
+        </div>
+    </div>
+
+    <script>
+        const scrubber = document.getElementById('scrubber');
+        const timeline = document.getElementById('timeline');
+        const leftHandle = document.getElementById('leftHandle');
+        const rightHandle = document.getElementById('rightHandle');
+
+        let isDragging = false;
+        let isResizing = false;
+        let resizeMode = null; // 'left' or 'right'
+        let offsetX = 0;
+        let startX = 0;
+        let startLeft = 0;
+        let startWidth = 0;
+
+        // Dragging the scrubber body
+        scrubber.addEventListener('mousedown', (e) => {
+            // Don't start dragging if clicking on resize handles
+            if (e.target.classList.contains('resize-handle')) return;
+
+            isDragging = true;
+            offsetX = e.clientX - scrubber.offsetLeft;
+        });
+
+        // Resizing with left handle
+        leftHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            isResizing = true;
+            resizeMode = 'left';
+            startX = e.clientX;
+            startLeft = scrubber.offsetLeft;
+            startWidth = scrubber.offsetWidth;
+        });
+
+        // Resizing with right handle
+        rightHandle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            isResizing = true;
+            resizeMode = 'right';
+            startX = e.clientX;
+            startLeft = scrubber.offsetLeft;
+            startWidth = scrubber.offsetWidth;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                // Regular dragging
+                let newLeft = e.clientX - offsetX;
+                const min = 0;
+                const max = timeline.offsetWidth - scrubber.offsetWidth;
+                newLeft = Math.max(min, Math.min(max, newLeft));
+                scrubber.style.left = `${newLeft}px`;
+            } else if (isResizing) {
+                // Resizing
+                const deltaX = e.clientX - startX;
+                const timelineWidth = timeline.offsetWidth;
+
+                if (resizeMode === 'left') {
+                    // Resize from left edge
+                    let newLeft = startLeft + deltaX;
+                    let newWidth = startWidth - deltaX;
+
+                    // Constraints
+                    newLeft = Math.max(0, newLeft);
+                    newWidth = Math.max(20, newWidth); // minimum width
+
+                    // If we hit the left boundary, adjust width accordingly
+                    if (newLeft === 0) {
+                        newWidth = startLeft + startWidth;
+                    }
+
+                    // Make sure we don't exceed the right boundary
+                    if (newLeft + newWidth > timelineWidth) {
+                        newWidth = timelineWidth - newLeft;
+                    }
+
+                    scrubber.style.left = `${newLeft}px`;
+                    scrubber.style.width = `${newWidth}px`;
+                } else if (resizeMode === 'right') {
+                    // Resize from right edge
+                    let newWidth = startWidth + deltaX;
+
+                    // Constraints
+                    newWidth = Math.max(20, newWidth); // minimum width
+
+                    // Make sure we don't exceed the right boundary
+                    if (startLeft + newWidth > timelineWidth) {
+                        newWidth = timelineWidth - startLeft;
+                    }
+
+                    scrubber.style.width = `${newWidth}px`;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+            resizeMode = null;
+        });
+
+        // Prevent text selection during drag operations
+        document.addEventListener('selectstart', (e) => {
+            if (isDragging || isResizing) {
+                e.preventDefault();
+            }
+        });
+    </script>
+
+</body>
+
+</html>

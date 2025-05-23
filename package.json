@@ -18,6 +18,7 @@
   "dependencies": {
     "@react-router/node": "7.2.0",
     "@react-router/serve": "7.2.0",
+    "@remotion/bundler": "4.0.306",
     "@remotion/cli": "^4.0.0",
     "@remotion/google-fonts": "^4.0.0",
     "@remotion/lambda": "^4.0.0",
