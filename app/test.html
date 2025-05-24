@@ -5,12 +5,37 @@
     <meta charset="UTF-8">
     <title>Timeline Drag</title>
     <style>
-        .timeline {
+        .timeline-container {
             width: 600px;
+            margin: 100px auto;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 10px; /* Space for scrollbar */
+        }
+
+        .timeline-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .timeline-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .timeline-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .timeline-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .timeline {
+            width: 2000px; /* Wider than container to enable scrolling */
             height: 60px;
             background: #eee;
             position: relative;
-            margin: 100px auto;
             border-radius: 10px;
         }
 
@@ -57,14 +82,16 @@
 
 <body>
 
-    <div class="timeline" id="timeline">
-        <div class="scrubber" id="scrubber1">
-            <div class="resize-handle left" id="leftHandle1"></div>
-            <div class="resize-handle right" id="rightHandle1"></div>
-        </div>
-        <div class="scrubber" id="scrubber2">
-            <div class="resize-handle left" id="leftHandle2"></div>
-            <div class="resize-handle right" id="rightHandle2"></div>
+    <div class="timeline-container">
+        <div class="timeline" id="timeline">
+            <div class="scrubber" id="scrubber1">
+                <div class="resize-handle left" id="leftHandle1"></div>
+                <div class="resize-handle right" id="rightHandle1"></div>
+            </div>
+            <div class="scrubber" id="scrubber2">
+                <div class="resize-handle left" id="leftHandle2"></div>
+                <div class="resize-handle right" id="rightHandle2"></div>
+            </div>
         </div>
     </div>
 
@@ -72,12 +99,17 @@
         const scrubber1 = document.getElementById('scrubber1');
         const scrubber2 = document.getElementById('scrubber2');
         const timeline = document.getElementById('timeline');
+        const timelineContainer = document.querySelector('.timeline-container');
         const leftHandle1 = document.getElementById('leftHandle1');
         const rightHandle1 = document.getElementById('rightHandle1');
         const leftHandle2 = document.getElementById('leftHandle2');
         const rightHandle2 = document.getElementById('rightHandle2');
 
-        const timelineWidth = timeline.offsetWidth;
+        const INITIAL_TIMELINE_WIDTH = 2000;
+        const EXPANSION_THRESHOLD = 200; // pixels from the end to trigger expansion
+        const EXPANSION_AMOUNT = 1000; // how much to expand by each time
+        let timelineWidth = INITIAL_TIMELINE_WIDTH;
+        const containerWidth = timelineContainer.offsetWidth;
         const MINIMUM_WIDTH = 20;
         let isDragging = false;
         let isResizing = false;
@@ -88,22 +120,37 @@
         let startLeft = 0;
         let startWidth = 0;
 
+        function expandTimeline() {
+            const currentScrollLeft = timelineContainer.scrollLeft;
+            const scrollRight = currentScrollLeft + containerWidth;
+            const distanceToEnd = timelineWidth - scrollRight;
+
+            if (distanceToEnd < EXPANSION_THRESHOLD) {
+                timelineWidth += EXPANSION_AMOUNT;
+                timeline.style.width = `${timelineWidth}px`;
+                return true;
+            }
+            return false;
+        }
+
         function getScrubberBounds(scrubber) {
+            const scrollLeft = timelineContainer.scrollLeft;
             return {
-                left: scrubber.offsetLeft,
-                right: scrubber.offsetLeft + scrubber.offsetWidth
+                left: scrubber.offsetLeft + scrollLeft,
+                right: scrubber.offsetLeft + scrubber.offsetWidth + scrollLeft
             };
         }
 
         function checkCollision(scrubber1, scrubber2) {
             const bounds1 = getScrubberBounds(scrubber1);
             const bounds2 = getScrubberBounds(scrubber2);
-            console.log(`bounds1`);
-            console.log(bounds1);
-            console.log(`bounds2`);
-            console.log(bounds2);
             return !(bounds1.right <= bounds2.left || bounds1.left >= bounds2.right);
         }
+
+        // Add scroll event listener to check for expansion
+        timelineContainer.addEventListener('scroll', () => {
+            expandTimeline();
+        });
 
         function setupScrubber(scrubber, leftHandle, rightHandle) {
             // Dragging the scrubber body
@@ -150,7 +197,7 @@
             if (isDragging) {
                 let newLeft = e.clientX - offsetX;
                 const min = 0;
-                const max = timeline.offsetWidth - activeScrubber.offsetWidth;
+                const max = timelineWidth - activeScrubber.offsetWidth;
                 newLeft = Math.max(min, Math.min(max, newLeft));
 
                 // Store original position
@@ -163,6 +210,19 @@
                     activeScrubber.style.left = `${originalLeft}px`;
                 }
 
+                // Auto-scroll when dragging near edges
+                const scrollSpeed = 10;
+                const scrollThreshold = 100;
+                const containerRect = timelineContainer.getBoundingClientRect();
+                const mouseX = e.clientX;
+
+                if (mouseX < containerRect.left + scrollThreshold) {
+                    timelineContainer.scrollLeft -= scrollSpeed;
+                } else if (mouseX > containerRect.right - scrollThreshold) {
+                    timelineContainer.scrollLeft += scrollSpeed;
+                    // Check if we need to expand the timeline
+                    expandTimeline();
+                }
 
             } else if (isResizing) {
                 const deltaX = e.clientX - startX;
@@ -209,7 +269,13 @@
                     newWidth = Math.max(MINIMUM_WIDTH, newWidth);
 
                     if (startLeft + newWidth > timelineWidth) {
-                        newWidth = timelineWidth - startLeft;
+                        // Expand timeline if needed
+                        if (expandTimeline()) {
+                            // If timeline was expanded, allow the resize to continue
+                            newWidth = startWidth + deltaX;
+                        } else {
+                            newWidth = timelineWidth - startLeft;
+                        }
                     }
 
                     // Apply changes
