@@ -70,6 +70,8 @@
         const leftHandle = document.getElementById('leftHandle');
         const rightHandle = document.getElementById('rightHandle');
 
+        const timelineWidth = timeline.offsetWidth;
+        const MINIMUM_WIDTH = 20;
         let isDragging = false;
         let isResizing = false;
         let resizeMode = null; // 'left' or 'right'
@@ -118,16 +120,20 @@
             } else if (isResizing) {
                 // Resizing
                 const deltaX = e.clientX - startX;
-                const timelineWidth = timeline.offsetWidth;
 
                 if (resizeMode === 'left') {
+
                     // Resize from left edge
                     let newLeft = startLeft + deltaX;
                     let newWidth = startWidth - deltaX;
 
+                    if (parseInt(scrubber.style.width) === MINIMUM_WIDTH && deltaX > 0) {
+                        return;
+                    }
+
                     // Constraints
                     newLeft = Math.max(0, newLeft);
-                    newWidth = Math.max(20, newWidth); // minimum width
+                    newWidth = Math.max(MINIMUM_WIDTH, newWidth); // minimum width
 
                     // If we hit the left boundary, adjust width accordingly
                     if (newLeft === 0) {
