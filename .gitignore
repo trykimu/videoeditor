@@ -1,12 +1,6 @@
-node_modules
-
-/.cache
-/build
-/public/build
-.env
-/out
-.nvmrc
-.react-router/
-
 .DS_Store
-api
+/node_modules/
+
+# React Router
+/.react-router/
+/build/

@@ -1,5 +1,4 @@
-import { registerRoot } from "remotion";
-import { RemotionRoot } from "./Root";
-
-console.log("im in index.ts");
-registerRoot(RemotionRoot);
+import {registerRoot} from 'remotion';
+import {MyVideo} from './Root';
+ 
+registerRoot(MyVideo);

@@ -1,36 +1,29 @@
-import { Composition, CalculateMetadataFunction } from "remotion";
-import {
-  DURATION_IN_FRAMES,
-  COMPOSITION_FPS,
-  COMPOSITION_HEIGHT,
-  COMPOSITION_ID,
-  COMPOSITION_WIDTH,
-} from "./constants.mjs";
-import { Main } from "./components/Main";
+// import React from 'react';
+// import { Composition } from 'remotion';
+// import { MyComposition } from './Composition';
 
-export const RemotionRoot = () => {
-  console.log("hi");
+// export const RemotionRoot: React.FC = () => {
+//     return (
+//         <>
+//             <Composition
+//                 id="Empty"
+//                 component={MyComposition}
+//                 durationInFrames={60}
+//                 fps={30}
+//                 width={1280}
+//                 height={720}
+//             />
+//         </>
+//     );
+// };
 
-  const typedCalculateMetadata: CalculateMetadataFunction<{ title: string }> = async ({ props }) => {
-    console.log('aaaaaaaaaaaaaa');
-    console.log(props);
-    // The 'width' property must be a number.
-    // return { durationInFrames: Number(props.title) };
-    return {};
-  };
+import { Composition } from 'remotion';
+import { MyComp } from './MyComp';
 
-  return (
-    <>
-      <Composition
-        id={COMPOSITION_ID}
-        component={Main}
-        durationInFrames={DURATION_IN_FRAMES}
-        fps={COMPOSITION_FPS}
-        width={COMPOSITION_WIDTH}
-        height={COMPOSITION_HEIGHT}
-        defaultProps={{ title: "stranger" }}
-        calculateMetadata={typedCalculateMetadata}
-      />
-    </>
-  );
+export const MyVideo = () => {
+    return (
+        <>
+            <Composition component={MyComp} durationInFrames={120} width={1920} height={1080} fps={30} id="my-comp" defaultProps={{ text: 'World' }} />
+        </>
+    );
 };
