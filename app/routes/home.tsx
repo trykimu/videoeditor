@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react"
 import { VideoPlayer } from "~/remotion/VideoPlayer"
+import axios from "axios"
 
 interface ScrubberState {
   id: string
@@ -284,6 +285,8 @@ export default function TimelineEditor() {
     },
   ])
   const [timelineWidth, setTimelineWidth] = useState(2000)
+  const [isRendering, setIsRendering] = useState(false)
+  const [renderStatus, setRenderStatus] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
 
   const EXPANSION_THRESHOLD = 200
@@ -306,6 +309,70 @@ export default function TimelineEditor() {
 
     return timelineData
   }, [timelines, timelineWidth])
+
+  const handleRenderVideo = useCallback(async () => {
+    setIsRendering(true)
+    setRenderStatus("Starting render...")
+    
+    try {
+      const timelineData = getTimelineData()
+      
+      if (timelines.length === 0 || timelines.every(t => t.scrubbers.length === 0)) {
+        setRenderStatus("Error: No timeline data to render")
+        setIsRendering(false)
+        return
+      }
+
+      setRenderStatus("Sending data to render server...")
+      
+      const response = await axios.post('http://localhost:8000/render', {
+        timelineData: timelineData
+      }, {
+        responseType: 'blob',
+        timeout: 120000, // 2 minutes timeout
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            setRenderStatus(`Downloading rendered video: ${percentCompleted}%`)
+          } else {
+            setRenderStatus("Rendering video...")
+          }
+        }
+      })
+
+      // Create download link for the rendered video
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'rendered-video.mp4')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      setRenderStatus("Video rendered and downloaded successfully!")
+      
+    } catch (error) {
+      console.error('Render error:', error)
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          setRenderStatus("Error: Render timeout - try reducing video length")
+        } else if (error.response?.status === 500) {
+          setRenderStatus(`Error: ${error.response.data?.message || 'Server error during rendering'}`)
+        } else if (error.request) {
+          setRenderStatus("Error: Cannot connect to render server. Is it running on port 8000?")
+        } else {
+          setRenderStatus(`Error: ${error.message}`)
+        }
+      } else {
+        setRenderStatus("Error: Unknown rendering error occurred")
+      }
+    } finally {
+      setIsRendering(false)
+      // Clear status after 5 seconds
+      setTimeout(() => setRenderStatus(""), 5000)
+    }
+  }, [getTimelineData, timelines])
 
   const expandTimeline = useCallback(() => {
     if (!containerRef.current) return false
@@ -348,10 +415,21 @@ export default function TimelineEditor() {
         <h2 className="text-2xl font-bold">Timeline Editor</h2>
         <div className="space-x-2">
           <button
-            onClick={getTimelineData}
+            onClick={() => console.log(getTimelineData())}
             className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
           >
             Log Timeline Data
+          </button>
+          <button
+            onClick={handleRenderVideo}
+            disabled={isRendering}
+            className={`px-4 py-2 text-white rounded transition-colors ${
+              isRendering 
+                ? "bg-gray-500 cursor-not-allowed" 
+                : "bg-orange-500 hover:bg-orange-600"
+            }`}
+          >
+            {isRendering ? "Rendering..." : "Render Video"}
           </button>
           <button
             onClick={handleAddTimeline}
@@ -361,6 +439,20 @@ export default function TimelineEditor() {
           </button>
         </div>
       </div>
+      
+      {/* Render Status */}
+      {renderStatus && (
+        <div className={`mb-4 p-3 rounded-lg ${
+          renderStatus.startsWith("Error") 
+            ? "bg-red-100 text-red-700 border border-red-200" 
+            : renderStatus.includes("successfully")
+            ? "bg-green-100 text-green-700 border border-green-200"
+            : "bg-blue-100 text-blue-700 border border-blue-200"
+        }`}>
+          {renderStatus}
+        </div>
+      )}
+
       <div
         ref={containerRef}
         className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded"

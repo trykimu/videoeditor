@@ -18,6 +18,7 @@
     "@remotion/player": "4.0.306",
     "@remotion/renderer": "4.0.306",
     "@types/cors": "^2.8.18",
+    "axios": "^1.9.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "isbot": "^5.1.27",
