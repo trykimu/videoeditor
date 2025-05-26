@@ -1,11 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect } from "react"
 import { VideoPlayer } from "~/remotion/VideoPlayer"
+import {parseMedia} from '@remotion/media-parser';
 import axios from "axios"
 
 interface ScrubberState {
   id: string
   left: number
   width: number
+  mediaType: "video" | "image" | "text"
+  mediaUrlLocal?: string
+  mediaUrlRemote?: string
 }
 
 interface TimelineState {
@@ -216,12 +220,49 @@ const Timeline: React.FC<TimelineProps> = ({
   expandTimeline 
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const PIXELS_PER_SECOND = 100;
+
+  const handleAddVideo = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    
+    if (file) {
+      try {
+        const {durationInSeconds} = await parseMedia({
+          src: file,
+          fields: {
+            durationInSeconds: true,
+          }
+        })
+        const newScrubber: ScrubberState = {
+          id: crypto.randomUUID(),
+          left: 50,
+          width: ((durationInSeconds ?? 0) * PIXELS_PER_SECOND) || 80,
+          mediaType: file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })(),
+          mediaUrlLocal: URL.createObjectURL(file),
+        }
+        onUpdate({
+          ...timeline,
+          scrubbers: [...timeline.scrubbers, newScrubber],
+        })
+      } catch (error) {
+        console.error("Error parsing media or adding scrubber:", error);
+        alert(`Failed to add media: ${error instanceof Error ? error.message : "Unknown error"}`);
+      } finally {
+        if (event.target) {
+          event.target.value = "";
+        }
+      }
+    }
+  }, [timeline, onUpdate, PIXELS_PER_SECOND])
 
   const handleAddScrubber = useCallback(() => {
     const newScrubber: ScrubberState = {
       id: crypto.randomUUID(),
       left: 50,
       width: 80,
+      mediaType: "text",
     }
     onUpdate({
       ...timeline,
@@ -244,6 +285,19 @@ const Timeline: React.FC<TimelineProps> = ({
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold">Timeline {timeline.id}</h3>
         <div className="space-x-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            accept="video/*,image/*"
+            onChange={handleAddVideo}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+          >
+            Add Media
+          </button>
           <button
             onClick={handleAddScrubber}
             className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
@@ -280,7 +334,7 @@ export default function TimelineEditor() {
     {
       id: "1",
       scrubbers: [
-        { id: "1-1", left: 50, width: 80 },
+        { id: "1-1", left: 50, width: 80, mediaType: "text" },
       ],
     },
   ])
@@ -301,6 +355,10 @@ export default function TimelineEditor() {
       totalDuration: timelineWidth / PIXELS_PER_SECOND,
       scrubbers: timeline.scrubbers.map(scrubber => ({
         id: scrubber.id,
+        mediaType: scrubber.mediaType,
+        mediaUrlLocal: scrubber.mediaUrlLocal,
+        mediaUrlRemote: scrubber.mediaUrlRemote,
+        width: scrubber.width,
         startTime: scrubber.left / PIXELS_PER_SECOND,
         endTime: (scrubber.left + scrubber.width) / PIXELS_PER_SECOND,
         duration: scrubber.width / PIXELS_PER_SECOND
@@ -453,21 +511,104 @@ export default function TimelineEditor() {
         </div>
       )}
 
+      {/* Timeline Headers (Fixed) */}
+      {timelines.map((timeline) => (
+        <div key={`header-${timeline.id}`} className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold">Timeline {timeline.id}</h3>
+          <div className="space-x-2">
+            <button
+              onClick={() => {
+                const fileInput = document.createElement('input')
+                fileInput.type = 'file'
+                fileInput.accept = 'video/*,image/*'
+                fileInput.onchange = async (e) => {
+                  const target = e.target as HTMLInputElement
+                  const file = target.files?.[0]
+                  if (file) {
+                    try {
+                      const {durationInSeconds} = await parseMedia({
+                        src: file,
+                        fields: {
+                          durationInSeconds: true,
+                        }
+                      })
+                      const newScrubber: ScrubberState = {
+                        id: crypto.randomUUID(),
+                        left: 50,
+                        width: ((durationInSeconds ?? 0) * 100) || 80,
+                        mediaType: file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })(),
+                        mediaUrlLocal: URL.createObjectURL(file),
+                      }
+                      handleUpdateTimeline({
+                        ...timeline,
+                        scrubbers: [...timeline.scrubbers, newScrubber],
+                      })
+                    } catch (error) {
+                      console.error("Error parsing media or adding scrubber:", error);
+                      alert(`Failed to add media: ${error instanceof Error ? error.message : "Unknown error"}`);
+                    }
+                  }
+                }
+                fileInput.click()
+              }}
+              className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+            >
+              Add Media
+            </button>
+            <button
+              onClick={() => {
+                const newScrubber: ScrubberState = {
+                  id: crypto.randomUUID(),
+                  left: 50,
+                  width: 80,
+                  mediaType: "text",
+                }
+                handleUpdateTimeline({
+                  ...timeline,
+                  scrubbers: [...timeline.scrubbers, newScrubber],
+                })
+              }}
+              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Add Scrubber
+            </button>
+            <button
+              onClick={() => handleDeleteTimeline(timeline.id)}
+              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+              Delete Timeline
+            </button>
+          </div>
+        </div>
+      ))}
+
+      {/* Scrollable Timeline Content */}
       <div
         ref={containerRef}
         className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded"
         onScroll={handleScroll}
       >
-        {timelines.map((timeline) => (
-          <Timeline
-            key={timeline.id}
-            timeline={timeline}
-            onUpdate={handleUpdateTimeline}
-            onDelete={() => handleDeleteTimeline(timeline.id)}
-            timelineWidth={timelineWidth}
-            containerRef={containerRef}
-            expandTimeline={expandTimeline}
-          />
+        {timelines.map((timeline, index) => (
+          <div key={timeline.id} className="mb-8">
+            <div className="h-16 bg-gray-200 relative rounded-lg" style={{ width: `${timelineWidth}px` }}>
+              {timeline.scrubbers.map((scrubber) => (
+                <Scrubber
+                  key={scrubber.id}
+                  scrubber={scrubber}
+                  timelineWidth={timelineWidth}
+                  otherScrubbers={timeline.scrubbers.filter((s) => s.id !== scrubber.id)}
+                  onUpdate={(updatedScrubber) => {
+                    handleUpdateTimeline({
+                      ...timeline,
+                      scrubbers: timeline.scrubbers.map((s) => (s.id === updatedScrubber.id ? updatedScrubber : s)),
+                    })
+                  }}
+                  containerRef={containerRef}
+                  expandTimeline={expandTimeline}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 

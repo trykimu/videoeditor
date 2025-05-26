@@ -15,6 +15,7 @@
     "@remotion/bundler": "4.0.306",
     "@remotion/cli": "4.0.306",
     "@remotion/eslint-plugin": "^4.0.306",
+    "@remotion/media-parser": "4.0.310",
     "@remotion/player": "4.0.306",
     "@remotion/renderer": "4.0.306",
     "@types/cors": "^2.8.18",

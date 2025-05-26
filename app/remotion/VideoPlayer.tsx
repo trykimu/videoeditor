@@ -1,7 +1,7 @@
 // this is the video player component. It basically takes the JSON representation of the timeline and renders it.
 
 import { Player } from '@remotion/player';
-import { Sequence } from 'remotion';
+import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
 
 
 type MediaItem = {
@@ -23,6 +23,10 @@ type TimelineScrubber = {
     startTime: number;
     endTime: number;
     duration: number;
+    mediaType: 'image' | 'video' | 'text';
+    mediaUrlLocal?: string;
+    mediaUrlRemote?: string;
+    width: number;
 }
 
 type TimelineData = {
@@ -39,30 +43,66 @@ export function TimelineComposition({ timelineData }: VideoPlayerProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
+    const FPS = 30; // Assuming 30 FPS as set in VideoPlayer
 
     for (const timeline of timelineData) {
         for (const scrubber of timeline.scrubbers) {
-            items.push(
-                <Sequence from={Math.round(scrubber.startTime * 4)} durationInFrames={Math.round(scrubber.duration * 4)} key={scrubber.id}>
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        textAlign: 'center',
-                        width: '100%'
-                    }}>
-                        <p style={{
-                            color: 'white',
-                            fontSize: '48px',
-                            fontFamily: 'Arial, sans-serif',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-                            margin: 0,
-                            padding: '20px'
-                        }}>{scrubber.id}</p>
-                    </div>
-                </Sequence>
-            )
+            let content: React.ReactNode = null;
+
+            switch (scrubber.mediaType) {
+                case 'text':
+                    content = (
+                        <AbsoluteFill style={{
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}>
+                            <div style={{
+                                textAlign: 'center',
+                                width: '100%'
+                            }}>
+                                <p style={{
+                                    color: 'white',
+                                    fontSize: '48px',
+                                    fontFamily: 'Arial, sans-serif',
+                                    textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                                    margin: 0,
+                                    padding: '20px'
+                                }}>{scrubber.id}</p> {/* Using scrubber.id as placeholder for text content, update if actual text is available */}
+                            </div>
+                        </AbsoluteFill>
+                    );
+                    break;
+                case 'image':
+                    if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
+                        content = (
+                            <AbsoluteFill>
+                                <Img src={scrubber.mediaUrlLocal || scrubber.mediaUrlRemote!} />
+                            </AbsoluteFill>
+                        );
+                    }
+                    break;
+                case 'video':
+                    if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
+                        content = (
+                            <AbsoluteFill>
+                                <Video src={scrubber.mediaUrlLocal || scrubber.mediaUrlRemote!} />
+                            </AbsoluteFill>
+                        );
+                    }
+                    break;
+                default:
+                    // Optionally handle unknown media types or log a warning
+                    console.warn(`Unknown media type: ${scrubber.mediaType}`);
+                    break;
+            }
+
+            if (content) {
+                items.push(
+                    <Sequence from={Math.round(scrubber.startTime * FPS)} durationInFrames={Math.round(scrubber.duration * FPS)} key={scrubber.id}>
+                        {content}
+                    </Sequence>
+                );
+            }
         }
     }
 
@@ -73,55 +113,7 @@ export function TimelineComposition({ timelineData }: VideoPlayerProps) {
     )
 }
 
-// // Component that renders text at specific times
-// const TextComponent: React.FC<{ text: string; startTime: number; duration: number }> = ({
-//     text,
-//     startTime,
-//     duration
-// }) => {
-//     return (
-//         <div
-//             style={{
-//                 position: 'absolute',
-//                 top: '50%',
-//                 left: '50%',
-//                 transform: 'translate(-50%, -50%)',
-//                 fontSize: '48px',
-//                 fontFamily: 'Arial',
-//                 color: 'white',
-//                 textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-//             }}
-//         >
-//             {text}
-//         </div>
-//     );
-// };
-
-// // Main composition that handles all text elements
-// const TimelineComposition: React.FC<{ timelineData: TimelineData[] }> = ({ timelineData }) => {
-//     return (
-//         <div style={{ width: '100%', height: '100%', backgroundColor: '#000' }}>
-//             {timelineData.flatMap((timeline) =>
-//                 timeline.scrubbers.map((scrubber) => (
-//                     <TextComponent
-//                         key={scrubber.id}
-//                         text={`Text ${scrubber.id}`}
-//                         startTime={scrubber.startTime}
-//                         duration={scrubber.duration}
-//                     />
-//                 ))
-//             )}
-//         </div>
-//     );
-// };
-
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ timelineData }) => {
-    // console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
-    // Calculate total duration from all timelines
-    // const totalDuration = useCallback(() => {
-    //     return Math.max(...timelineData.map(timeline => timeline.totalDuration));
-    // }, [timelineData]);
-
     return (
         <Player
             component={TimelineComposition}

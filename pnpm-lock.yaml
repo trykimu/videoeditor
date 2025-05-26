@@ -23,6 +23,9 @@ importers:
       '@remotion/eslint-plugin':
         specifier: ^4.0.306
         version: 4.0.306(eslint@9.27.0(jiti@2.4.2))(typescript@5.8.3)
+      '@remotion/media-parser':
+        specifier: 4.0.310
+        version: 4.0.310
       '@remotion/player':
         specifier: 4.0.306
         version: 4.0.306(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -777,6 +780,9 @@ packages:
 
   '@remotion/media-parser@4.0.306':
     resolution: {integrity: sha512-sy0Uqj6mH6FD86gQhX479GU+iMDLYPH66pbwWuhWY1kS4uWfpLNenEvcxrreRXYCOqAMmZbOZ1EFBcf7VP3V7Q==}
+
+  '@remotion/media-parser@4.0.310':
+    resolution: {integrity: sha512-BkDtq1CeOQAnCvfbhJi3tlDwDy3vqi87UVu3elBlRAqCQhqSpcYrAUcs84awqUZNCAUo0V9+Dr1I+XOz0Vtt4A==}
 
   '@remotion/media-utils@4.0.306':
     resolution: {integrity: sha512-BS2plGZOxH7lL7LeubMsfLKZaJ7GqIuq2kE45DDIIYlwEEM9D50Y89MJI5KLYF9KSDXSvRa3Rb65Hp5M/nGkbA==}
@@ -4017,6 +4023,8 @@ snapshots:
       - typescript
 
   '@remotion/media-parser@4.0.306': {}
+
+  '@remotion/media-parser@4.0.310': {}
 
   '@remotion/media-utils@4.0.306(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
