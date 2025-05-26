@@ -226,22 +226,38 @@ const Timeline: React.FC<TimelineProps> = ({
 
   const handleAddVideo = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    
+    console.log("File selected:", file);
     if (file) {
       try {
-        const {durationInSeconds} = await parseMedia({
-          src: file,
-          fields: {
-            durationInSeconds: true,
-          }
-        })
+        // Determine media type
+        const mediaType = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })();
+        
+        let width = 80; // Default width for images
+        
+        // Only parse media for videos since images don't have duration
+        if (mediaType === "video") {
+          console.log("Parsing video file for duration...");
+          const {durationInSeconds} = await parseMedia({
+            src: file,
+            fields: {
+              durationInSeconds: true,
+            }
+          })
+          width = ((durationInSeconds ?? 0) * PIXELS_PER_SECOND) || 80;
+          console.log("Video duration:", durationInSeconds, "seconds, width:", width);
+        } else {
+          console.log("Image file detected, using default width");
+        }
+        
         const newScrubber: ScrubberState = {
           id: crypto.randomUUID(),
           left: 50,
-          width: ((durationInSeconds ?? 0) * PIXELS_PER_SECOND) || 80,
-          mediaType: file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })(),
+          width: width,
+          mediaType: mediaType,
           mediaUrlLocal: URL.createObjectURL(file),
         }
+        
+        console.log("Adding new scrubber:", newScrubber);
         onUpdate({
           ...timeline,
           scrubbers: [...timeline.scrubbers, newScrubber],
@@ -524,21 +540,37 @@ export default function TimelineEditor() {
                 fileInput.onchange = async (e) => {
                   const target = e.target as HTMLInputElement
                   const file = target.files?.[0]
+                  console.log("File selected from header:", file);
                   if (file) {
                     try {
-                      const {durationInSeconds} = await parseMedia({
-                        src: file,
-                        fields: {
-                          durationInSeconds: true,
-                        }
-                      })
+                      // Determine media type
+                      const mediaType = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })();
+                      
+                      let width = 80; // Default width for images
+                      
+                      // Only parse media for videos since images don't have duration
+                      if (mediaType === "video") {
+                        console.log("Parsing video file for duration...");
+                        const {durationInSeconds} = await parseMedia({
+                          src: file,
+                          fields: {
+                            durationInSeconds: true,
+                          }
+                        })
+                        width = ((durationInSeconds ?? 0) * 100) || 80;
+                        console.log("Video duration:", durationInSeconds, "seconds, width:", width);
+                      } else {
+                        console.log("Image file detected, using default width");
+                      }
+                      
                       const newScrubber: ScrubberState = {
                         id: crypto.randomUUID(),
                         left: 50,
-                        width: ((durationInSeconds ?? 0) * 100) || 80,
-                        mediaType: file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })(),
+                        width: width,
+                        mediaType: mediaType,
                         mediaUrlLocal: URL.createObjectURL(file),
                       }
+                      console.log("Adding new scrubber from header:", newScrubber);
                       handleUpdateTimeline({
                         ...timeline,
                         scrubbers: [...timeline.scrubbers, newScrubber],
