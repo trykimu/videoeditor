@@ -36,6 +36,7 @@ type VideoPlayerProps = {
 }
 
 function TimelineComposition({ timelineData }: VideoPlayerProps) {
+    console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
 
