@@ -76,7 +76,7 @@ export function TimelineComposition({ timelineData }: VideoPlayerProps) {
                     if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
                         content = (
                             <AbsoluteFill>
-                                <Img src={scrubber.mediaUrlLocal || scrubber.mediaUrlRemote!} />
+                                <Img src={scrubber.mediaUrlRemote || scrubber.mediaUrlLocal!} />
                             </AbsoluteFill>
                         );
                     }
@@ -85,7 +85,7 @@ export function TimelineComposition({ timelineData }: VideoPlayerProps) {
                     if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
                         content = (
                             <AbsoluteFill>
-                                <Video src={scrubber.mediaUrlLocal || scrubber.mediaUrlRemote!} />
+                                <Video src={scrubber.mediaUrlRemote || scrubber.mediaUrlLocal!} />
                             </AbsoluteFill>
                         );
                     }

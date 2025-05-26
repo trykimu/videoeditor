@@ -16,7 +16,7 @@ export default function RenderComposition() {
                         id: "1",
                         totalDuration: 10,
                         scrubbers: [
-                            { id: "1-1", startTime: 0, endTime: 3, duration: 3 },
+                            { id: "1-1", startTime: 0, endTime: 3, duration: 3, mediaType: "text", width: 80 },
                         ],
                     }
                 ],

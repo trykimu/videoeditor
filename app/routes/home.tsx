@@ -202,149 +202,6 @@ const Scrubber: React.FC<ScrubberProps> = ({
   )
 }
 
-interface TimelineProps {
-  timeline: TimelineState
-  onUpdate: (updatedTimeline: TimelineState) => void
-  onDelete: () => void
-  timelineWidth: number
-  containerRef: React.RefObject<HTMLDivElement | null>
-  expandTimeline: () => boolean
-}
-
-const Timeline: React.FC<TimelineProps> = ({ 
-  timeline, 
-  onUpdate, 
-  onDelete, 
-  timelineWidth,
-  containerRef,
-  expandTimeline 
-}) => {
-  const timelineRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const PIXELS_PER_SECOND = 100;
-
-  const handleAddVideo = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    console.log("File selected:", file);
-    if (file) {
-      try {
-        // Determine media type
-        const mediaType = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : (() => { throw new Error("Invalid file type - must be video or image"); })();
-        
-        let width = 80; // Default width for images
-        
-        // Only parse media for videos since images don't have duration
-        if (mediaType === "video") {
-          console.log("Parsing video file for duration...");
-          const {durationInSeconds} = await parseMedia({
-            src: file,
-            fields: {
-              durationInSeconds: true,
-            }
-          })
-          width = ((durationInSeconds ?? 0) * PIXELS_PER_SECOND) || 80;
-          console.log("Video duration:", durationInSeconds, "seconds, width:", width);
-        } else {
-          console.log("Image file detected, using default width");
-        }
-        
-        const newScrubber: ScrubberState = {
-          id: crypto.randomUUID(),
-          left: 50,
-          width: width,
-          mediaType: mediaType,
-          mediaUrlLocal: URL.createObjectURL(file),
-        }
-        
-        console.log("Adding new scrubber:", newScrubber);
-        onUpdate({
-          ...timeline,
-          scrubbers: [...timeline.scrubbers, newScrubber],
-        })
-      } catch (error) {
-        console.error("Error parsing media or adding scrubber:", error);
-        alert(`Failed to add media: ${error instanceof Error ? error.message : "Unknown error"}`);
-      } finally {
-        if (event.target) {
-          event.target.value = "";
-        }
-      }
-    }
-  }, [timeline, onUpdate, PIXELS_PER_SECOND])
-
-  const handleAddScrubber = useCallback(() => {
-    const newScrubber: ScrubberState = {
-      id: crypto.randomUUID(),
-      left: 50,
-      width: 80,
-      mediaType: "text",
-    }
-    onUpdate({
-      ...timeline,
-      scrubbers: [...timeline.scrubbers, newScrubber],
-    })
-  }, [timeline, onUpdate])
-
-  const handleUpdateScrubber = useCallback(
-    (updatedScrubber: ScrubberState) => {
-      onUpdate({
-        ...timeline,
-        scrubbers: timeline.scrubbers.map((s) => (s.id === updatedScrubber.id ? updatedScrubber : s)),
-      })
-    },
-    [timeline, onUpdate],
-  )
-
-  return (
-    <div className="mb-8">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold">Timeline {timeline.id}</h3>
-        <div className="space-x-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            accept="video/*,image/*"
-            onChange={handleAddVideo}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
-          >
-            Add Media
-          </button>
-          <button
-            onClick={handleAddScrubber}
-            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Add Scrubber
-          </button>
-          <button
-            onClick={onDelete}
-            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-          >
-            Delete Timeline
-          </button>
-        </div>
-      </div>
-      <div ref={timelineRef} className="h-16 bg-gray-200 relative rounded-lg" style={{ width: `${timelineWidth}px` }}>
-        {timeline.scrubbers.map((scrubber) => (
-          <Scrubber
-            key={scrubber.id}
-            scrubber={scrubber}
-            timelineWidth={timelineWidth}
-            otherScrubbers={timeline.scrubbers.filter((s) => s.id !== scrubber.id)}
-            onUpdate={handleUpdateScrubber}
-            containerRef={containerRef}
-            expandTimeline={expandTimeline}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export default function TimelineEditor() {
   const [timelines, setTimelines] = useState<TimelineState[]>([
     {
@@ -563,12 +420,30 @@ export default function TimelineEditor() {
                         console.log("Image file detected, using default width");
                       }
                       
+                      // Upload file to server to get global URL
+                      const formData = new FormData();
+                      formData.append('media', file);
+                      
+                      console.log("Uploading file to server...");
+                      const uploadResponse = await fetch('http://localhost:8000/upload', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      if (!uploadResponse.ok) {
+                        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+                      }
+                      
+                      const uploadResult = await uploadResponse.json();
+                      console.log("Upload successful:", uploadResult);
+                      
                       const newScrubber: ScrubberState = {
                         id: crypto.randomUUID(),
                         left: 50,
                         width: width,
                         mediaType: mediaType,
-                        mediaUrlLocal: URL.createObjectURL(file),
+                        mediaUrlLocal: URL.createObjectURL(file), // For local preview
+                        mediaUrlRemote: uploadResult.fullUrl, // For server access
                       }
                       console.log("Adding new scrubber from header:", newScrubber);
                       handleUpdateTimeline({
