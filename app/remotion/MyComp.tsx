@@ -1,7 +1,7 @@
-import { Sequence, Img } from "remotion";
+import { Sequence, OffthreadVideo } from "remotion";
 
 
-export const MyComp: React.FC<{ text: string }> = ({ text }) => {
+export const MyComp: React.FC<{ videoURL: string }> = ({ videoURL }) => {
     // return <div>Hello {text}!</div>;
     return (
         <>
@@ -18,7 +18,7 @@ export const MyComp: React.FC<{ text: string }> = ({ text }) => {
                 <Img src="http://192.168.1.3:8080/pan%20card.jpg" />
             </Sequence> */}
             <div>
-                <p>hi</p>
+                <OffthreadVideo src={videoURL} />
             </div>
         </>
     )

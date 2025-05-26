@@ -35,7 +35,7 @@ type VideoPlayerProps = {
     timelineData: TimelineData[];
 }
 
-function TimelineComposition({ timelineData }: VideoPlayerProps) {
+export function TimelineComposition({ timelineData }: VideoPlayerProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
@@ -52,7 +52,7 @@ function TimelineComposition({ timelineData }: VideoPlayerProps) {
                         textAlign: 'center',
                         width: '100%'
                     }}>
-                        <p style={{ 
+                        <p style={{
                             color: 'white',
                             fontSize: '48px',
                             fontFamily: 'Arial, sans-serif',
