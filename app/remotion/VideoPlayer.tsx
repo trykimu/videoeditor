@@ -1,7 +1,8 @@
 // this is the video player component. It basically takes the JSON representation of the timeline and renders it.
 
-import { Player } from '@remotion/player';
+import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
+import React, { forwardRef } from 'react';
 
 
 type MediaItem = {
@@ -114,9 +115,11 @@ export function TimelineComposition({ timelineData, durationInFrames }: VideoPla
     )
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ timelineData, durationInFrames }) => {
+export const VideoPlayer = forwardRef<PlayerRef, VideoPlayerProps>(
+    ({ timelineData, durationInFrames }, ref) => {
     return (
         <Player
+            ref={ref}
             component={TimelineComposition}
             inputProps={{ timelineData, durationInFrames }}
             durationInFrames={durationInFrames}
@@ -130,4 +133,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ timelineData, duration
             controls
         />
     );
-};
+});
+
+VideoPlayer.displayName = "VideoPlayer";

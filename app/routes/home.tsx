@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react"
 import { VideoPlayer as RemotionVideoPlayer } from "~/remotion/VideoPlayer"
 import {parseMedia} from '@remotion/media-parser';
 import axios from "axios"
+import type { PlayerRef } from "@remotion/player";
 
 // Constants
 const PIXELS_PER_SECOND = 100;
@@ -360,7 +361,7 @@ interface VideoPlayerProps {
     // [key: string]: any; // Removed permissive index signature
 }
 
-const VideoPlayer = RemotionVideoPlayer as React.FC<VideoPlayerProps>;
+const VideoPlayer = RemotionVideoPlayer as React.FC<VideoPlayerProps & { ref?: React.Ref<PlayerRef> }>;
 
 export default function TimelineEditor() {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -382,6 +383,7 @@ export default function TimelineEditor() {
   const [isRendering, setIsRendering] = useState(false)
   const [renderStatus, setRenderStatus] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
+  const playerRef = useRef<PlayerRef>(null);
 
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([
     // Example item
@@ -641,7 +643,9 @@ export default function TimelineEditor() {
 
   // New: Handle Ruler Drag (Simplified: sets position, player sync is TBD in VideoPlayer)
   const handleRulerDrag = (newPositionPx: number) => {
+    const newFrame = Math.round((newPositionPx / PIXELS_PER_SECOND) * FPS);
     setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
+    playerRef.current?.seekTo(newFrame);
   };
 
   // Placeholder for dragging item from bin to timeline
@@ -722,6 +726,7 @@ export default function TimelineEditor() {
             })()}
             // This prop needs to be implemented/handled by VideoPlayer component
             currentFrame={Math.round((rulerPositionPx / PIXELS_PER_SECOND) * FPS)} 
+            ref={playerRef}
           />
         </div>
       </div>
@@ -802,31 +807,31 @@ export default function TimelineEditor() {
       >
         {/* Timeline Ruler (Simplified visual) */}
         <div 
-            className="h-6 bg-gray-200 relative border-b border-gray-400"
+            className="h-12 bg-gray-200 relative border-b-2 border-gray-400 cursor-pointer"
             style={{ width: `${timelineWidth}px` }}
-            onClick={(e) => { // Simple click to move ruler
+            onClick={(e) => { 
                 if (containerRef.current) {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
-                    handleRulerDrag(clickX + (containerRef.current.scrollLeft || 0));
+                    const newPositionPx = clickX + (containerRef.current.scrollLeft || 0);
+                    handleRulerDrag(newPositionPx);
                 }
             }}
         >
             {/* Ruler line indicator */}
             <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500 cursor-col-resize"
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500"
                 style={{ left: `${rulerPositionPx}px`}}
-                // Make this draggable in a future step
             >
-                <div className="absolute -top-2 transform -translate-x-1/2 bg-red-500 text-white text-xs px-1 rounded-sm">
+                <div className="absolute -top-2.5 transform -translate-x-1/2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-sm pointer-events-none">
                     {(rulerPositionPx / PIXELS_PER_SECOND).toFixed(1)}s
                 </div>
             </div>
             {/* Ruler markings */}
             {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((sec) => (
-                <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-end" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
-                    <div className={`w-px ${sec % 5 === 0 ? 'h-4 bg-gray-600' : 'h-2 bg-gray-400'}`} />
-                    {sec % 5 === 0 && <span className="text-xs text-gray-600 -ml-1">{sec}s</span>}
+                <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-end pointer-events-none" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
+                    <div className={`w-px ${sec % 5 === 0 ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'}`} />
+                    {sec % 5 === 0 && <span className="text-sm text-gray-700 -ml-1.5 mt-1">{sec}s</span>}
                 </div>
             ))}
         </div>
