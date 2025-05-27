@@ -8,6 +8,7 @@ import type { PlayerRef } from "@remotion/player";
 const PIXELS_PER_SECOND = 100;
 const DEFAULT_TRACK_HEIGHT = 60; // Added constant for track height
 const FPS = 30; // Added constant for FPS
+const RULER_HEIGHT = 48; // Defined ruler height for clarity
 
 interface ScrubberState {
   id: string
@@ -76,7 +77,6 @@ interface ScrubberProps {
   expandTimeline: () => boolean
   snapConfig: SnapConfig
   trackCount: number
-  // trackHeight: number // trackHeight will now be a constant
 }
 
 const Scrubber: React.FC<ScrubberProps> = ({
@@ -88,7 +88,6 @@ const Scrubber: React.FC<ScrubberProps> = ({
   expandTimeline,
   snapConfig,
   trackCount,
-  // trackHeight, // Replaced with DEFAULT_TRACK_HEIGHT
 }) => {
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -293,7 +292,7 @@ const Scrubber: React.FC<ScrubberProps> = ({
         }
       }
     },
-    [isDragging, isResizing, resizeMode, scrubber, timelineWidth, checkCollisionWithTrack, onUpdate, expandTimeline, containerRef, findSnapPoint, trackCount /* removed trackHeight */],
+    [isDragging, isResizing, resizeMode, scrubber, timelineWidth, checkCollisionWithTrack, onUpdate, expandTimeline, containerRef, findSnapPoint, trackCount],
   )
 
   const handleMouseUp = useCallback(() => {
@@ -318,8 +317,8 @@ const Scrubber: React.FC<ScrubberProps> = ({
       style={{
         left: `${scrubber.left}px`,
         width: `${scrubber.width}px`,
-        top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT}px`, // Use constant
-        height: `${DEFAULT_TRACK_HEIGHT}px`, // Use constant
+        top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT}px`,
+        height: `${DEFAULT_TRACK_HEIGHT}px`,
         minWidth: "20px",
         zIndex: isDragging ? 1000 : 10,
       }}
@@ -352,13 +351,9 @@ const Scrubber: React.FC<ScrubberProps> = ({
   )
 }
 
-// If VideoPlayer is imported, its props should ideally come from its definition.
-// For now, to resolve linting, we define a more comprehensive placeholder.
 interface VideoPlayerProps {
-    timelineData: TimelineDataItem[]; // Changed from any
+    timelineData: TimelineDataItem[];
     durationInFrames: number;
-    currentFrame?: number; // Prop for syncing ruler with player
-    // [key: string]: any; // Removed permissive index signature
 }
 
 const VideoPlayer = RemotionVideoPlayer as React.FC<VideoPlayerProps & { ref?: React.Ref<PlayerRef> }>;
@@ -369,12 +364,14 @@ export default function TimelineEditor() {
     tracks: [
       {
         id: "track-1",
-        scrubbers: [
-          { id: "1-1", left: 50, width: 80, mediaType: "text", y: 0, name: "Text Element" },
-        ],
+        scrubbers: [],
       },
       {
         id: "track-2", 
+        scrubbers: [],
+      },
+      {
+        id: "track-3",
         scrubbers: [],
       },
     ],
@@ -384,20 +381,16 @@ export default function TimelineEditor() {
   const [renderStatus, setRenderStatus] = useState<string>("")
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<PlayerRef>(null);
+  const isSeekingRef = useRef(false);
+  const isUpdatingFromPlayerRef = useRef(false);
 
-  const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([
-    // Example item
-    // { id: "mb-1", mediaType: "image", name: "Placeholder Image" } 
-  ])
-  const [rulerPositionPx, setRulerPositionPx] = useState(0) // In pixels
+  const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
+  const [rulerPositionPx, setRulerPositionPx] = useState(0)
 
   const EXPANSION_THRESHOLD = 200
   const EXPANSION_AMOUNT = 1000
 
   const getTimelineData = useCallback(() => {
-    // Assuming 100 pixels = 1 second for conversion
-    // const PIXELS_PER_SECOND = 100; // Defined globally now
-    
     const timelineData = [{
       id: timeline.id,
       totalDuration: timelineWidth / PIXELS_PER_SECOND,
@@ -449,12 +442,11 @@ export default function TimelineEditor() {
             });
           });
           console.log("Max end time:", maxEndTime*30);
-          // Convert seconds to frames (assuming 30 FPS)
           return Math.ceil(maxEndTime * 30);
         })()
       }, {
         responseType: 'blob',
-        timeout: 120000, // 2 minutes timeout
+        timeout: 120000,
         onDownloadProgress: (progressEvent) => {
           if (progressEvent.lengthComputable && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -465,7 +457,6 @@ export default function TimelineEditor() {
         }
       })
 
-      // Create download link for the rendered video
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
@@ -494,7 +485,6 @@ export default function TimelineEditor() {
       }
     } finally {
       setIsRendering(false)
-      // Clear status after 5 seconds
       setTimeout(() => setRenderStatus(""), 5000)
     }
   }, [getTimelineData, timeline])
@@ -570,7 +560,6 @@ export default function TimelineEditor() {
     }))
   }, [])
 
-  // New: Add Media to Bin
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = crypto.randomUUID();
     const name = file.name;
@@ -598,7 +587,6 @@ export default function TimelineEditor() {
         console.log("Video duration:", durationInSeconds, "seconds");
       }
 
-      // Upload file to server to get global URL
       const formData = new FormData();
       formData.append('media', file);
       
@@ -631,7 +619,6 @@ export default function TimelineEditor() {
     }
   }, []);
   
-  // New: Add Text to Bin
   const handleAddTextToBin = useCallback(() => {
     const newItem: MediaBinItem = {
       id: crypto.randomUUID(),
@@ -641,30 +628,116 @@ export default function TimelineEditor() {
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);
 
-  // New: Handle Ruler Drag (Simplified: sets position, player sync is TBD in VideoPlayer)
-  const handleRulerDrag = (newPositionPx: number) => {
-    const newFrame = Math.round((newPositionPx / PIXELS_PER_SECOND) * FPS);
-    setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
-    playerRef.current?.seekTo(newFrame);
-  };
+  const handleRulerDrag = useCallback((newPositionPx: number) => {
+    const clampedPositionPx = Math.max(0, Math.min(newPositionPx, timelineWidth));
+    setRulerPositionPx(clampedPositionPx);
+  }, [timelineWidth]);
 
-  // Placeholder for dragging item from bin to timeline
+  const [isDraggingRuler, setIsDraggingRuler] = useState(false);
+
+  const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingRuler(true);
+  }, []);
+
+  const handleRulerMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDraggingRuler || !containerRef.current) return;
+    
+    e.preventDefault();
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft;
+    handleRulerDrag(mouseX);
+  }, [isDraggingRuler, handleRulerDrag]);
+
+  const handleRulerMouseUp = useCallback(() => {
+    setIsDraggingRuler(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDraggingRuler) {
+      document.addEventListener('mousemove', handleRulerMouseMove);
+      document.addEventListener('mouseup', handleRulerMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleRulerMouseMove);
+        document.removeEventListener('mouseup', handleRulerMouseUp);
+      };
+    }
+  }, [isDraggingRuler, handleRulerMouseMove, handleRulerMouseUp]);
+
+  useEffect(() => {
+    if (playerRef.current && rulerPositionPx !== undefined && !isUpdatingFromPlayerRef.current && !isDraggingRuler) {
+      const targetFrame = Math.round((rulerPositionPx / PIXELS_PER_SECOND) * FPS);
+      const currentFrame = playerRef.current.getCurrentFrame();
+      
+      // Only seek if there's a significant difference to avoid micro-adjustments
+      if (Math.abs(currentFrame - targetFrame) > 2) {
+        isSeekingRef.current = true;
+        playerRef.current.seekTo(targetFrame);
+        
+        // Clear the seeking flag after a short delay to ensure it doesn't get stuck
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, 150);
+      }
+    }
+  }, [rulerPositionPx, timelineWidth, isDraggingRuler]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (player) {
+      const handleFrameUpdate = (e: { detail: { frame: number } }) => {
+        // Don't update ruler position if we're seeking or dragging
+        if (isSeekingRef.current || isDraggingRuler) return;
+        
+        const currentFrame = e.detail.frame;
+        const currentTimeInSeconds = currentFrame / FPS;
+        const newPositionPx = currentTimeInSeconds * PIXELS_PER_SECOND;
+        
+        // Only update if there's a meaningful difference to prevent jitter
+        if (Math.abs(newPositionPx - rulerPositionPx) > 2) {
+          isUpdatingFromPlayerRef.current = true;
+          setRulerPositionPx(newPositionPx);
+          
+          // Clear the flag after the update
+          setTimeout(() => {
+            isUpdatingFromPlayerRef.current = false;
+          }, 100);
+        }
+      };
+
+      const handleSeeked = () => {
+        // Small delay to ensure seek is complete
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, 50);
+      };
+
+      player.addEventListener('frameupdate', handleFrameUpdate);
+      player.addEventListener('seeked', handleSeeked);
+
+      return () => {
+        player.removeEventListener('frameupdate', handleFrameUpdate);
+        player.removeEventListener('seeked', handleSeeked);
+      };
+    }
+  }, [isDraggingRuler, rulerPositionPx]);
+
   const handleDropOnTrack = (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
     console.log("Dropped", item.name, "on track", trackId, "at", dropLeftPx, "px");
     
-    let widthPx = item.mediaType === "text" ? 80 : 150; // Default width
+    let widthPx = item.mediaType === "text" ? 80 : 150;
     if (item.mediaType === "video" && item.durationInSeconds) {
       widthPx = item.durationInSeconds * PIXELS_PER_SECOND;
     } else if (item.mediaType === "image") {
-      widthPx = 100; // Default for images
+      widthPx = 100;
     }
-    widthPx = Math.max(20, widthPx); // Ensure minimum width
+    widthPx = Math.max(20, widthPx);
 
     const targetTrackIndex = timeline.tracks.findIndex(t => t.id === trackId);
     if (targetTrackIndex === -1) return;
 
     const newScrubber: ScrubberState = {
-      id: item.id, // Reuse ID or generate new? For now, reuse.
+      id: crypto.randomUUID(),
       left: dropLeftPx,
       width: widthPx,
       mediaType: item.mediaType,
@@ -675,17 +748,13 @@ export default function TimelineEditor() {
       durationInSeconds: item.durationInSeconds,
     };
 
-    // Add to the specific track
     handleAddScrubberToTrack(trackId, newScrubber);
-    
-    // Remove from media bin
-    setMediaBinItems(prev => prev.filter(mb => mb.id !== item.id));
   };
 
   return (
     <div className="w-full max-w-6xl mx-auto mt-12 p-4 flex flex-col space-y-4">
       {/* Top Section: Media Bin and Player */}
-      <div className="flex space-x-4 h-[300px]"> {/* Approx height for player/bin */}
+      <div className="flex space-x-4 h-[300px]">
         {/* Top Left: Media Bin */}
         <div className="w-1/3 bg-gray-50 p-3 rounded-lg shadow border border-gray-200 overflow-y-auto">
           <h3 className="text-lg font-semibold mb-2">Media Bin</h3>
@@ -693,9 +762,7 @@ export default function TimelineEditor() {
             {mediaBinItems.map(item => (
               <div 
                 key={item.id} 
-                // Make this draggable in a future step
                 className="p-2 bg-blue-100 border border-blue-300 rounded shadow-sm cursor-grab"
-                // Basic drag simulation for now to test drop
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", JSON.stringify(item));
@@ -724,8 +791,6 @@ export default function TimelineEditor() {
               });
               return Math.ceil(maxEndTime * FPS); 
             })()}
-            // This prop needs to be implemented/handled by VideoPlayer component
-            currentFrame={Math.round((rulerPositionPx / PIXELS_PER_SECOND) * FPS)} 
             ref={playerRef}
           />
         </div>
@@ -744,7 +809,7 @@ export default function TimelineEditor() {
               const file = e.target.files?.[0];
               if (file) {
                 await handleAddMediaToBin(file);
-                e.target.value = ""; // Reset file input
+                e.target.value = "";
               }
             }}
           />
@@ -802,51 +867,69 @@ export default function TimelineEditor() {
       {/* Bottom Section: Timeline */}
       <div
         ref={containerRef}
-        className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded"
+        className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded relative"
         onScroll={handleScroll}
       >
-        {/* Timeline Ruler (Simplified visual) */}
+        {/* Timeline Ruler */}
         <div 
-            className="h-12 bg-gray-200 relative border-b-2 border-gray-400 cursor-pointer"
-            style={{ width: `${timelineWidth}px` }}
+            className="bg-gray-200 border-b-2 border-gray-400 cursor-pointer sticky top-0 left-0 z-50"
+            style={{ width: `${timelineWidth}px`, height: `${RULER_HEIGHT}px`, minWidth: '100%' }}
             onClick={(e) => { 
                 if (containerRef.current) {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const newPositionPx = clickX + (containerRef.current.scrollLeft || 0);
+                    const clickXInRuler = e.clientX - rect.left;
+                    const newPositionPx = clickXInRuler + containerRef.current.scrollLeft;
                     handleRulerDrag(newPositionPx);
                 }
             }}
         >
-            {/* Ruler line indicator */}
-            <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500"
-                style={{ left: `${rulerPositionPx}px`}}
-            >
-                <div className="absolute -top-2.5 transform -translate-x-1/2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-sm pointer-events-none">
-                    {(rulerPositionPx / PIXELS_PER_SECOND).toFixed(1)}s
-                </div>
-            </div>
             {/* Ruler markings */}
             {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((sec) => (
-                <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-end pointer-events-none" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
-                    <div className={`w-px ${sec % 5 === 0 ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'}`} />
-                    {sec % 5 === 0 && <span className="text-sm text-gray-700 -ml-1.5 mt-1">{sec}s</span>}
+                <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-between pointer-events-none" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
+                    {sec % 5 === 0 && <span className="text-sm text-gray-700 -ml-1.5 mt-1 bg-gray-200 px-1 rounded">{sec}s</span>}
+                    <div className={`w-px ${sec % 5 === 0 ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'} self-end`} />
                 </div>
             ))}
+             {/* Current Time Indicator on Ruler */}
+            <div 
+                className="absolute top-1 transform -translate-x-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded-md shadow-lg cursor-pointer z-10 hover:bg-red-700 transition-colors"
+                style={{ left: `${rulerPositionPx}px` }} 
+                onMouseDown={handleRulerMouseDown}
+            >
+                {(rulerPositionPx / PIXELS_PER_SECOND).toFixed(2)}s
+            </div>
         </div>
 
-        {/* Timeline Tracks Area */}
-        <div className="mb-8">
-          <div 
-            className="bg-gray-100 relative rounded-lg border-2 border-gray-300" 
-            style={{ 
-              width: `${timelineWidth}px`, 
-              minHeight: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px` // Use minHeight for empty state
+        {/* Playhead Line */}
+        <div
+            className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-40"
+            style={{
+                left: `${rulerPositionPx}px`,
+                height: '100%',
+                top: '0px',
             }}
-            onDragOver={(e) => e.preventDefault()} // Necessary for drop
-            // Drop handler is coarse, just for testing the concept
-            onDrop={(e) => {
+        />
+        
+        {/* Playhead Handle */}
+        <div
+            className="absolute w-3 h-3 bg-red-500 cursor-pointer z-50 hover:bg-red-600 transition-colors rounded-full border border-white"
+            style={{
+                left: `${rulerPositionPx - 6}px`,
+                top: `${RULER_HEIGHT - 6}px`,
+            }}
+            onMouseDown={handleRulerMouseDown}
+            title="Drag to seek"
+        />
+
+        {/* Timeline Tracks Area */}
+        <div 
+          className="bg-gray-100 relative rounded-lg border-2 border-gray-300"
+          style={{ 
+            width: `${timelineWidth}px`, 
+            minHeight: `${Math.max(timeline.tracks.length * DEFAULT_TRACK_HEIGHT, 200)}px`,
+          }}
+          onDragOver={(e) => e.preventDefault()} 
+          onDrop={(e) => {
                 e.preventDefault();
                 const itemString = e.dataTransfer.getData("text/plain");
                 if (!itemString) return;
@@ -858,10 +941,8 @@ export default function TimelineEditor() {
                 if (!containerBounds || !timelineBounds) return;
                 
                 const scrollLeft = containerRef.current?.scrollLeft || 0;
-                // Calculate drop position relative to the timeline div
                 const dropXInTimeline = e.clientX - timelineBounds.left + scrollLeft;
                 
-                // Determine which track was dropped on (very basic)
                 const dropYInTimeline = e.clientY - timelineBounds.top;
                 let trackIndex = Math.floor(dropYInTimeline / DEFAULT_TRACK_HEIGHT);
                 trackIndex = Math.max(0, Math.min(timeline.tracks.length - 1, trackIndex));
@@ -869,7 +950,6 @@ export default function TimelineEditor() {
                 if (timeline.tracks[trackIndex]) {
                     handleDropOnTrack(item, timeline.tracks[trackIndex].id, dropXInTimeline);
                 } else if (timeline.tracks.length > 0) {
-                    // Fallback to last track if calculation is off (e.g. empty space below tracks)
                     handleDropOnTrack(item, timeline.tracks[timeline.tracks.length-1].id, dropXInTimeline);
                 } else {
                     console.warn("No tracks to drop on, or track detection failed.");
@@ -885,7 +965,7 @@ export default function TimelineEditor() {
                     trackIndex % 2 === 0 ? 'bg-gray-50' : 'bg-gray-100'
                   }`}
                   style={{
-                    top: `0px`, // Relative to parent div which is already positioned
+                    top: `0px`,
                     height: `${DEFAULT_TRACK_HEIGHT}px`,
                   }}
                 />
@@ -901,10 +981,10 @@ export default function TimelineEditor() {
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 p-1 z-20"
                     title="Delete Track"
                 >
-                    🗑️ {/* Wastebasket emoji */}
+                    🗑️
                 </button>
                 
-                {/* Grid lines every 100px (1 second) */}
+                {/* Grid lines */}
                 {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((gridIndex) => (
                   <div
                     key={`grid-${track.id}-${gridIndex}`}
@@ -914,7 +994,7 @@ export default function TimelineEditor() {
                       top: `0px`,
                       width: '1px',
                       height: `${DEFAULT_TRACK_HEIGHT}px`,
-                      opacity: gridIndex % 5 === 0 ? 0.6 : 0.3, // Major/minor ticks
+                      opacity: gridIndex % 5 === 0 ? 0.6 : 0.3,
                     }}
                   />
                 ))}
@@ -933,7 +1013,6 @@ export default function TimelineEditor() {
                 expandTimeline={expandTimeline}
                 snapConfig={{ enabled: true, distance: 10 }}
                 trackCount={timeline.tracks.length}
-                // trackHeight={DEFAULT_TRACK_HEIGHT} // Passed to Scrubber
               />
             ))}
             {timeline.tracks.length === 0 && (
@@ -944,6 +1023,6 @@ export default function TimelineEditor() {
           </div>
         </div>
       </div>
-    </div>
-  )
-} 
+    // </div>
+  );
+}
