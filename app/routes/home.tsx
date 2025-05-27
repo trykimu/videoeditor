@@ -722,6 +722,32 @@ export default function TimelineEditor() {
     }
   }, [isDraggingRuler, rulerPositionPx]);
 
+  // Global spacebar play/pause functionality
+  useEffect(() => {
+    const handleGlobalKeyPress = (event: KeyboardEvent) => {
+      // Only handle spacebar and prevent it from scrolling the page
+      if (event.code === 'Space') {
+        event.preventDefault();
+        
+        const player = playerRef.current;
+        if (player) {
+          if (player.isPlaying()) {
+            player.pause();
+          } else {
+            player.play();
+          }
+        }
+      }
+    };
+
+    // Add event listener to document for global capture
+    document.addEventListener('keydown', handleGlobalKeyPress);
+
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyPress);
+    };
+  }, []); // Empty dependency array since we're accessing playerRef.current directly
+
   const handleDropOnTrack = (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
     console.log("Dropped", item.name, "on track", trackId, "at", dropLeftPx, "px");
     
