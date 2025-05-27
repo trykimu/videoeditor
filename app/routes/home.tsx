@@ -10,11 +10,19 @@ interface ScrubberState {
   mediaType: "video" | "image" | "text"
   mediaUrlLocal?: string
   mediaUrlRemote?: string
+  y?: number // track position (0-based index)
 }
 
 interface TimelineState {
   id: string
   scrubbers: ScrubberState[]
+  trackCount?: number // number of tracks for this timeline
+}
+
+// Add snapping configuration
+interface SnapConfig {
+  enabled: boolean
+  distance: number // snap distance in pixels
 }
 
 interface ScrubberProps {
@@ -24,6 +32,10 @@ interface ScrubberProps {
   onUpdate: (updatedScrubber: ScrubberState) => void
   containerRef: React.RefObject<HTMLDivElement | null>
   expandTimeline: () => boolean
+  snapConfig: SnapConfig
+  timelineId: string
+  trackCount: number
+  trackHeight: number
 }
 
 const Scrubber: React.FC<ScrubberProps> = ({
@@ -33,6 +45,10 @@ const Scrubber: React.FC<ScrubberProps> = ({
   onUpdate,
   containerRef,
   expandTimeline,
+  snapConfig,
+  timelineId,
+  trackCount,
+  trackHeight,
 }) => {
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -45,6 +61,58 @@ const Scrubber: React.FC<ScrubberProps> = ({
   })
 
   const MINIMUM_WIDTH = 20
+
+  // Get snap points (scrubber edges and grid marks)
+  const getSnapPoints = useCallback((excludeId?: string) => {
+    const snapPoints: number[] = []
+    
+    // Add grid marks every 100 pixels (like seconds)
+    for (let pos = 0; pos <= timelineWidth; pos += 100) {
+      snapPoints.push(pos)
+    }
+    
+    // Add scrubber edges
+    otherScrubbers.forEach(other => {
+      if (other.id !== excludeId) {
+        snapPoints.push(other.left)
+        snapPoints.push(other.left + other.width)
+      }
+    })
+    
+    return snapPoints
+  }, [otherScrubbers, timelineWidth])
+
+  // Find nearest snap point
+  const findSnapPoint = useCallback((position: number, excludeId?: string): number => {
+    if (!snapConfig.enabled) return position
+    
+    const snapPoints = getSnapPoints(excludeId)
+    
+    for (const snapPos of snapPoints) {
+      if (Math.abs(position - snapPos) < snapConfig.distance) {
+        return snapPos
+      }
+    }
+    
+    return position
+  }, [snapConfig, getSnapPoints])
+
+  // Check collision with track awareness
+  const checkCollisionWithTrack = useCallback(
+    (newScrubber: ScrubberState, excludeId?: string) => {
+      return otherScrubbers.some(other => {
+        if (other.id === excludeId || other.y !== newScrubber.y) return false
+        
+        const otherStart = other.left
+        const otherEnd = other.left + other.width
+        const newStart = newScrubber.left
+        const newEnd = newScrubber.left + newScrubber.width
+        
+        return !(newEnd <= otherStart || newStart >= otherEnd)
+      })
+    },
+    [otherScrubbers]
+  )
 
   const getScrubberBounds = useCallback((scrubber: ScrubberState) => {
     const scrollLeft = containerRef.current?.scrollLeft || 0
@@ -92,9 +160,22 @@ const Scrubber: React.FC<ScrubberProps> = ({
         const max = timelineWidth - scrubber.width
         newLeft = Math.max(min, Math.min(max, newLeft))
 
-        const newScrubber = { ...scrubber, left: newLeft }
+        // Apply snapping
+        newLeft = findSnapPoint(newLeft, scrubber.id)
 
-        if (!otherScrubbers.some((other) => checkCollision(newScrubber, other))) {
+        // Calculate track changes based on mouse Y position
+        let newTrack = scrubber.y || 0
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect()
+          const mouseY = e.clientY - containerRect.top
+          const trackIndex = Math.floor(mouseY / trackHeight)
+          newTrack = Math.max(0, Math.min(trackCount - 1, trackIndex))
+        }
+
+        const newScrubber = { ...scrubber, left: newLeft, y: newTrack }
+
+        // Use track-aware collision detection
+        if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
           onUpdate(newScrubber)
         }
 
@@ -126,6 +207,10 @@ const Scrubber: React.FC<ScrubberProps> = ({
           newLeft = Math.max(0, newLeft)
           newWidth = Math.max(MINIMUM_WIDTH, newWidth)
 
+          // Apply snapping to left edge
+          newLeft = findSnapPoint(newLeft, scrubber.id)
+          newWidth = dragStateRef.current.startLeft + dragStateRef.current.startWidth - newLeft
+
           if (newLeft === 0) {
             newWidth = dragStateRef.current.startLeft + dragStateRef.current.startWidth
           }
@@ -136,7 +221,7 @@ const Scrubber: React.FC<ScrubberProps> = ({
 
           const newScrubber = { ...scrubber, left: newLeft, width: newWidth }
 
-          if (!otherScrubbers.some((other) => checkCollision(newScrubber, other))) {
+          if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
             onUpdate(newScrubber)
           }
         } else if (resizeMode === "right") {
@@ -144,9 +229,17 @@ const Scrubber: React.FC<ScrubberProps> = ({
 
           newWidth = Math.max(MINIMUM_WIDTH, newWidth)
 
+          // Apply snapping to right edge
+          const rightEdge = dragStateRef.current.startLeft + newWidth
+          const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id)
+          newWidth = snappedRightEdge - dragStateRef.current.startLeft
+
           if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
             if (expandTimeline()) {
-              newWidth = dragStateRef.current.startWidth + deltaX
+              // Recalculate after expansion
+              const rightEdge = dragStateRef.current.startLeft + dragStateRef.current.startWidth + deltaX
+              const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id)
+              newWidth = snappedRightEdge - dragStateRef.current.startLeft
             } else {
               newWidth = timelineWidth - dragStateRef.current.startLeft
             }
@@ -154,13 +247,13 @@ const Scrubber: React.FC<ScrubberProps> = ({
 
           const newScrubber = { ...scrubber, width: newWidth }
 
-          if (!otherScrubbers.some((other) => checkCollision(newScrubber, other))) {
+          if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
             onUpdate(newScrubber)
           }
         }
       }
     },
-    [isDragging, isResizing, resizeMode, scrubber, timelineWidth, otherScrubbers, checkCollision, onUpdate, expandTimeline, containerRef],
+    [isDragging, isResizing, resizeMode, scrubber, timelineWidth, checkCollisionWithTrack, onUpdate, expandTimeline, containerRef, findSnapPoint, trackCount, trackHeight],
   )
 
   const handleMouseUp = useCallback(() => {
@@ -181,23 +274,40 @@ const Scrubber: React.FC<ScrubberProps> = ({
 
   return (
     <div
-      className="absolute top-0 bg-blue-500 rounded-lg cursor-grab active:cursor-grabbing border border-blue-600"
+      className="absolute bg-blue-500 rounded-lg cursor-grab active:cursor-grabbing border border-blue-600 shadow-lg hover:shadow-xl transition-shadow"
       style={{
         left: `${scrubber.left}px`,
         width: `${scrubber.width}px`,
-        height: "100%",
+        top: `${(scrubber.y || 0) * trackHeight}px`,
+        height: `${trackHeight}px`,
         minWidth: "20px",
+        zIndex: isDragging ? 1000 : 10,
       }}
       onMouseDown={(e) => handleMouseDown(e, "drag")}
     >
+      {/* Media type indicator */}
+      <div className="absolute top-1 left-1 text-xs text-white/70 font-medium">
+        {scrubber.mediaType === "video" ? "🎥" : scrubber.mediaType === "image" ? "🖼️" : "📝"}
+      </div>
+      
+      {/* Left resize handle */}
       <div
-        className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-l-lg"
+        className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-l-lg transition-colors"
         onMouseDown={(e) => handleMouseDown(e, "resize-left")}
       />
+      
+      {/* Right resize handle */}
       <div
-        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-r-lg"
+        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-r-lg transition-colors"
         onMouseDown={(e) => handleMouseDown(e, "resize-right")}
       />
+      
+      {/* Track indicator when dragging */}
+      {isDragging && (
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/75 text-white text-xs px-2 py-1 rounded pointer-events-none">
+          Track {(scrubber.y || 0) + 1}
+        </div>
+      )}
     </div>
   )
 }
@@ -209,6 +319,7 @@ export default function TimelineEditor() {
       scrubbers: [
         { id: "1-1", left: 50, width: 80, mediaType: "text" },
       ],
+      trackCount: 3, // Default 3 tracks
     },
   ])
   const [timelineWidth, setTimelineWidth] = useState(2000)
@@ -510,28 +621,87 @@ export default function TimelineEditor() {
         className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded"
         onScroll={handleScroll}
       >
-        {timelines.map((timeline, index) => (
-          <div key={timeline.id} className="mb-8">
-            <div className="h-16 bg-gray-200 relative rounded-lg" style={{ width: `${timelineWidth}px` }}>
-              {timeline.scrubbers.map((scrubber) => (
-                <Scrubber
-                  key={scrubber.id}
-                  scrubber={scrubber}
-                  timelineWidth={timelineWidth}
-                  otherScrubbers={timeline.scrubbers.filter((s) => s.id !== scrubber.id)}
-                  onUpdate={(updatedScrubber) => {
-                    handleUpdateTimeline({
-                      ...timeline,
-                      scrubbers: timeline.scrubbers.map((s) => (s.id === updatedScrubber.id ? updatedScrubber : s)),
-                    })
-                  }}
-                  containerRef={containerRef}
-                  expandTimeline={expandTimeline}
-                />
-              ))}
+        {timelines.map((timeline, index) => {
+          const trackCount = timeline.trackCount || 3
+          const trackHeight = 60
+          const timelineHeight = trackCount * trackHeight
+          
+          return (
+            <div key={timeline.id} className="mb-8">
+              {/* Timeline container with multiple tracks */}
+              <div 
+                className="bg-gray-100 relative rounded-lg border-2 border-gray-300" 
+                style={{ 
+                  width: `${timelineWidth}px`, 
+                  height: `${timelineHeight}px` 
+                }}
+              >
+                {/* Track separators and labels */}
+                {Array.from({ length: trackCount }, (_, trackIndex) => (
+                  <div key={trackIndex}>
+                    {/* Track background */}
+                    <div
+                      className={`absolute w-full border-b border-gray-300 ${
+                        trackIndex % 2 === 0 ? 'bg-gray-50' : 'bg-gray-100'
+                      }`}
+                      style={{
+                        top: `${trackIndex * trackHeight}px`,
+                        height: `${trackHeight}px`,
+                      }}
+                    />
+                    
+                    {/* Track label */}
+                    <div
+                      className="absolute left-2 text-xs text-gray-500 font-medium pointer-events-none"
+                      style={{
+                        top: `${trackIndex * trackHeight + 4}px`,
+                      }}
+                    >
+                      Track {trackIndex + 1}
+                    </div>
+                    
+                    {/* Grid lines every 100px */}
+                    {Array.from({ length: Math.floor(timelineWidth / 100) + 1 }, (_, gridIndex) => (
+                      <div
+                        key={gridIndex}
+                        className="absolute h-full bg-gray-300"
+                        style={{
+                          left: `${gridIndex * 100}px`,
+                          top: `${trackIndex * trackHeight}px`,
+                          width: '1px',
+                          height: `${trackHeight}px`,
+                          opacity: gridIndex % 5 === 0 ? 0.6 : 0.3,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+                
+                {/* Scrubbers */}
+                {timeline.scrubbers.map((scrubber) => (
+                  <Scrubber
+                    key={scrubber.id}
+                    scrubber={scrubber}
+                    timelineWidth={timelineWidth}
+                    otherScrubbers={timeline.scrubbers.filter((s) => s.id !== scrubber.id)}
+                    onUpdate={(updatedScrubber) => {
+                      handleUpdateTimeline({
+                        ...timeline,
+                        scrubbers: timeline.scrubbers.map((s) => (s.id === updatedScrubber.id ? updatedScrubber : s)),
+                      })
+                    }}
+                    containerRef={containerRef}
+                    expandTimeline={expandTimeline}
+                    snapConfig={{ enabled: true, distance: 10 }}
+                    timelineId={timeline.id}
+                    trackCount={trackCount}
+                    trackHeight={trackHeight}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Video Preview Section */}
