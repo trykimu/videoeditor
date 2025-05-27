@@ -257,7 +257,22 @@ export default function TimelineEditor() {
       setRenderStatus("Sending data to render server...")
       
       const response = await axios.post('http://localhost:8000/render', {
-        timelineData: timelineData
+        timelineData: timelineData,
+        durationInFrames: (() => {
+          const timelineData = getTimelineData();
+          let maxEndTime = 0;
+          
+          timelineData.forEach(timeline => {
+            timeline.scrubbers.forEach(scrubber => {
+              if (scrubber.endTime > maxEndTime) {
+                maxEndTime = scrubber.endTime;
+              }
+            });
+          });
+          console.log("Max end time:", maxEndTime*30);
+          // Convert seconds to frames (assuming 30 FPS)
+          return Math.ceil(maxEndTime * 30);
+        })()
       }, {
         responseType: 'blob',
         timeout: 120000, // 2 minutes timeout
@@ -523,7 +538,24 @@ export default function TimelineEditor() {
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-4">Video Preview</h2>
         <div className="w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
-          <VideoPlayer timelineData={getTimelineData()} />
+          <VideoPlayer
+            timelineData={getTimelineData()}
+            durationInFrames={(() => {
+              const timelineData = getTimelineData();
+              let maxEndTime = 0;
+              
+              timelineData.forEach(timeline => {
+                timeline.scrubbers.forEach(scrubber => {
+                  if (scrubber.endTime > maxEndTime) {
+                    maxEndTime = scrubber.endTime;
+                  }
+                });
+              });
+              console.log("Max end time:", maxEndTime*30);
+              // Convert seconds to frames (assuming 30 FPS)
+              return Math.ceil(maxEndTime * 30);
+            })()}
+          />
         </div>
       </div>
     </div>

@@ -1,12 +1,14 @@
-import { Composition } from 'remotion';
+import { Composition, getInputProps } from 'remotion';
 import { TimelineComposition } from '../remotion/VideoPlayer';
 
 export default function RenderComposition() {
+    const inputProps = getInputProps();
+    console.log("Input props:", inputProps);
     return (
         <Composition
             id="TimelineComposition"
             component={TimelineComposition}
-            durationInFrames={300}
+            durationInFrames={(inputProps.durationInFrames as number) ?? 300}
             fps={30}
             width={1920}
             height={1080}
@@ -20,6 +22,7 @@ export default function RenderComposition() {
                         ],
                     }
                 ],
+                durationInFrames: 300,
             }}
         />
     )

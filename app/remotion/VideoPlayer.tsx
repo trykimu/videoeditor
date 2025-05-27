@@ -37,9 +37,10 @@ type TimelineData = {
 
 type VideoPlayerProps = {
     timelineData: TimelineData[];
+    durationInFrames: number;
 }
 
-export function TimelineComposition({ timelineData }: VideoPlayerProps) {
+export function TimelineComposition({ timelineData, durationInFrames }: VideoPlayerProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
@@ -113,13 +114,12 @@ export function TimelineComposition({ timelineData }: VideoPlayerProps) {
     )
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ timelineData }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ timelineData, durationInFrames }) => {
     return (
         <Player
             component={TimelineComposition}
-            inputProps={{ timelineData }}
-            durationInFrames={500}
-            // durationInFrames={Math.ceil(totalDuration() * 30)} // Convert seconds to frames (30fps)
+            inputProps={{ timelineData, durationInFrames }}
+            durationInFrames={durationInFrames}
             compositionWidth={1920}
             compositionHeight={1080}
             fps={30}

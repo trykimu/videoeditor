@@ -186,7 +186,8 @@ app.post('/render', async (req, res) => {
   try {
     // Get input props from POST body
     const inputProps = {
-      timelineData: req.body.timelineData
+      timelineData: req.body.timelineData,
+      durationInFrames: req.body.durationInFrames
     };
 
     // Get the composition you want to render
@@ -196,8 +197,8 @@ app.post('/render', async (req, res) => {
       inputProps,
     });
 
-    const maxFrames = Math.min(composition.durationInFrames, 150); // Max 5 seconds at 30fps
-    console.log(`Starting ULTRA low-resource render. Limiting to ${maxFrames} frames (${maxFrames / 30}s)`);
+    // const maxFrames = Math.min(composition.durationInFrames, 150); // Max 5 seconds at 30fps
+    // console.log(`Starting ULTRA low-resource render. Limiting to ${maxFrames} frames (${maxFrames / 30}s)`);
 
     // Render with EXTREME optimizations for weak laptops
     await renderMedia({
@@ -207,7 +208,7 @@ app.post('/render', async (req, res) => {
       outputLocation: `out/${compositionId}.mp4`,
       inputProps,
       // CRITICAL: Resource-saving settings
-      frameRange: [0, maxFrames], // Severely limit duration
+      // frameRange: inputProps.durationInFrames,
       scale: 0.5, // Half resolution = 4x faster rendering
       concurrency: 1, // Single thread only
       // enforceAudioTrack: false, // No audio processing
@@ -264,7 +265,7 @@ app.listen(port, () => {
   console.log(`📤 Upload file: POST http://localhost:${port}/upload`);
   console.log(`📤 Upload multiple: POST http://localhost:${port}/upload-multiple`);
   console.log(`💻 Optimized for low-resource systems:`);
-  console.log(`   - Videos limited to 5 seconds max`);
+  // console.log(`   - Videos limited to 5 seconds max`);
   console.log(`   - Half resolution rendering`);
   console.log(`   - Single-threaded processing`);
   console.log(`   - Ultra-fast encoding`);
