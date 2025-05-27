@@ -13,10 +13,14 @@ interface ScrubberState {
   y?: number // track position (0-based index)
 }
 
-interface TimelineState {
+interface TrackState {
   id: string
   scrubbers: ScrubberState[]
-  trackCount?: number // number of tracks for this timeline
+}
+
+interface TimelineState {
+  id: string
+  tracks: TrackState[]
 }
 
 // Add snapping configuration
@@ -33,7 +37,6 @@ interface ScrubberProps {
   containerRef: React.RefObject<HTMLDivElement | null>
   expandTimeline: () => boolean
   snapConfig: SnapConfig
-  timelineId: string
   trackCount: number
   trackHeight: number
 }
@@ -46,7 +49,6 @@ const Scrubber: React.FC<ScrubberProps> = ({
   containerRef,
   expandTimeline,
   snapConfig,
-  timelineId,
   trackCount,
   trackHeight,
 }) => {
@@ -313,15 +315,25 @@ const Scrubber: React.FC<ScrubberProps> = ({
 }
 
 export default function TimelineEditor() {
-  const [timelines, setTimelines] = useState<TimelineState[]>([
-    {
-      id: "1",
-      scrubbers: [
-        { id: "1-1", left: 50, width: 80, mediaType: "text" },
-      ],
-      trackCount: 3, // Default 3 tracks
-    },
-  ])
+  const [timeline, setTimeline] = useState<TimelineState>({
+    id: "main",
+    tracks: [
+      {
+        id: "track-1",
+        scrubbers: [
+          { id: "1-1", left: 50, width: 80, mediaType: "text", y: 0 },
+        ],
+      },
+      {
+        id: "track-2", 
+        scrubbers: [],
+      },
+      {
+        id: "track-3",
+        scrubbers: [],
+      },
+    ],
+  })
   const [timelineWidth, setTimelineWidth] = useState(2000)
   const [isRendering, setIsRendering] = useState(false)
   const [renderStatus, setRenderStatus] = useState<string>("")
@@ -334,23 +346,27 @@ export default function TimelineEditor() {
     // Assuming 100 pixels = 1 second for conversion
     const PIXELS_PER_SECOND = 100;
     
-    const timelineData = timelines.map(timeline => ({
+    const timelineData = [{
       id: timeline.id,
       totalDuration: timelineWidth / PIXELS_PER_SECOND,
-      scrubbers: timeline.scrubbers.map(scrubber => ({
-        id: scrubber.id,
-        mediaType: scrubber.mediaType,
-        mediaUrlLocal: scrubber.mediaUrlLocal,
-        mediaUrlRemote: scrubber.mediaUrlRemote,
-        width: scrubber.width,
-        startTime: scrubber.left / PIXELS_PER_SECOND,
-        endTime: (scrubber.left + scrubber.width) / PIXELS_PER_SECOND,
-        duration: scrubber.width / PIXELS_PER_SECOND
-      }))
-    }))
+      scrubbers: timeline.tracks.flatMap(track => 
+        track.scrubbers.map(scrubber => ({
+          id: scrubber.id,
+          mediaType: scrubber.mediaType,
+          mediaUrlLocal: scrubber.mediaUrlLocal,
+          mediaUrlRemote: scrubber.mediaUrlRemote,
+          width: scrubber.width,
+          startTime: scrubber.left / PIXELS_PER_SECOND,
+          endTime: (scrubber.left + scrubber.width) / PIXELS_PER_SECOND,
+          duration: scrubber.width / PIXELS_PER_SECOND,
+          trackId: track.id,
+          trackIndex: scrubber.y || 0
+        }))
+      )
+    }]
 
     return timelineData
-  }, [timelines, timelineWidth])
+  }, [timeline, timelineWidth])
 
   const handleRenderVideo = useCallback(async () => {
     setIsRendering(true)
@@ -359,7 +375,7 @@ export default function TimelineEditor() {
     try {
       const timelineData = getTimelineData()
       
-      if (timelines.length === 0 || timelines.every(t => t.scrubbers.length === 0)) {
+      if (timeline.tracks.length === 0 || timeline.tracks.every(t => t.scrubbers.length === 0)) {
         setRenderStatus("Error: No timeline data to render")
         setIsRendering(false)
         return
@@ -373,8 +389,8 @@ export default function TimelineEditor() {
           const timelineData = getTimelineData();
           let maxEndTime = 0;
           
-          timelineData.forEach(timeline => {
-            timeline.scrubbers.forEach(scrubber => {
+          timelineData.forEach(timelineItem => {
+            timelineItem.scrubbers.forEach(scrubber => {
               if (scrubber.endTime > maxEndTime) {
                 maxEndTime = scrubber.endTime;
               }
@@ -429,7 +445,7 @@ export default function TimelineEditor() {
       // Clear status after 5 seconds
       setTimeout(() => setRenderStatus(""), 5000)
     }
-  }, [getTimelineData, timelines])
+  }, [getTimelineData, timeline])
 
   const expandTimeline = useCallback(() => {
     if (!containerRef.current) return false
@@ -450,20 +466,56 @@ export default function TimelineEditor() {
     expandTimeline()
   }, [expandTimeline])
 
-  const handleAddTimeline = useCallback(() => {
-    const newTimeline: TimelineState = {
+  const handleAddTrack = useCallback(() => {
+    const newTrack: TrackState = {
       id: crypto.randomUUID(),
       scrubbers: [],
     }
-    setTimelines((prev) => [...prev, newTimeline])
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: [...prev.tracks, newTrack]
+    }))
   }, [])
 
-  const handleUpdateTimeline = useCallback((updatedTimeline: TimelineState) => {
-    setTimelines((prev) => prev.map((t) => (t.id === updatedTimeline.id ? updatedTimeline : t)))
+  const handleUpdateTrack = useCallback((trackId: string, updatedTrack: TrackState) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((t) => (t.id === trackId ? updatedTrack : t))
+    }))
   }, [])
 
-  const handleDeleteTimeline = useCallback((timelineId: string) => {
-    setTimelines((prev) => prev.filter((t) => t.id !== timelineId))
+  const handleDeleteTrack = useCallback((trackId: string) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.filter((t) => t.id !== trackId)
+    }))
+  }, [])
+
+  const getAllScrubbers = useCallback(() => {
+    return timeline.tracks.flatMap(track => track.scrubbers)
+  }, [timeline])
+
+  const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map(track => ({
+        ...track,
+        scrubbers: track.scrubbers.map(scrubber => 
+          scrubber.id === updatedScrubber.id ? updatedScrubber : scrubber
+        )
+      }))
+    }))
+  }, [])
+
+  const handleAddScrubberToTrack = useCallback((trackId: string, newScrubber: ScrubberState) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map(track => 
+        track.id === trackId 
+          ? { ...track, scrubbers: [...track.scrubbers, newScrubber] }
+          : track
+      )
+    }))
   }, [])
 
   return (
@@ -489,10 +541,10 @@ export default function TimelineEditor() {
             {isRendering ? "Rendering..." : "Render Video"}
           </button>
           <button
-            onClick={handleAddTimeline}
+            onClick={handleAddTrack}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
           >
-            Add Timeline
+            Add Track
           </button>
         </div>
       </div>
@@ -510,10 +562,10 @@ export default function TimelineEditor() {
         </div>
       )}
 
-      {/* Timeline Headers (Fixed) */}
-      {timelines.map((timeline) => (
-        <div key={`header-${timeline.id}`} className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-semibold">Timeline {timeline.id}</h3>
+      {/* Track Headers (Fixed) */}
+      {timeline.tracks.map((track, index) => (
+        <div key={`header-${track.id}`} className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold">Track {index + 1}</h3>
           <div className="space-x-2">
             <button
               onClick={() => {
@@ -570,12 +622,10 @@ export default function TimelineEditor() {
                         mediaType: mediaType,
                         mediaUrlLocal: URL.createObjectURL(file), // For local preview
                         mediaUrlRemote: uploadResult.fullUrl, // For server access
+                        y: index, // Set to current track index
                       }
                       console.log("Adding new scrubber from header:", newScrubber);
-                      handleUpdateTimeline({
-                        ...timeline,
-                        scrubbers: [...timeline.scrubbers, newScrubber],
-                      })
+                      handleAddScrubberToTrack(track.id, newScrubber)
                     } catch (error) {
                       console.error("Error parsing media or adding scrubber:", error);
                       alert(`Failed to add media: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -595,21 +645,19 @@ export default function TimelineEditor() {
                   left: 50,
                   width: 80,
                   mediaType: "text",
+                  y: index, // Set to current track index
                 }
-                handleUpdateTimeline({
-                  ...timeline,
-                  scrubbers: [...timeline.scrubbers, newScrubber],
-                })
+                handleAddScrubberToTrack(track.id, newScrubber)
               }}
               className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
               Add Scrubber
             </button>
             <button
-              onClick={() => handleDeleteTimeline(timeline.id)}
+              onClick={() => handleDeleteTrack(track.id)}
               className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
             >
-              Delete Timeline
+              Delete Track
             </button>
           </div>
         </div>
@@ -621,87 +669,73 @@ export default function TimelineEditor() {
         className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded"
         onScroll={handleScroll}
       >
-        {timelines.map((timeline, index) => {
-          const trackCount = timeline.trackCount || 3
-          const trackHeight = 60
-          const timelineHeight = trackCount * trackHeight
-          
-          return (
-            <div key={timeline.id} className="mb-8">
-              {/* Timeline container with multiple tracks */}
-              <div 
-                className="bg-gray-100 relative rounded-lg border-2 border-gray-300" 
-                style={{ 
-                  width: `${timelineWidth}px`, 
-                  height: `${timelineHeight}px` 
-                }}
-              >
-                {/* Track separators and labels */}
-                {Array.from({ length: trackCount }, (_, trackIndex) => (
-                  <div key={trackIndex}>
-                    {/* Track background */}
-                    <div
-                      className={`absolute w-full border-b border-gray-300 ${
-                        trackIndex % 2 === 0 ? 'bg-gray-50' : 'bg-gray-100'
-                      }`}
-                      style={{
-                        top: `${trackIndex * trackHeight}px`,
-                        height: `${trackHeight}px`,
-                      }}
-                    />
-                    
-                    {/* Track label */}
-                    <div
-                      className="absolute left-2 text-xs text-gray-500 font-medium pointer-events-none"
-                      style={{
-                        top: `${trackIndex * trackHeight + 4}px`,
-                      }}
-                    >
-                      Track {trackIndex + 1}
-                    </div>
-                    
-                    {/* Grid lines every 100px */}
-                    {Array.from({ length: Math.floor(timelineWidth / 100) + 1 }, (_, gridIndex) => (
-                      <div
-                        key={gridIndex}
-                        className="absolute h-full bg-gray-300"
-                        style={{
-                          left: `${gridIndex * 100}px`,
-                          top: `${trackIndex * trackHeight}px`,
-                          width: '1px',
-                          height: `${trackHeight}px`,
-                          opacity: gridIndex % 5 === 0 ? 0.6 : 0.3,
-                        }}
-                      />
-                    ))}
-                  </div>
-                ))}
+        <div className="mb-8">
+          {/* Timeline container with multiple tracks */}
+          <div 
+            className="bg-gray-100 relative rounded-lg border-2 border-gray-300" 
+            style={{ 
+              width: `${timelineWidth}px`, 
+              height: `${timeline.tracks.length * 60}px` 
+            }}
+          >
+            {/* Track separators and labels */}
+            {timeline.tracks.map((track, trackIndex) => (
+              <div key={track.id}>
+                {/* Track background */}
+                <div
+                  className={`absolute w-full border-b border-gray-300 ${
+                    trackIndex % 2 === 0 ? 'bg-gray-50' : 'bg-gray-100'
+                  }`}
+                  style={{
+                    top: `${trackIndex * 60}px`,
+                    height: `60px`,
+                  }}
+                />
                 
-                {/* Scrubbers */}
-                {timeline.scrubbers.map((scrubber) => (
-                  <Scrubber
-                    key={scrubber.id}
-                    scrubber={scrubber}
-                    timelineWidth={timelineWidth}
-                    otherScrubbers={timeline.scrubbers.filter((s) => s.id !== scrubber.id)}
-                    onUpdate={(updatedScrubber) => {
-                      handleUpdateTimeline({
-                        ...timeline,
-                        scrubbers: timeline.scrubbers.map((s) => (s.id === updatedScrubber.id ? updatedScrubber : s)),
-                      })
+                {/* Track label */}
+                <div
+                  className="absolute left-2 text-xs text-gray-500 font-medium pointer-events-none"
+                  style={{
+                    top: `${trackIndex * 60 + 4}px`,
+                  }}
+                >
+                  Track {trackIndex + 1}
+                </div>
+                
+                {/* Grid lines every 100px */}
+                {Array.from({ length: Math.floor(timelineWidth / 100) + 1 }, (_, gridIndex) => (
+                  <div
+                    key={gridIndex}
+                    className="absolute h-full bg-gray-300"
+                    style={{
+                      left: `${gridIndex * 100}px`,
+                      top: `${trackIndex * 60}px`,
+                      width: '1px',
+                      height: `60px`,
+                      opacity: gridIndex % 5 === 0 ? 0.6 : 0.3,
                     }}
-                    containerRef={containerRef}
-                    expandTimeline={expandTimeline}
-                    snapConfig={{ enabled: true, distance: 10 }}
-                    timelineId={timeline.id}
-                    trackCount={trackCount}
-                    trackHeight={trackHeight}
                   />
                 ))}
               </div>
-            </div>
-          )
-        })}
+            ))}
+            
+            {/* Scrubbers */}
+            {getAllScrubbers().map((scrubber) => (
+              <Scrubber
+                key={scrubber.id}
+                scrubber={scrubber}
+                timelineWidth={timelineWidth}
+                otherScrubbers={getAllScrubbers().filter((s) => s.id !== scrubber.id)}
+                onUpdate={handleUpdateScrubber}
+                containerRef={containerRef}
+                expandTimeline={expandTimeline}
+                snapConfig={{ enabled: true, distance: 10 }}
+                trackCount={timeline.tracks.length}
+                trackHeight={60}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Video Preview Section */}
@@ -714,8 +748,8 @@ export default function TimelineEditor() {
               const timelineData = getTimelineData();
               let maxEndTime = 0;
               
-              timelineData.forEach(timeline => {
-                timeline.scrubbers.forEach(scrubber => {
+              timelineData.forEach(timelineItem => {
+                timelineItem.scrubbers.forEach(scrubber => {
                   if (scrubber.endTime > maxEndTime) {
                     maxEndTime = scrubber.endTime;
                   }
@@ -730,4 +764,4 @@ export default function TimelineEditor() {
       </div>
     </div>
   )
-}
+} 
