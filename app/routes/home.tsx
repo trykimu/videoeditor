@@ -505,6 +505,9 @@ export default function TimelineEditor() {
   }, [timelineWidth])
 
   const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollLeft(containerRef.current.scrollLeft);
+    }
     expandTimeline()
   }, [expandTimeline])
 
@@ -748,6 +751,9 @@ export default function TimelineEditor() {
     };
   }, []); // Empty dependency array since we're accessing playerRef.current directly
 
+  // Force re-render of ruler when scroll position changes
+  const [scrollLeft, setScrollLeft] = useState(0);
+
   const handleDropOnTrack = (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
     console.log("Dropped", item.name, "on track", trackId, "at", dropLeftPx, "px");
     
@@ -778,9 +784,9 @@ export default function TimelineEditor() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto mt-12 p-4 flex flex-col space-y-4">
+    <div className="h-screen w-full flex flex-col p-4">
       {/* Top Section: Media Bin and Player */}
-      <div className="flex space-x-4 h-[300px]">
+      <div className="flex space-x-4 h-[300px] flex-shrink-0">
         {/* Top Left: Media Bin */}
         <div className="w-1/3 bg-gray-50 p-3 rounded-lg shadow border border-gray-200 overflow-y-auto">
           <h3 className="text-lg font-semibold mb-2">Media Bin</h3>
@@ -823,7 +829,7 @@ export default function TimelineEditor() {
       </div>
 
       {/* Controls Section */}
-      <div className="flex justify-between items-center py-4">
+      <div className="flex justify-between items-center py-4 flex-shrink-0">
         <h2 className="text-2xl font-bold">Timeline</h2>
         <div className="space-x-2">
           <input 
@@ -879,7 +885,7 @@ export default function TimelineEditor() {
       
       {/* Render Status */}
       {renderStatus && (
-        <div className={`mb-4 p-3 rounded-lg ${
+        <div className={`mb-4 p-3 rounded-lg flex-shrink-0 ${
           renderStatus.startsWith("Error") 
             ? "bg-red-100 text-red-700 border border-red-200" 
             : renderStatus.includes("successfully")
@@ -891,98 +897,138 @@ export default function TimelineEditor() {
       )}
 
       {/* Bottom Section: Timeline */}
-      <div
-        ref={containerRef}
-        className="w-full overflow-x-auto overflow-y-hidden pb-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded relative"
-        onScroll={handleScroll}
-      >
-        {/* Timeline Ruler */}
+      <div className="w-full border rounded-lg bg-white shadow-lg flex flex-col flex-1 min-h-0">
+        {/* Timeline Ruler - Fixed at top, no separate scroll */}
         <div 
-            className="bg-gray-200 border-b-2 border-gray-400 cursor-pointer sticky top-0 left-0 z-50"
-            style={{ width: `${timelineWidth}px`, height: `${RULER_HEIGHT}px`, minWidth: '100%' }}
-            onClick={(e) => { 
-                if (containerRef.current) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickXInRuler = e.clientX - rect.left;
-                    const newPositionPx = clickXInRuler + containerRef.current.scrollLeft;
-                    handleRulerDrag(newPositionPx);
-                }
-            }}
+            className="bg-gray-200 border-b-2 border-gray-400 cursor-pointer relative z-50 flex-shrink-0"
+            style={{ height: `${RULER_HEIGHT}px` }}
         >
-            {/* Ruler markings */}
-            {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((sec) => (
-                <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-between pointer-events-none" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
-                    {sec % 5 === 0 && <span className="text-sm text-gray-700 -ml-1.5 mt-1 bg-gray-200 px-1 rounded">{sec}s</span>}
-                    <div className={`w-px ${sec % 5 === 0 ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'} self-end`} />
-                </div>
-            ))}
-             {/* Current Time Indicator on Ruler */}
-            <div 
-                className="absolute top-1 transform -translate-x-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded-md shadow-lg cursor-pointer z-10 hover:bg-red-700 transition-colors"
-                style={{ left: `${rulerPositionPx}px` }} 
-                onMouseDown={handleRulerMouseDown}
-            >
-                {(rulerPositionPx / PIXELS_PER_SECOND).toFixed(2)}s
-            </div>
-        </div>
-
-        {/* Playhead Line */}
-        <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-40"
-            style={{
-                left: `${rulerPositionPx}px`,
-                height: '100%',
-                top: '0px',
-            }}
-        />
-        
-        {/* Playhead Handle */}
-        <div
-            className="absolute w-3 h-3 bg-red-500 cursor-pointer z-50 hover:bg-red-600 transition-colors rounded-full border border-white"
-            style={{
-                left: `${rulerPositionPx - 6}px`,
-                top: `${RULER_HEIGHT - 6}px`,
-            }}
-            onMouseDown={handleRulerMouseDown}
-            title="Drag to seek"
-        />
-
-        {/* Timeline Tracks Area */}
-        <div 
-          className="bg-gray-100 relative rounded-lg border-2 border-gray-300"
-          style={{ 
-            width: `${timelineWidth}px`, 
-            minHeight: `${Math.max(timeline.tracks.length * DEFAULT_TRACK_HEIGHT, 200)}px`,
-          }}
-          onDragOver={(e) => e.preventDefault()} 
-          onDrop={(e) => {
-                e.preventDefault();
-                const itemString = e.dataTransfer.getData("text/plain");
-                if (!itemString) return;
-                
-                const item: MediaBinItem = JSON.parse(itemString);
-                const containerBounds = containerRef.current?.getBoundingClientRect();
-                const timelineBounds = e.currentTarget.getBoundingClientRect();
-
-                if (!containerBounds || !timelineBounds) return;
-                
-                const scrollLeft = containerRef.current?.scrollLeft || 0;
-                const dropXInTimeline = e.clientX - timelineBounds.left + scrollLeft;
-                
-                const dropYInTimeline = e.clientY - timelineBounds.top;
-                let trackIndex = Math.floor(dropYInTimeline / DEFAULT_TRACK_HEIGHT);
-                trackIndex = Math.max(0, Math.min(timeline.tracks.length - 1, trackIndex));
-
-                if (timeline.tracks[trackIndex]) {
-                    handleDropOnTrack(item, timeline.tracks[trackIndex].id, dropXInTimeline);
-                } else if (timeline.tracks.length > 0) {
-                    handleDropOnTrack(item, timeline.tracks[timeline.tracks.length-1].id, dropXInTimeline);
-                } else {
-                    console.warn("No tracks to drop on, or track detection failed.");
-                }
+          <div
+            className="relative overflow-hidden"
+            style={{ 
+              width: '100%',
+              height: '100%',
             }}
           >
-            {/* Track backgrounds, labels, and grid lines */}
+            <div 
+                className="absolute top-0 left-0"
+                style={{ 
+                  width: `${timelineWidth}px`, 
+                  height: `${RULER_HEIGHT}px`,
+                  transform: `translateX(-${containerRef.current?.scrollLeft || 0}px)`,
+                }}
+                onClick={(e) => { 
+                    if (containerRef.current) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const clickXInRuler = e.clientX - rect.left;
+                        const newPositionPx = clickXInRuler + (containerRef.current.scrollLeft || 0);
+                        handleRulerDrag(newPositionPx);
+                    }
+                }}
+            >
+                {/* Ruler markings */}
+                {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((sec) => (
+                    <div key={`ruler-mark-${sec}`} className="absolute top-0 h-full flex flex-col justify-between pointer-events-none" style={{left: `${sec * PIXELS_PER_SECOND}px`}}>
+                        {sec % 5 === 0 && <span className="text-sm text-gray-700 -ml-1.5 mt-1 bg-gray-200 px-1 rounded">{sec}s</span>}
+                        <div className={`w-px ${sec % 5 === 0 ? 'h-6 bg-gray-600' : 'h-3 bg-gray-400'} self-end`} />
+                    </div>
+                ))}
+                 {/* Current Time Indicator on Ruler */}
+                <div 
+                    className="absolute top-1 transform -translate-x-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded-md shadow-lg cursor-pointer z-10 hover:bg-red-700 transition-colors"
+                    style={{ left: `${rulerPositionPx}px` }} 
+                    onMouseDown={handleRulerMouseDown}
+                >
+                    {(rulerPositionPx / PIXELS_PER_SECOND).toFixed(2)}s
+                </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline Tracks Area - Single scrollable container */}
+        <div className="flex flex-1 min-h-0">
+          {/* Track delete buttons - outside the scrollable area */}
+          <div className="flex flex-col bg-gray-50 border-r border-gray-300 flex-shrink-0">
+            {timeline.tracks.map((track, trackIndex) => (
+              <div 
+                key={`delete-${track.id}`}
+                className="flex items-center justify-center border-b border-gray-300"
+                style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
+              >
+                <button 
+                    onClick={() => handleDeleteTrack(track.id)}
+                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded transition-colors"
+                    title="Delete Track"
+                >
+                    🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div 
+            ref={containerRef}
+            className="relative overflow-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded flex-1"
+            onScroll={handleScroll}
+          >
+          {/* Playhead Line - positioned relative to tracks */}
+          <div
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-40"
+              style={{
+                  left: `${rulerPositionPx}px`,
+                  height: '100%',
+              }}
+          />
+          
+          {/* Playhead Handle */}
+          <div
+              className="absolute w-3 h-3 bg-red-500 cursor-pointer z-50 hover:bg-red-600 transition-colors rounded-full border border-white"
+              style={{
+                  left: `${rulerPositionPx - 6}px`,
+                  top: '-6px',
+              }}
+              onMouseDown={handleRulerMouseDown}
+              title="Drag to seek"
+          />
+
+          {/* Tracks Content */}
+          <div 
+            className="bg-gray-100 relative rounded-lg border-2 border-gray-300"
+            style={{ 
+              width: `${timelineWidth}px`, 
+              height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
+              minHeight: '100%',
+            }}
+            onDragOver={(e) => e.preventDefault()} 
+            onDrop={(e) => {
+                  e.preventDefault();
+                  const itemString = e.dataTransfer.getData("text/plain");
+                  if (!itemString) return;
+                  
+                  const item: MediaBinItem = JSON.parse(itemString);
+                  const timelineBounds = e.currentTarget.getBoundingClientRect();
+                  const tracksScrollContainer = e.currentTarget.parentElement;
+                  
+                  if (!timelineBounds || !tracksScrollContainer) return;
+                  
+                  const scrollLeft = tracksScrollContainer.scrollLeft || 0;
+                  const scrollTop = tracksScrollContainer.scrollTop || 0;
+                  const dropXInTimeline = e.clientX - timelineBounds.left + scrollLeft;
+                  const dropYInTimeline = e.clientY - timelineBounds.top + scrollTop;
+                  
+                  let trackIndex = Math.floor(dropYInTimeline / DEFAULT_TRACK_HEIGHT);
+                  trackIndex = Math.max(0, Math.min(timeline.tracks.length - 1, trackIndex));
+
+                  if (timeline.tracks[trackIndex]) {
+                      handleDropOnTrack(item, timeline.tracks[trackIndex].id, dropXInTimeline);
+                  } else if (timeline.tracks.length > 0) {
+                      handleDropOnTrack(item, timeline.tracks[timeline.tracks.length-1].id, dropXInTimeline);
+                  } else {
+                      console.warn("No tracks to drop on, or track detection failed.");
+                  }
+              }}
+            >
+            {/* Track backgrounds and grid lines */}
             {timeline.tracks.map((track, trackIndex) => (
               <div key={track.id} className="relative" style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}>
                 {/* Track background */}
@@ -996,19 +1042,13 @@ export default function TimelineEditor() {
                   }}
                 />
                 
-                {/* Track label and Delete Button */}
-                <div
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 font-medium pointer-events-none flex items-center"
+                {/* Track label - positioned at top-left with high z-index */}
+                <div 
+                  className="absolute left-2 top-1 text-xs text-gray-600 font-medium pointer-events-none select-none z-50"
+                  style={{ userSelect: 'none' }}
                 >
                   Track {trackIndex + 1}
                 </div>
-                <button 
-                    onClick={() => handleDeleteTrack(track.id)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 p-1 z-20"
-                    title="Delete Track"
-                >
-                    🗑️
-                </button>
                 
                 {/* Grid lines */}
                 {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((gridIndex) => (
@@ -1048,7 +1088,8 @@ export default function TimelineEditor() {
             )}
           </div>
         </div>
+        </div>
       </div>
-    // </div>
+    </div>
   );
 }
