@@ -1,0 +1,93 @@
+import { useState, useCallback } from "react"
+import axios from "axios"
+import { type TimelineDataItem, type TimelineState, FPS } from "~/components/timeline/types"
+
+export const useRenderer = () => {
+  const [isRendering, setIsRendering] = useState(false)
+  const [renderStatus, setRenderStatus] = useState<string>("")
+
+  const handleRenderVideo = useCallback(async (
+    getTimelineData: () => TimelineDataItem[],
+    timeline: TimelineState
+  ) => {
+    setIsRendering(true)
+    setRenderStatus("Starting render...")
+
+    try {
+      const timelineData = getTimelineData()
+
+      if (timeline.tracks.length === 0 || timeline.tracks.every(t => t.scrubbers.length === 0)) {
+        setRenderStatus("Error: No timeline data to render")
+        setIsRendering(false)
+        return
+      }
+
+      setRenderStatus("Sending data to render server...")
+
+      const response = await axios.post('http://localhost:8000/render', {
+        timelineData: timelineData,
+        durationInFrames: (() => {
+          const timelineData = getTimelineData();
+          let maxEndTime = 0;
+
+          timelineData.forEach(timelineItem => {
+            timelineItem.scrubbers.forEach(scrubber => {
+              if (scrubber.endTime > maxEndTime) {
+                maxEndTime = scrubber.endTime;
+              }
+            });
+          });
+          console.log("Max end time:", maxEndTime * 30);
+          return Math.ceil(maxEndTime * FPS);
+        })()
+      }, {
+        responseType: 'blob',
+        timeout: 120000,
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            setRenderStatus(`Downloading rendered video: ${percentCompleted}%`)
+          } else {
+            setRenderStatus("Rendering video...")
+          }
+        }
+      })
+
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'rendered-video.mp4')
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      setRenderStatus("Video rendered and downloaded successfully!")
+
+    } catch (error) {
+      console.error('Render error:', error)
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          setRenderStatus("Error: Render timeout - try reducing video length")
+        } else if (error.response?.status === 500) {
+          setRenderStatus(`Error: ${error.response.data?.message || 'Server error during rendering'}`)
+        } else if (error.request) {
+          setRenderStatus("Error: Cannot connect to render server. Is it running on port 8000?")
+        } else {
+          setRenderStatus(`Error: ${error.message}`)
+        }
+      } else {
+        setRenderStatus("Error: Unknown rendering error occurred")
+      }
+    } finally {
+      setIsRendering(false)
+      setTimeout(() => setRenderStatus(""), 5000)
+    }
+  }, [])
+
+  return {
+    isRendering,
+    renderStatus,
+    handleRenderVideo,
+  }
+} 

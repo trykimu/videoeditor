@@ -2,22 +2,8 @@
 
 import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
-import React, { forwardRef } from 'react';
+import React from 'react';
 
-
-type MediaItem = {
-    type: 'image' | 'video';
-    src: string;
-    startTime: number;
-    endTime: number;
-}
-
-type TextItems = {
-    type: 'text';
-    text: string;
-    startTime: number;
-    endTime: number;
-}
 
 type TimelineScrubber = {
     id: string;
@@ -39,6 +25,7 @@ type TimelineData = {
 type VideoPlayerProps = {
     timelineData: TimelineData[];
     durationInFrames: number;
+    ref?: React.Ref<PlayerRef>;
 }
 
 export function TimelineComposition({ timelineData, durationInFrames }: VideoPlayerProps) {
@@ -115,8 +102,7 @@ export function TimelineComposition({ timelineData, durationInFrames }: VideoPla
     )
 }
 
-export const VideoPlayer = forwardRef<PlayerRef, VideoPlayerProps>(
-    ({ timelineData, durationInFrames }, ref) => {
+export function VideoPlayer({ timelineData, durationInFrames, ref }: VideoPlayerProps) {
     return (
         <Player
             ref={ref}
@@ -133,6 +119,4 @@ export const VideoPlayer = forwardRef<PlayerRef, VideoPlayerProps>(
             controls
         />
     );
-});
-
-VideoPlayer.displayName = "VideoPlayer";
+}
