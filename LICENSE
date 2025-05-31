@@ -27,3 +27,17 @@ If you use or modify this project, please include a visible link back to the
 original GitHub repository: https://github.com/robinroy03/videoeditor  
 and retain attribution to the original author, Robin Roy.  
 This is a request, not a legal requirement under the MIT License.
+
+--------------------------------------------
+Notice regarding Remotion:
+
+This project utilizes Remotion (https://www.remotion.dev) for video processing
+functionalities. Remotion is subject to its own license terms, which require
+a prominent notice of its use.
+
+The Remotion license can be found at:
+https://github.com/remotion-dev/remotion/blob/main/LICENSE.md
+
+Your use of the parts of this software that incorporate Remotion are subject to
+the Remotion license terms. Please ensure you comply with them, especially
+regarding commercial use and attribution.

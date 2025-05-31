@@ -45,4 +45,4 @@ We would love your contributions! ❤️ Check the [contribution guide](CONTRIBU
 
 
 ## 📜License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
