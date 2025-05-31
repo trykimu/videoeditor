@@ -1,0 +1,14 @@
+services:
+  videoeditor:
+    image: node:23-slim
+    container_name: videoeditor
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/app
+    working_dir: /app
+    environment:
+      - CI=1
+      - COREPACK_ENABLE_AUTO_PIN=0
+    command: >
+      sh -c "npm i -g pnpm install && pnpm run dev --host"
