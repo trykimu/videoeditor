@@ -1,6 +1,9 @@
 <h1 align="center">React Video Editor</h1>
 <p align="center">Video Editor Application using React, Remotion & TypeScript.</p>
 
+> [!NOTE]  
+> The application is under active development. This is an early MVP. Please join the [Discord server](https://discord.gg/GSknuxubZK) if you're going to run it.
+
 <p align="center">
   <img src="public/screenshot-app.png" alt="React Video Editor Screenshot" width="800">
 </p>
