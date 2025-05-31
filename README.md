@@ -4,7 +4,7 @@
 <p align="center">
   <img src="public/screenshot-app.png" alt="React Video Editor Screenshot" width="800">
 </p>
-<p align="center">An Open Source alternative to Capcut, Canva & RVE.</p>
+<p align="center">An open-source alternative to Capcut, Canva, and RVE.</p>
 
 ## Demo Video
 <p align="center">
@@ -21,7 +21,7 @@
 - 🔀Multi-track Support
 - 👀Live Preview
 - 📤Export Video
-- 📜License MIT
+- 📜Licensed under MIT
 
 
 ## ⌨️Development
@@ -42,10 +42,10 @@ pnpm dlx tsx app/videorender/videorender.ts
 ```
 
 ## 📃TODO
-We've a lot of work! For starters, we'll try to add all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates & support.
+We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support.
 
 ## ❤️Contribution
-We would love your contributions❤️ Check the [contribution guide](CONTRIBUTING.md).
+We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md).
 
 
 ## 📜License
