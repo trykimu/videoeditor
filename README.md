@@ -7,16 +7,9 @@
 <p align="center">An open-source alternative to Capcut, Canva, and RVE.</p>
 
 ## Demo Video
-<p align="center">
-  <video width="800" controls>
-    <source src="public/screenrecording.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
+https://github.com/user-attachments/assets/5bbea594-8461-445c-b669-e86f1b1b7ba1
 
-
-
-## ✨FEATURES
+## ✨Features
 - 🎬Non Linear Video Editing
 - 🔀Multi-track Support
 - 👀Live Preview
