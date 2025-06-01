@@ -30,26 +30,26 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
         />
         <button
           onClick={onAddMedia}
-          className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors"
+          className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors cursor-pointer"
         >
           Add Media
         </button>
         <button
           onClick={onAddText}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
         >
           Add Text
         </button>
         <button
           onClick={onAddTrack}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors cursor-pointer"
         >
           Add Track
         </button>
         <button
           onClick={onRenderVideo}
           disabled={isRendering}
-          className={`px-4 py-2 text-white rounded transition-colors ${
+          className={`px-4 py-2 text-white rounded transition-colors cursor-pointer ${
             isRendering
               ? "bg-gray-500 cursor-not-allowed"
               : "bg-orange-500 hover:bg-orange-600"
@@ -59,7 +59,7 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
         </button>
         <button
           onClick={onLogTimelineData}
-          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors cursor-pointer"
         >
           Log Timeline Data
         </button>
