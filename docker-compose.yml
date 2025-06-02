@@ -1,14 +1,34 @@
 services:
-  videoeditor:
-    image: node:23-slim
-    container_name: videoeditor
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: videoeditor-frontend
     ports:
-      - "5173:5173"
-    volumes:
-      - ./:/app
-    working_dir: /app
+      - "3000:3000"
     environment:
-      - CI=1
-      - COREPACK_ENABLE_AUTO_PIN=0
-    command: >
-      sh -c "npm i -g pnpm install && pnpm run dev --host"
+      - VITE_API_URL=http://backend:8000
+    networks:
+      - videoeditor-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: videoeditor-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./out:/app/out
+    networks:
+      - videoeditor-network
+    # Memory configuration for video rendering
+    mem_limit: 2g
+    memswap_limit: 2g
+    shm_size: 1g
+
+networks:
+  videoeditor-network:
+    driver: bridge

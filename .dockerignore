@@ -1,4 +1,11 @@
-.react-router
-build
 node_modules
+build
+.react-router
+out
+*.log
+.env
+.git
+.gitignore
 README.md
+docker-compose.yml
+Dockerfile*

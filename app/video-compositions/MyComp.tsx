@@ -1,4 +1,4 @@
-import { Sequence, OffthreadVideo } from "remotion";
+import { OffthreadVideo } from "remotion";
 
 
 export const MyComp: React.FC<{ videoURL: string }> = ({ videoURL }) => {
@@ -10,4 +10,4 @@ export const MyComp: React.FC<{ videoURL: string }> = ({ videoURL }) => {
             </div>
         </>
     )
-};
+}; 

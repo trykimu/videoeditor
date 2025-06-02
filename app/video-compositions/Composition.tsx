@@ -4,4 +4,4 @@ export const MyComposition = () => {
             <p>hello world</p>
         </>
     )
-};
+}; 
