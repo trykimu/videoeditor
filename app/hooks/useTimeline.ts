@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "~/components/timeline/types"
+import { generateUUID } from "~/utils/uuid"
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -65,7 +66,7 @@ export const useTimeline = () => {
 
   const handleAddTrack = useCallback(() => {
     const newTrack: TrackState = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       scrubbers: [],
     }
     setTimeline((prev) => ({
@@ -123,7 +124,7 @@ export const useTimeline = () => {
     if (targetTrackIndex === -1) return;
 
     const newScrubber: ScrubberState = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       left: dropLeftPx,
       width: widthPx,
       mediaType: item.mediaType,

@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react"
 import { parseMedia } from '@remotion/media-parser'
 import { type MediaBinItem } from "~/components/timeline/types"
+import { generateUUID } from "~/utils/uuid"
 
 export const useMediaBin = () => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const name = file.name;
     let mediaType: "video" | "image" = "image";
     if (file.type.startsWith("video/")) mediaType = "video";
@@ -66,7 +67,7 @@ export const useMediaBin = () => {
 
   const handleAddTextToBin = useCallback(() => {
     const newItem: MediaBinItem = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: "Text Element",
       mediaType: "text",
     };
