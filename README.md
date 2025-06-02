@@ -24,6 +24,15 @@ https://github.com/user-attachments/assets/5bbea594-8461-445c-b669-e86f1b1b7ba1
 ```
 git clone git@github.com:robinroy03/videoeditor.git
 cd videoeditor
+```
+
+### With Docker🐳
+```
+docker-compose up
+```
+
+### Manual
+```
 pnpm i
 ```
 
