@@ -69,7 +69,7 @@ export default [
     }
   },
   {
-    files: ['app/remotion/*.{ts,tsx}'],
+    files: ['app/video-compositions/*.{ts,tsx}'],
     plugins: {
       '@remotion': remotionPlugin
     },

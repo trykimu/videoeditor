@@ -1,5 +1,3 @@
-// this is the video player component. It basically takes the JSON representation of the timeline and renders it.
-
 import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
 import React from 'react';
@@ -56,7 +54,7 @@ export function TimelineComposition({ timelineData, durationInFrames }: VideoPla
                                     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                                     margin: 0,
                                     padding: '20px'
-                                }}>{scrubber.id}</p> {/* Using scrubber.id as placeholder for text content, update if actual text is available */}
+                                }}>{scrubber.id}</p>
                             </div>
                         </AbsoluteFill>
                     );
@@ -80,7 +78,6 @@ export function TimelineComposition({ timelineData, durationInFrames }: VideoPla
                     }
                     break;
                 default:
-                    // Optionally handle unknown media types or log a warning
                     console.warn(`Unknown media type: ${scrubber.mediaType}`);
                     break;
             }
@@ -119,4 +116,4 @@ export function VideoPlayer({ timelineData, durationInFrames, ref }: VideoPlayer
             controls
         />
     );
-}
+} 

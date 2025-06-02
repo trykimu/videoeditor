@@ -1,5 +1,5 @@
 import React from "react"
-import { VideoPlayer } from "~/remotion/VideoPlayer"
+import { VideoPlayer } from "~/video-compositions/VideoPlayer"
 import type { PlayerRef } from "@remotion/player"
 import { type TimelineDataItem } from "./types"
 

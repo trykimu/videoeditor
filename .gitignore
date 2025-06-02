@@ -5,3 +5,6 @@ out/
 # React Router
 /.react-router/
 /build/
+
+# pnpm
+.pnpm-store

@@ -1,5 +1,5 @@
 import { Composition, getInputProps } from 'remotion';
-import { TimelineComposition } from '../remotion/VideoPlayer';
+import { TimelineComposition } from '../video-compositions/VideoPlayer';
 
 export default function RenderComposition() {
     const inputProps = getInputProps();
