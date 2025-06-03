@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/5bbea594-8461-445c-b669-e86f1b1b7ba1
 
 ## ⌨️Development
 ```
-git clone git@github.com:robinroy03/videoeditor.git
+git clone https://github.com/robinroy03/videoeditor.git
 cd videoeditor
 ```
 
