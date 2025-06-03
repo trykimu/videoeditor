@@ -1,3 +1,5 @@
+import type { PlayerRef } from "@remotion/player"
+
 export interface ScrubberState {
   id: string
   left: number // in pixels
@@ -8,6 +10,8 @@ export interface ScrubberState {
   y?: number // track position (0-based index)
   name?: string // Added for displaying a name
   durationInSeconds?: number // Added for original video duration
+  media_width: number | null;
+  media_height: number | null;
 }
 
 export interface MediaBinItem {
@@ -17,6 +21,8 @@ export interface MediaBinItem {
   mediaUrlRemote?: string;
   name: string;
   durationInSeconds?: number; // For videos, to calculate initial width
+  media_width: number | null;
+  media_height: number | null;
 }
 
 export interface TrackState {
@@ -45,6 +51,33 @@ export interface ScrubberProps {
   trackCount: number
 }
 
+export type TimelineScrubber = {
+  id: string;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  mediaType: 'image' | 'video' | 'text';
+  mediaUrlLocal?: string;
+  mediaUrlRemote?: string;
+  width: number;
+  media_width: number;
+  media_height: number;
+}
+
+export type TimelineData = {
+  id: string;
+  totalDuration: number;
+  scrubbers: TimelineScrubber[];
+}
+
+export type VideoPlayerProps = {
+  timelineData: TimelineDataItem[];
+  durationInFrames: number;
+  ref?: React.Ref<PlayerRef>;
+  compositionWidth: number | null;    // if null, the player width = max(width)
+  compositionHeight: number | null;   // if null, the player height = max(height)
+}
+
 export interface TimelineDataItem {
   id: string
   totalDuration: number
@@ -59,6 +92,8 @@ export interface TimelineDataItem {
     duration: number
     trackId: string
     trackIndex: number
+    media_width: number | null
+    media_height: number | null
   }[]
 }
 

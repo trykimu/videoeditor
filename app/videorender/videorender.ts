@@ -70,7 +70,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fileSize: 500 * 1024 * 1024, // 500MB limit (we'll do no limits later)
   },
   fileFilter: (req, file, cb) => {
     // Accept common media file types
@@ -187,9 +187,12 @@ app.post('/render', async (req, res) => {
     // Get input props from POST body
     const inputProps = {
       timelineData: req.body.timelineData,
-      durationInFrames: req.body.durationInFrames
+      durationInFrames: req.body.durationInFrames,
+      compositionWidth: req.body.compositionWidth,
+      compositionHeight: req.body.compositionHeight
     };
 
+    console.log("Input props:", typeof inputProps.compositionWidth);
     // Get the composition you want to render
     const composition = await selectComposition({
       serveUrl: bundleLocation,
@@ -209,7 +212,7 @@ app.post('/render', async (req, res) => {
       inputProps,
       // CRITICAL: Resource-saving settings
       // frameRange: inputProps.durationInFrames,
-      scale: 0.5, // Half resolution = 4x faster rendering
+      // scale: 0.5, // Half resolution = 4x faster rendering
       concurrency: 1, // Single thread only
       // enforceAudioTrack: false, // No audio processing
       verbose: true, // Minimal logging overhead

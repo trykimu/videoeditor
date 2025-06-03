@@ -8,13 +8,44 @@ export const useRenderer = () => {
 
   const handleRenderVideo = useCallback(async (
     getTimelineData: () => TimelineDataItem[],
-    timeline: TimelineState
+    timeline: TimelineState,
+    compositionWidth: number | null,
+    compositionHeight: number | null
   ) => {
     setIsRendering(true)
     setRenderStatus("Starting render...")
 
     try {
       const timelineData = getTimelineData()
+      // Calculate composition width if not provided
+      if (compositionWidth === null) {
+        let maxWidth = 0;
+        for (const item of timelineData) {
+          for (const scrubber of item.scrubbers) {
+            if (scrubber.media_width !== null && scrubber.media_width > maxWidth) {
+              maxWidth = scrubber.media_width;
+            }
+          }
+        }
+        compositionWidth = maxWidth || 1920; // Default to 1920 if no media found
+      }
+
+      // Calculate composition height if not provided
+      if (compositionHeight === null) {
+        let maxHeight = 0;
+        for (const item of timelineData) {
+          for (const scrubber of item.scrubbers) {
+            if (scrubber.media_height !== null && scrubber.media_height > maxHeight) {
+              maxHeight = scrubber.media_height;
+            }
+          }
+        }
+        compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
+      }
+
+      console.log("Composition width:", compositionWidth)
+      console.log("Composition height:", compositionHeight)
+      
 
       if (timeline.tracks.length === 0 || timeline.tracks.every(t => t.scrubbers.length === 0)) {
         setRenderStatus("Error: No timeline data to render")
@@ -26,6 +57,8 @@ export const useRenderer = () => {
 
       const response = await axios.post('http://localhost:8000/render', {
         timelineData: timelineData,
+        compositionWidth: compositionWidth,
+        compositionHeight: compositionHeight,
         durationInFrames: (() => {
           const timelineData = getTimelineData();
           let maxEndTime = 0;
