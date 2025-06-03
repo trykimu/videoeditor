@@ -1,32 +1,13 @@
 import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
 import React from 'react';
+import type { TimelineDataItem, VideoPlayerProps } from '~/components/timeline/types';
 
-
-type TimelineScrubber = {
-    id: string;
-    startTime: number;
-    endTime: number;
-    duration: number;
-    mediaType: 'image' | 'video' | 'text';
-    mediaUrlLocal?: string;
-    mediaUrlRemote?: string;
-    width: number;
+type TimelineCompositionProps = {
+    timelineData: TimelineDataItem[];
 }
 
-type TimelineData = {
-    id: string;
-    totalDuration: number;
-    scrubbers: TimelineScrubber[];
-}
-
-type VideoPlayerProps = {
-    timelineData: TimelineData[];
-    durationInFrames: number;
-    ref?: React.Ref<PlayerRef>;
-}
-
-export function TimelineComposition({ timelineData, durationInFrames }: VideoPlayerProps) {
+export function TimelineComposition({ timelineData }: TimelineCompositionProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
@@ -99,15 +80,41 @@ export function TimelineComposition({ timelineData, durationInFrames }: VideoPla
     )
 }
 
-export function VideoPlayer({ timelineData, durationInFrames, ref }: VideoPlayerProps) {
+export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWidth, compositionHeight }: VideoPlayerProps) {
+    // Calculate composition width if not provided
+    if (compositionWidth === null) {
+        let maxWidth = 0;
+        for (const item of timelineData) {
+            for (const scrubber of item.scrubbers) {
+                if (scrubber.media_width !== null && scrubber.media_width > maxWidth) {
+                    maxWidth = scrubber.media_width;
+                }
+            }
+        }
+        compositionWidth = maxWidth || 1920; // Default to 1920 if no media found
+    }
+
+    // Calculate composition height if not provided
+    if (compositionHeight === null) {
+        let maxHeight = 0;
+        for (const item of timelineData) {
+            for (const scrubber of item.scrubbers) {
+                if (scrubber.media_height !== null && scrubber.media_height > maxHeight) {
+                    maxHeight = scrubber.media_height;
+                }
+            }
+        }
+        compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
+    }
+
     return (
         <Player
             ref={ref}
             component={TimelineComposition}
             inputProps={{ timelineData, durationInFrames }}
             durationInFrames={durationInFrames || 10}
-            compositionWidth={1920}
-            compositionHeight={1080}
+            compositionWidth={compositionWidth}
+            compositionHeight={compositionHeight}
             fps={30}
             style={{
                 width: '100%',

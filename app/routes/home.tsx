@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from "react"
+import React, { useRef, useEffect, useCallback, useState } from "react"
 import type { PlayerRef } from "@remotion/player";
 
 // Components
@@ -23,6 +23,11 @@ export default function TimelineEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State for video dimensions
+  const [width, setWidth] = useState<number>(1920)
+  const [height, setHeight] = useState<number>(1080)
+  const [isAutoSize, setIsAutoSize] = useState<boolean>(false)
 
   // Custom hooks
   const {
@@ -85,12 +90,24 @@ export default function TimelineEditor() {
   }, [handleAddMediaToBin])
 
   const handleRenderClick = useCallback(() => {
-    handleRenderVideo(getTimelineData, timeline)
-  }, [handleRenderVideo, getTimelineData, timeline])
+    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height)
+  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize])
 
   const handleLogTimelineData = useCallback(() => {
     console.log(getTimelineData())
   }, [getTimelineData])
+
+  const handleWidthChange = useCallback((newWidth: number) => {
+    setWidth(newWidth)
+  }, [])
+
+  const handleHeightChange = useCallback((newHeight: number) => {
+    setHeight(newHeight)
+  }, [])
+
+  const handleAutoSizeChange = useCallback((auto: boolean) => {
+    setIsAutoSize(auto)
+  }, [])
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef)
@@ -154,7 +171,9 @@ export default function TimelineEditor() {
         <VideoPlayerSection
           timelineData={timelineData}
           durationInFrames={durationInFrames}
-          playerRef={playerRef}
+          ref={playerRef}
+          compositionWidth={isAutoSize ? null : width}
+          compositionHeight={isAutoSize ? null : height}
         />
       </div>
 
@@ -166,6 +185,12 @@ export default function TimelineEditor() {
         onRenderVideo={handleRenderClick}
         onLogTimelineData={handleLogTimelineData}
         isRendering={isRendering}
+        width={width}
+        height={height}
+        onWidthChange={handleWidthChange}
+        onHeightChange={handleHeightChange}
+        isAutoSize={isAutoSize}
+        onAutoSizeChange={handleAutoSizeChange}
       />
 
       {/* Hidden file input */}
