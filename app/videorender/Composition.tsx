@@ -22,6 +22,7 @@ export default function RenderComposition() {
                         ],
                     }
                 ],
+                isRendering: false
             }}
         />
     )

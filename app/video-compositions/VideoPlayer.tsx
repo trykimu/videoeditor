@@ -5,9 +5,10 @@ import type { TimelineDataItem, VideoPlayerProps } from '~/components/timeline/t
 
 type TimelineCompositionProps = {
     timelineData: TimelineDataItem[];
+    isRendering: boolean;   // it's either render (True) or preview (False)
 }
 
-export function TimelineComposition({ timelineData }: TimelineCompositionProps) {
+export function TimelineComposition({ timelineData, isRendering }: TimelineCompositionProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
@@ -40,24 +41,24 @@ export function TimelineComposition({ timelineData }: TimelineCompositionProps) 
                         </AbsoluteFill>
                     );
                     break;
-                case 'image':
-                    if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
-                        content = (
-                            <AbsoluteFill>
-                                <Img src={scrubber.mediaUrlRemote || scrubber.mediaUrlLocal!} />
-                            </AbsoluteFill>
-                        );
-                    }
+                case 'image': {
+                    const imageUrl = isRendering ? scrubber.mediaUrlRemote : scrubber.mediaUrlLocal;
+                    content = (
+                        <AbsoluteFill>
+                            <Img src={imageUrl!} />
+                        </AbsoluteFill>
+                    );
                     break;
-                case 'video':
-                    if (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote) {
-                        content = (
-                            <AbsoluteFill>
-                                <Video src={scrubber.mediaUrlRemote || scrubber.mediaUrlLocal!} />
-                            </AbsoluteFill>
-                        );
-                    }
+                }
+                case 'video': {
+                    const videoUrl = isRendering ? scrubber.mediaUrlRemote : scrubber.mediaUrlLocal;
+                    content = (
+                        <AbsoluteFill>
+                            <Video src={videoUrl!} />
+                        </AbsoluteFill>
+                    );
                     break;
+                }
                 default:
                     console.warn(`Unknown media type: ${scrubber.mediaType}`);
                     break;
@@ -111,7 +112,7 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
         <Player
             ref={ref}
             component={TimelineComposition}
-            inputProps={{ timelineData, durationInFrames }}
+            inputProps={{ timelineData, durationInFrames, isRendering: false }}
             durationInFrames={durationInFrames || 10}
             compositionWidth={compositionWidth}
             compositionHeight={compositionHeight}
