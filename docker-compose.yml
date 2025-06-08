@@ -1,15 +1,23 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: videoeditor-nginx
+    ports:
+      - "80:80"
+      # - "443:443"  # Commented out - no SSL yet
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: videoeditor-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://backend:8000
-    networks:
-      - videoeditor-network
+    # ports:
+    #   - "3000:3000"
     depends_on:
       - backend
 
@@ -18,17 +26,11 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: videoeditor-backend
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     volumes:
       - ./out:/app/out
-    networks:
-      - videoeditor-network
     # Memory configuration for video rendering
     mem_limit: 2g
     memswap_limit: 2g
     shm_size: 1g
-
-networks:
-  videoeditor-network:
-    driver: bridge

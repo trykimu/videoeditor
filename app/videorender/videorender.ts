@@ -120,7 +120,7 @@ app.post('/upload', upload.single('media'), (req: Request, res: Response): void 
     }
 
     const fileUrl = `/media/${encodeURIComponent(req.file.filename)}`;
-    const fullUrl = `http://localhost:${port}${fileUrl}`;
+    const fullUrl = `http://localhost:${port}${fileUrl}`; // Direct backend URL for Remotion
 
     console.log(`📁 File uploaded: ${req.file.originalname} -> ${req.file.filename}`);
 
@@ -151,7 +151,7 @@ app.post('/upload-multiple', upload.array('media', 10), (req: Request, res: Resp
       filename: file.filename,
       originalName: file.originalname,
       url: `/media/${encodeURIComponent(file.filename)}`,
-      fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`,
+      fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`, // Direct backend URL for Remotion
       size: file.size,
       path: file.path
     }));
@@ -189,7 +189,8 @@ app.post('/render', async (req, res) => {
       timelineData: req.body.timelineData,
       durationInFrames: req.body.durationInFrames,
       compositionWidth: req.body.compositionWidth,
-      compositionHeight: req.body.compositionHeight
+      compositionHeight: req.body.compositionHeight,
+      isRendering: true
     };
 
     console.log("Input props:", typeof inputProps.compositionWidth);
