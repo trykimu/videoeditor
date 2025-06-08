@@ -204,35 +204,33 @@ app.post('/render', async (req, res) => {
     // const maxFrames = Math.min(composition.durationInFrames, 150); // Max 5 seconds at 30fps
     // console.log(`Starting ULTRA low-resource render. Limiting to ${maxFrames} frames (${maxFrames / 30}s)`);
 
-    // Render with EXTREME optimizations for weak laptops
+    // Render optimized for 4vCPU, 8GB RAM server
     await renderMedia({
       composition,
       serveUrl: bundleLocation,
       codec: 'h264',
       outputLocation: `out/${compositionId}.mp4`,
       inputProps,
-      // CRITICAL: Resource-saving settings
-      // frameRange: inputProps.durationInFrames,
-      // scale: 0.5, // Half resolution = 4x faster rendering
-      concurrency: 1, // Single thread only
-      // enforceAudioTrack: false, // No audio processing
-      verbose: true, // Minimal logging overhead
-      // logLevel: 'warn', // Only show warnings/errors
-      // Ultra-fast encoding settings
+      // Optimized settings for server hardware
+      concurrency: 3, // Use 3 cores, leave 1 for system
+      verbose: true,
+      logLevel: 'info', // More detailed logging for server monitoring
+      // Balanced encoding settings for server performance
       ffmpegOverride: ({ args }) => {
         return [
           ...args,
-          '-preset', 'ultrafast', // Fastest possible
-          '-crf', '32', // Lower quality but much faster
-          '-threads', '1', // Single thread
-          '-tune', 'fastdecode', // Optimize for speed
-          '-x264-params', 'ref=1:me=dia:subme=2:trellis=0:weightb=0', // Minimal quality settings
-          '-g', '15', // More keyframes for faster encoding
-          '-bf', '0', // No B-frames
-          '-b_strategy', '0', // Disable advanced B-frame strategies
+          '-preset', 'fast', // Good balance of speed and quality
+          '-crf', '28', // Better quality than ultrafast setting
+          '-threads', '3', // Use 3 threads for encoding
+          '-tune', 'film', // Better quality for general content
+          '-x264-params', 'ref=3:me=hex:subme=6:trellis=1', // Better quality settings
+          '-g', '30', // Standard keyframe interval
+          '-bf', '2', // Allow some B-frames for better compression
+          '-maxrate', '5M', // Limit bitrate to prevent memory issues
+          '-bufsize', '10M', // Buffer size for rate control
         ];
       },
-      timeoutInMilliseconds: 900000 , // 15 minute max timeout
+      timeoutInMilliseconds: 1800000, // 30 minute timeout for longer videos
     });
 
     console.log('✅ Render completed successfully');
@@ -268,11 +266,11 @@ app.listen(port, () => {
   console.log(`📁 Media files: http://localhost:${port}/media/`);
   console.log(`📤 Upload file: POST http://localhost:${port}/upload`);
   console.log(`📤 Upload multiple: POST http://localhost:${port}/upload-multiple`);
-  console.log(`💻 Optimized for low-resource systems:`);
-  // console.log(`   - Videos limited to 5 seconds max`);
-  console.log(`   - Half resolution rendering`);
-  console.log(`   - Single-threaded processing`);
-  console.log(`   - Ultra-fast encoding`);
+  console.log(`🖥️ Optimized for 4vCPU, 8GB RAM server:`);
+  console.log(`   - Multi-threaded processing (3 cores)`);
+  console.log(`   - Balanced quality/speed encoding`);
+  console.log(`   - Full resolution rendering`);
+  console.log(`   - 30-minute timeout for longer videos`);
   console.log(`📂 Media files are served from: ${path.resolve('out')}`);
 });
 
