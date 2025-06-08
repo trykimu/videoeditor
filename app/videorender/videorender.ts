@@ -230,7 +230,7 @@ app.post('/render', async (req, res) => {
           '-bufsize', '10M', // Buffer size for rate control
         ];
       },
-      timeoutInMilliseconds: 900000, // 30 minute timeout for longer videos
+      timeoutInMilliseconds: 900000, // 15 minute timeout for longer videos
     });
 
     console.log('✅ Render completed successfully');
