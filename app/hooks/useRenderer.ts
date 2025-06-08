@@ -76,7 +76,7 @@ export const useRenderer = () => {
         })()
       }, {
         responseType: 'blob',
-        timeout: 120000,
+        timeout: 900000,
         onDownloadProgress: (progressEvent) => {
           if (progressEvent.lengthComputable && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
