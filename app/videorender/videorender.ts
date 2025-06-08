@@ -120,7 +120,7 @@ app.post('/upload', upload.single('media'), (req: Request, res: Response): void 
     }
 
     const fileUrl = `/media/${encodeURIComponent(req.file.filename)}`;
-    const fullUrl = `http://localhost:${port}${fileUrl}`;
+    const fullUrl = `/api${fileUrl}`; // Use nginx proxy path
 
     console.log(`📁 File uploaded: ${req.file.originalname} -> ${req.file.filename}`);
 
@@ -151,7 +151,7 @@ app.post('/upload-multiple', upload.array('media', 10), (req: Request, res: Resp
       filename: file.filename,
       originalName: file.originalname,
       url: `/media/${encodeURIComponent(file.filename)}`,
-      fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`,
+      fullUrl: `/api/media/${encodeURIComponent(file.filename)}`, // Use nginx proxy path
       size: file.size,
       path: file.path
     }));

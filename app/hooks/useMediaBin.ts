@@ -2,6 +2,7 @@ import { useState, useCallback } from "react"
 import { parseMedia } from '@remotion/media-parser'
 import { type MediaBinItem } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
+import { apiUrl } from "~/utils/api"
 
 // Helper function to get media metadata
 const getMediaMetadata = (file: File, mediaType: "video" | "image"): Promise<{
@@ -87,7 +88,7 @@ export const useMediaBin = () => {
       formData.append('media', file);
 
       console.log("Uploading file to server...");
-      const uploadResponse = await fetch('http://localhost:8000/upload', {
+      const uploadResponse = await fetch(apiUrl('/upload'), {
         method: 'POST',
         body: formData
       });
