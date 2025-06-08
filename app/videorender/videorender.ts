@@ -232,7 +232,7 @@ app.post('/render', async (req, res) => {
           '-b_strategy', '0', // Disable advanced B-frame strategies
         ];
       },
-      timeoutInMilliseconds: 120000, // 2 minute max timeout
+      timeoutInMilliseconds: 900000 , // 15 minute max timeout
     });
 
     console.log('✅ Render completed successfully');

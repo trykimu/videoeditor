@@ -54,7 +54,7 @@ export const useRenderer = () => {
         return
       }
 
-      setRenderStatus("Sending data to render server...")
+      setRenderStatus("Rendering video...")
 
       const response = await axios.post(apiUrl('/render'), {
         timelineData: timelineData,
@@ -76,13 +76,11 @@ export const useRenderer = () => {
         })()
       }, {
         responseType: 'blob',
-        timeout: 120000,
+        timeout: 900000,
         onDownloadProgress: (progressEvent) => {
           if (progressEvent.lengthComputable && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
             setRenderStatus(`Downloading rendered video: ${percentCompleted}%`)
-          } else {
-            setRenderStatus("Rendering video...")
           }
         }
       })
@@ -102,11 +100,11 @@ export const useRenderer = () => {
       console.error('Render error:', error)
       if (axios.isAxiosError(error)) {
         if (error.code === 'ECONNABORTED') {
-          setRenderStatus("Error: Render timeout - try reducing video length")
+          setRenderStatus("Error: Render timeout")
         } else if (error.response?.status === 500) {
           setRenderStatus(`Error: ${error.response.data?.message || 'Server error during rendering'}`)
         } else if (error.request) {
-          setRenderStatus("Error: Cannot connect to render server. Is it running on port 8000?")
+          setRenderStatus("Error: Cannot connect to render server")
         } else {
           setRenderStatus(`Error: ${error.message}`)
         }
