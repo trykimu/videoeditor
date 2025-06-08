@@ -54,7 +54,7 @@ export const useRenderer = () => {
         return
       }
 
-      setRenderStatus("Sending data to render server...")
+      setRenderStatus("Rendering video...")
 
       const response = await axios.post(apiUrl('/render'), {
         timelineData: timelineData,
@@ -81,8 +81,6 @@ export const useRenderer = () => {
           if (progressEvent.lengthComputable && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
             setRenderStatus(`Downloading rendered video: ${percentCompleted}%`)
-          } else {
-            setRenderStatus("Rendering video...")
           }
         }
       })
