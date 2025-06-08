@@ -100,11 +100,11 @@ export const useRenderer = () => {
       console.error('Render error:', error)
       if (axios.isAxiosError(error)) {
         if (error.code === 'ECONNABORTED') {
-          setRenderStatus("Error: Render timeout - try reducing video length")
+          setRenderStatus("Error: Render timeout")
         } else if (error.response?.status === 500) {
           setRenderStatus(`Error: ${error.response.data?.message || 'Server error during rendering'}`)
         } else if (error.request) {
-          setRenderStatus("Error: Cannot connect to render server. Is it running on port 8000?")
+          setRenderStatus("Error: Cannot connect to render server")
         } else {
           setRenderStatus(`Error: ${error.message}`)
         }
