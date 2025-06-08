@@ -270,7 +270,7 @@ app.listen(port, () => {
   console.log(`   - Multi-threaded processing (3 cores)`);
   console.log(`   - Balanced quality/speed encoding`);
   console.log(`   - Full resolution rendering`);
-  console.log(`   - 30-minute timeout for longer videos`);
+  console.log(`   - 15-minute timeout for longer videos`);
   console.log(`📂 Media files are served from: ${path.resolve('out')}`);
 });
 
