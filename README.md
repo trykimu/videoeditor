@@ -20,11 +20,19 @@ https://github.com/user-attachments/assets/5bbea594-8461-445c-b669-e86f1b1b7ba1
 - 📜Licensed under MIT
 
 
-## ⌨️Deployment
+## 🐋Deployment
 ```
 git clone https://github.com/robinroy03/videoeditor.git
 cd videoeditor
 docker compose up
+```
+
+## 🧑‍💻Development
+```
+pnpm i
+pnpm run dev (frontend)
+pnpm dlx --loader ts-node app/videorender/videorender.ts (backend)
+flip `isProduction` to `false` in `/app/utils/api.ts`
 ```
 
 ## 📃TODO

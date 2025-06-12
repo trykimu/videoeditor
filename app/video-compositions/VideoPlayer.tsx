@@ -26,17 +26,18 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
                             alignItems: 'center',
                         }}>
                             <div style={{
-                                textAlign: 'center',
+                                textAlign: scrubber.textStyle?.textAlign || 'center',
                                 width: '100%'
                             }}>
                                 <p style={{
-                                    color: 'white',
-                                    fontSize: '48px',
-                                    fontFamily: 'Arial, sans-serif',
+                                    color: scrubber.textStyle?.color || 'white',
+                                    fontSize: scrubber.textStyle?.fontSize ? `${scrubber.textStyle.fontSize}px` : '48px',
+                                    fontFamily: scrubber.textStyle?.fontFamily || 'Arial, sans-serif',
+                                    fontWeight: scrubber.textStyle?.fontWeight || 'normal',
                                     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                                     margin: 0,
                                     padding: '20px'
-                                }}>{scrubber.id}</p>
+                                }}>{scrubber.textContent || "insert text here"}</p>
                             </div>
                         </AbsoluteFill>
                     );

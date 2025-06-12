@@ -94,6 +94,14 @@ export interface TimelineDataItem {
     trackIndex: number
     media_width: number | null
     media_height: number | null
+    textContent?: string  // Only present when mediaType is "text"
+    textStyle?: {         // Only present when mediaType is "text"
+      fontSize?: number
+      fontFamily?: string
+      color?: string
+      textAlign?: 'left' | 'center' | 'right'
+      fontWeight?: 'normal' | 'bold'
+    }
   }[]
 }
 

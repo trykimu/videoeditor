@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from "react"
 import type { PlayerRef } from "@remotion/player";
 
 // Components
-import { MediaBin } from "~/components/timeline/MediaBin"
+// import { MediaBin } from "~/components/timeline/MediaBin"
 import { VideoPlayerSection } from "~/components/timeline/VideoPlayerSection"
 import { TimelineControls } from "~/components/timeline/TimelineControls"
 import { RenderStatus } from "~/components/timeline/RenderStatus"
@@ -17,6 +17,7 @@ import { useRenderer } from "~/hooks/useRenderer"
 
 // Types and constants
 import { FPS } from "~/components/timeline/types"
+import { Outlet } from "react-router";
 
 export default function TimelineEditor() {
   // Refs
@@ -161,12 +162,18 @@ export default function TimelineEditor() {
       {/* Top Section: Media Bin and Player */}
       <div className="flex space-x-4 h-[300px] flex-shrink-0">
         {/* Top Left: Media Bin */}
-        <MediaBin
+        {/* <MediaBin
           mediaBinItems={mediaBinItems}
           onAddMedia={handleAddMediaToBin}
           onAddText={handleAddTextToBin}
-        />
-
+        /> */}
+        <Outlet context={{
+          // MediaBin props
+          mediaBinItems,
+          onAddMedia: handleAddMediaToBin,
+          onAddText: handleAddTextToBin,
+          // TextEditor props (none for now)
+        }} />
         {/* Top Right: Video Player */}
         <VideoPlayerSection
           timelineData={timelineData}

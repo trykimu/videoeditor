@@ -1,4 +1,4 @@
-import React from "react"
+import { useOutletContext } from "react-router"
 import { type MediaBinItem } from "./types"
 
 interface MediaBinProps {
@@ -7,11 +7,14 @@ interface MediaBinProps {
   onAddText: () => void
 }
 
-export const MediaBin: React.FC<MediaBinProps> = ({
-  mediaBinItems,
-  onAddMedia,
-  onAddText,
-}) => {
+// This is required for the data router
+export function loader() {
+  return null
+}
+
+export default function MediaBin() {
+  const { mediaBinItems, onAddMedia, onAddText } = useOutletContext<MediaBinProps>()
+  
   return (
     <div className="w-1/3 bg-gray-50 p-3 rounded-lg shadow border border-gray-200 overflow-y-auto">
       <h3 className="text-lg font-semibold mb-2">Media Bin</h3>
