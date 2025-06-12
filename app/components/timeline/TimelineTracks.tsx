@@ -1,12 +1,9 @@
 import React from "react"
 import { Scrubber } from "./Scrubber"
-import { DEFAULT_TRACK_HEIGHT, PIXELS_PER_SECOND, type TrackState, type ScrubberState, type MediaBinItem } from "./types"
+import { DEFAULT_TRACK_HEIGHT, PIXELS_PER_SECOND, type ScrubberState, type MediaBinItem, type TimelineState } from "./types"
 
 interface TimelineTracksProps {
-  timeline: {
-    id: string
-    tracks: TrackState[]
-  }
+  timeline: TimelineState
   timelineWidth: number
   rulerPositionPx: number
   containerRef: React.RefObject<HTMLDivElement | null>

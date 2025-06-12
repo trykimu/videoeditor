@@ -3,7 +3,8 @@ import type { PlayerRef } from "@remotion/player";
 
 // Components
 // import { MediaBin } from "~/components/timeline/MediaBin"
-import { VideoPlayerSection } from "~/components/timeline/VideoPlayerSection"
+// import { VideoPlayerSection } from "~/components/timeline/VideoPlayerSection"
+import { VideoPlayer } from "~/video-compositions/VideoPlayer"
 import { TimelineControls } from "~/components/timeline/TimelineControls"
 import { RenderStatus } from "~/components/timeline/RenderStatus"
 import { TimelineRuler } from "~/components/timeline/TimelineRuler"
@@ -175,7 +176,7 @@ export default function TimelineEditor() {
           // TextEditor props (none for now)
         }} />
         {/* Top Right: Video Player */}
-        <VideoPlayerSection
+        <VideoPlayer
           timelineData={timelineData}
           durationInFrames={durationInFrames}
           ref={playerRef}

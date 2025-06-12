@@ -109,6 +109,7 @@ export const useMediaBin = () => {
         durationInSeconds: metadata.durationInSeconds,
         media_width: metadata.width,
         media_height: metadata.height,
+        width: 0,       // width is a css property for the scrubber width. 0 now because it is not a scrubber yet.
       };
       setMediaBinItems(prev => [...prev, newItem]);
 
@@ -123,8 +124,9 @@ export const useMediaBin = () => {
       id: generateUUID(),
       name: "Text Element",
       mediaType: "text",
-      media_width: null, // text got no dimensions
-      media_height: null,
+      media_width: 0, // text got no dimensions
+      media_height: 0,
+      width: 0,       // width is a css property for the scrubber width. 0 now because it is not a scrubber yet.
     };
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);

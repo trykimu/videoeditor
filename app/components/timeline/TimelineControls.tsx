@@ -1,5 +1,4 @@
 import React from "react"
-import { type TimelineDataItem } from "./types"
 
 interface TimelineControlsProps {
   onAddMedia: () => void

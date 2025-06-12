@@ -4,7 +4,7 @@ import { generateUUID } from "~/utils/uuid"
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
-    id: "main",
+    // id: "main",
     tracks: [
       {
         id: "track-1",
@@ -28,8 +28,8 @@ export const useTimeline = () => {
 
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const timelineData = [{
-      id: timeline.id,
-      totalDuration: timelineWidth / PIXELS_PER_SECOND,
+      // id: timeline.id,
+      // totalDuration: timelineWidth / PIXELS_PER_SECOND,
       scrubbers: timeline.tracks.flatMap(track =>
         track.scrubbers.map(scrubber => ({
           id: scrubber.id,
@@ -49,7 +49,7 @@ export const useTimeline = () => {
     }]
 
     return timelineData
-  }, [timeline, timelineWidth])
+  }, [timeline])
 
   const expandTimeline = useCallback((containerRef: React.RefObject<HTMLDivElement | null>) => {
     if (!containerRef.current) return false
