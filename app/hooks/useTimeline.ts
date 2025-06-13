@@ -44,6 +44,7 @@ export const useTimeline = () => {
           trackIndex: scrubber.y || 0,
           media_width: scrubber.media_width,
           media_height: scrubber.media_height,
+          text: scrubber.text,
         }))
       )
     }]
@@ -137,6 +138,7 @@ export const useTimeline = () => {
       durationInSeconds: item.durationInSeconds,
       media_width: item.media_width,
       media_height: item.media_height,
+      text: item.text,
     };
 
     handleAddScrubberToTrack(trackId, newScrubber);

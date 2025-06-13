@@ -4,7 +4,7 @@ import { type MediaBinItem } from "./types"
 interface MediaBinProps {
   mediaBinItems: MediaBinItem[]
   onAddMedia: (file: File) => Promise<void>
-  onAddText: () => void
+  onAddText: (textContent: string, fontSize: number, fontFamily: string, color: string, textAlign: "left" | "center" | "right", fontWeight: "normal" | "bold") => void
 }
 
 // This is required for the data router
@@ -16,7 +16,7 @@ export default function MediaBin() {
   const { mediaBinItems, onAddMedia, onAddText } = useOutletContext<MediaBinProps>()
   
   return (
-    <div className="w-1/3 bg-gray-50 p-3 rounded-lg shadow border border-gray-200 overflow-y-auto">
+    <div className="w-full bg-gray-50 p-3 h-full overflow-y-auto">
       <h3 className="text-lg font-semibold mb-2">Media Bin</h3>
       <div className="space-y-2">
         {mediaBinItems.map(item => (
@@ -30,7 +30,7 @@ export default function MediaBin() {
             }}
           >
             {item.mediaType === "video" ? "🎥" : item.mediaType === "image" ? "🖼️" : "📝"} {item.name}
-            {item.durationInSeconds && ` (${item.durationInSeconds.toFixed(1)}s)`}
+            {item.mediaType === "video" && item.durationInSeconds > 0 && ` (${item.durationInSeconds.toFixed(2)}s)`}
           </div>
         ))}
         {mediaBinItems.length === 0 && <p className="text-sm text-gray-500">Add media or text elements.</p>}

@@ -1,5 +1,5 @@
 // Set to true for production, false for development
-const isProduction = false;
+const isProduction = true;
 
 export const getApiBaseUrl = (): string => {
   if (!isProduction) {

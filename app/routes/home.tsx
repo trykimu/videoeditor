@@ -2,8 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from "react"
 import type { PlayerRef } from "@remotion/player";
 
 // Components
-// import { MediaBin } from "~/components/timeline/MediaBin"
-// import { VideoPlayerSection } from "~/components/timeline/VideoPlayerSection"
+import LeftPanel from "~/components/editor/LeftPanel"
 import { VideoPlayer } from "~/video-compositions/VideoPlayer"
 import { TimelineControls } from "~/components/timeline/TimelineControls"
 import { RenderStatus } from "~/components/timeline/RenderStatus"
@@ -18,13 +17,16 @@ import { useRenderer } from "~/hooks/useRenderer"
 
 // Types and constants
 import { FPS } from "~/components/timeline/types"
-import { Outlet } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function TimelineEditor() {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Navigation
+  const navigate = useNavigate();
 
   // State for video dimensions
   const [width, setWidth] = useState<number>(1920)
@@ -111,6 +113,10 @@ export default function TimelineEditor() {
     setIsAutoSize(auto)
   }, [])
 
+  const handleAddTextClick = useCallback(() => {
+    navigate('/text-editor')
+  }, [navigate])
+
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef)
   }, [expandTimeline])
@@ -122,8 +128,20 @@ export default function TimelineEditor() {
   // Global spacebar play/pause functionality
   useEffect(() => {
     const handleGlobalKeyPress = (event: KeyboardEvent) => {
-      // Only handle spacebar and prevent it from scrolling the page
+      // Only handle spacebar when not focused on input elements
       if (event.code === 'Space') {
+        const target = event.target as HTMLElement;
+        const isInputElement = target.tagName === 'INPUT' || 
+                              target.tagName === 'TEXTAREA' || 
+                              target.contentEditable === 'true' ||
+                              target.isContentEditable;
+        
+        // If user is typing in an input field, don't interfere
+        if (isInputElement) {
+          return;
+        }
+
+        // Prevent spacebar from scrolling the page
         event.preventDefault();
 
         const player = playerRef.current;
@@ -162,19 +180,12 @@ export default function TimelineEditor() {
     <div className="h-screen w-full flex flex-col p-4">
       {/* Top Section: Media Bin and Player */}
       <div className="flex space-x-4 h-[300px] flex-shrink-0">
-        {/* Top Left: Media Bin */}
-        {/* <MediaBin
+        {/* Top Left: Video Editor Left Panel with tabs */}
+        <LeftPanel
           mediaBinItems={mediaBinItems}
           onAddMedia={handleAddMediaToBin}
           onAddText={handleAddTextToBin}
-        /> */}
-        <Outlet context={{
-          // MediaBin props
-          mediaBinItems,
-          onAddMedia: handleAddMediaToBin,
-          onAddText: handleAddTextToBin,
-          // TextEditor props (none for now)
-        }} />
+        />
         {/* Top Right: Video Player */}
         <VideoPlayer
           timelineData={timelineData}
@@ -188,7 +199,7 @@ export default function TimelineEditor() {
       {/* Controls Section */}
       <TimelineControls
         onAddMedia={handleAddMediaClick}
-        onAddText={handleAddTextToBin}
+        onAddText={handleAddTextClick}
         onAddTrack={handleAddTrack}
         onRenderVideo={handleRenderClick}
         onLogTimelineData={handleLogTimelineData}

@@ -31,7 +31,7 @@ docker compose up
 ```
 pnpm i
 pnpm run dev (frontend)
-pnpm dlx --loader ts-node app/videorender/videorender.ts (backend)
+pnpm dlx tsx app/videorender/videorender.ts (backend)
 flip `isProduction` to `false` in `/app/utils/api.ts`
 ```
 
