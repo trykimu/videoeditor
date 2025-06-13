@@ -1,7 +1,11 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-    index("routes/home.tsx"),
+    route("/", "routes/home.tsx", [
+        index("components/timeline/MediaBin.tsx"),
+        route("/text-editor", "components/media/TextEditor.tsx"),
+        route("/media-bin", "components/redirects/mediaBinLoader.ts"),
+    ]),
     route("/learn", "routes/learn.tsx"),
     route("*", "./NotFound.tsx")
 ] satisfies RouteConfig;

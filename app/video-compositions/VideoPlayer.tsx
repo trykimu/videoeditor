@@ -1,12 +1,22 @@
 import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
 import React from 'react';
-import type { TimelineDataItem, VideoPlayerProps } from '~/components/timeline/types';
+import type { TimelineDataItem } from '~/components/timeline/types';
 
 type TimelineCompositionProps = {
     timelineData: TimelineDataItem[];
     isRendering: boolean;   // it's either render (True) or preview (False)
 }
+
+// props for the preview mode player
+export type VideoPlayerProps = {
+    timelineData: TimelineDataItem[];
+    durationInFrames: number;           // this is for the player to know how long to render (used in preview mode)
+    ref: React.Ref<PlayerRef>;
+    compositionWidth: number | null;    // if null, the player width = max(width)
+    compositionHeight: number | null;   // if null, the player height = max(height)
+}
+
 
 export function TimelineComposition({ timelineData, isRendering }: TimelineCompositionProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
@@ -26,17 +36,18 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
                             alignItems: 'center',
                         }}>
                             <div style={{
-                                textAlign: 'center',
+                                textAlign: scrubber.text?.textAlign || 'center',
                                 width: '100%'
                             }}>
                                 <p style={{
-                                    color: 'white',
-                                    fontSize: '48px',
-                                    fontFamily: 'Arial, sans-serif',
+                                    color: scrubber.text?.color || 'white',
+                                    fontSize: scrubber.text?.fontSize ? `${scrubber.text.fontSize}px` : '48px',
+                                    fontFamily: scrubber.text?.fontFamily || 'Arial, sans-serif',
+                                    fontWeight: scrubber.text?.fontWeight || 'normal',
                                     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                                     margin: 0,
                                     padding: '20px'
-                                }}>{scrubber.id}</p>
+                                }}>{scrubber.text?.textContent || "insert text here"}</p>
                             </div>
                         </AbsoluteFill>
                     );
@@ -109,19 +120,21 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
     }
 
     return (
-        <Player
-            ref={ref}
-            component={TimelineComposition}
-            inputProps={{ timelineData, durationInFrames, isRendering: false }}
-            durationInFrames={durationInFrames || 10}
-            compositionWidth={compositionWidth}
-            compositionHeight={compositionHeight}
-            fps={30}
-            style={{
-                width: '100%',
-                height: '100%',
-            }}
-            controls
-        />
+        <div className="w-2/3 bg-gray-900 rounded-lg overflow-hidden shadow">
+            <Player
+                ref={ref}
+                component={TimelineComposition}
+                inputProps={{ timelineData, durationInFrames, isRendering: false }}
+                durationInFrames={durationInFrames || 10}
+                compositionWidth={compositionWidth}
+                compositionHeight={compositionHeight}
+                fps={30}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                }}
+                controls
+            />
+        </div>
     );
 } 

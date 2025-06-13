@@ -1,100 +1,54 @@
-import type { PlayerRef } from "@remotion/player"
-
-export interface ScrubberState {
-  id: string
-  left: number // in pixels
-  width: number // in pixels
-  mediaType: "video" | "image" | "text"
-  mediaUrlLocal?: string
-  mediaUrlRemote?: string
-  y?: number // track position (0-based index)
-  name?: string // Added for displaying a name
-  durationInSeconds?: number // Added for original video duration
-  media_width: number | null;
-  media_height: number | null;
-}
-
-export interface MediaBinItem {
+// base type for all scrubbers
+export interface BaseScrubber {
   id: string;
   mediaType: "video" | "image" | "text";
-  mediaUrlLocal?: string;
-  mediaUrlRemote?: string;
+  mediaUrlLocal: string | null;   // null for text
+  mediaUrlRemote: string | null;
+  media_width: number; // width of the media in pixels
+  media_height: number; // height of the media in pixels
+  text: TextProperties | null;
+}
+
+export interface TextProperties {
+  textContent: string;  // Only present when mediaType is "text"
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  textAlign: 'left' | 'center' | 'right';
+  fontWeight: 'normal' | 'bold';
+}
+
+// state of the scrubber in the media bin
+export interface MediaBinItem extends BaseScrubber {
   name: string;
-  durationInSeconds?: number; // For videos, to calculate initial width
-  media_width: number | null;
-  media_height: number | null;
+  durationInSeconds: number; // For media, to calculate initial width
 }
 
+// state of the scrubber in the timeline
+export interface ScrubberState extends MediaBinItem {
+  left: number; // in pixels
+  y: number; // track position (0-based index)
+  width: number;          // width is a css property for the scrubber width
+}
+
+// state of the track in the timeline
 export interface TrackState {
-  id: string
-  scrubbers: ScrubberState[]
+  id: string;
+  scrubbers: ScrubberState[];
 }
 
+// state of the timeline
 export interface TimelineState {
-  id: string
-  tracks: TrackState[]
+  tracks: TrackState[];
 }
 
-export interface SnapConfig {
-  enabled: boolean
-  distance: number // snap distance in pixels
-}
-
-export interface ScrubberProps {
-  scrubber: ScrubberState
-  timelineWidth: number
-  otherScrubbers: ScrubberState[]
-  onUpdate: (updatedScrubber: ScrubberState) => void
-  containerRef: React.RefObject<HTMLDivElement | null>
-  expandTimeline: () => boolean
-  snapConfig: SnapConfig
-  trackCount: number
-}
-
-export type TimelineScrubber = {
-  id: string;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  mediaType: 'image' | 'video' | 'text';
-  mediaUrlLocal?: string;
-  mediaUrlRemote?: string;
-  width: number;
-  media_width: number;
-  media_height: number;
-}
-
-export type TimelineData = {
-  id: string;
-  totalDuration: number;
-  scrubbers: TimelineScrubber[];
-}
-
-export type VideoPlayerProps = {
-  timelineData: TimelineDataItem[];
-  durationInFrames: number;
-  ref?: React.Ref<PlayerRef>;
-  compositionWidth: number | null;    // if null, the player width = max(width)
-  compositionHeight: number | null;   // if null, the player height = max(height)
-}
-
+// the most important type. gets converted to json and gets rendered. Everything else is just a helper type. (formed using getTimelineData() in useTimeline.ts from timelinestate)
 export interface TimelineDataItem {
-  id: string
-  totalDuration: number
-  scrubbers: {
-    id: string
-    mediaType: "video" | "image" | "text"
-    mediaUrlLocal?: string
-    mediaUrlRemote?: string
-    width: number
-    startTime: number
-    endTime: number
-    duration: number
-    trackId: string
-    trackIndex: number
-    media_width: number | null
-    media_height: number | null
-  }[]
+  scrubbers: (BaseScrubber & {
+    startTime: number;
+    endTime: number;
+    duration: number; // TODO: this should be calculated from the start and end time, for trimming, it should be done with the trimmer. This should be refactored later.
+  })[];
 }
 
 // Constants

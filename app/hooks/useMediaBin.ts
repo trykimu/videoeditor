@@ -106,9 +106,11 @@ export const useMediaBin = () => {
         mediaType,
         mediaUrlLocal,
         mediaUrlRemote: uploadResult.fullUrl,
-        durationInSeconds: metadata.durationInSeconds,
+        durationInSeconds: metadata.durationInSeconds ?? 0,
         media_width: metadata.width,
         media_height: metadata.height,
+        // width: 0,       // width is a css property for the scrubber width. 0 now because it is not a scrubber yet.
+        text: null,
       };
       setMediaBinItems(prev => [...prev, newItem]);
 
@@ -118,13 +120,31 @@ export const useMediaBin = () => {
     }
   }, []);
 
-  const handleAddTextToBin = useCallback(() => {
+  const handleAddTextToBin = useCallback((
+    textContent: string,
+    fontSize: number,
+    fontFamily: string,
+    color: string,
+    textAlign: "left" | "center" | "right",
+    fontWeight: "normal" | "bold"
+  ) => {
     const newItem: MediaBinItem = {
       id: generateUUID(),
-      name: "Text Element",
+      name: textContent,
       mediaType: "text",
-      media_width: null, // text got no dimensions
-      media_height: null,
+      media_width: 0,
+      media_height: 0,
+      text: {
+        textContent,
+        fontSize,
+        fontFamily,
+        color,
+        textAlign,
+        fontWeight,
+      },
+      mediaUrlLocal: null,
+      mediaUrlRemote: null,
+      durationInSeconds: 0,
     };
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);

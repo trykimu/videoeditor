@@ -1,5 +1,22 @@
 import React, { useState, useRef, useCallback, useEffect } from "react"
-import { DEFAULT_TRACK_HEIGHT, type ScrubberProps, type ScrubberState } from "./types"
+import { DEFAULT_TRACK_HEIGHT, type ScrubberState } from "./types"
+
+// something something for the css not gonna bother with it for now
+export interface SnapConfig {
+  enabled: boolean;
+  distance: number; // snap distance in pixels
+}
+
+export interface ScrubberProps {
+  scrubber: ScrubberState;
+  timelineWidth: number;
+  otherScrubbers: ScrubberState[];
+  onUpdate: (updatedScrubber: ScrubberState) => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  expandTimeline: () => boolean;
+  snapConfig: SnapConfig;
+  trackCount: number;
+}
 
 export const Scrubber: React.FC<ScrubberProps> = ({
   scrubber,
