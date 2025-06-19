@@ -1,12 +1,12 @@
 // Set to true for production, false for development
-const isProduction = true;
+const isProduction = false;
 
 export const getApiBaseUrl = (): string => {
   if (!isProduction) {
     // Test mode - use localhost:8000
     return 'http://localhost:8000';
   }
-  
+
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api`;
   }
