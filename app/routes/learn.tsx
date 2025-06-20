@@ -346,7 +346,7 @@ export function Main({
     },
     [setSelectedItem],
   );
-
+  console.log(JSON.stringify(items, null, 2));
   return (
     <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
       <AbsoluteFill style={layerContainer}>
@@ -364,6 +364,87 @@ export function Main({
   );
 };
 
+export const ColorPickerButton: React.FC<{
+  selectedItem: number | null;
+  setItems: React.Dispatch<React.SetStateAction<Item[]>>;
+  items: Item[];
+}> = ({ selectedItem, setItems, items }) => {
+  const selectedItemData = useMemo(() => {
+    return selectedItem !== null ? items.find(item => item.id === selectedItem) : null;
+  }, [selectedItem, items]);
+
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (selectedItem !== null) {
+        setItems((prevItems) => 
+          prevItems.map((item) => 
+            item.id === selectedItem 
+              ? { ...item, color } 
+              : item
+          )
+        );
+      }
+    },
+    [selectedItem, setItems],
+  );
+
+  if (selectedItem === null || !selectedItemData) {
+    return (
+      <div style={{
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '6px',
+        color: '#6c757d',
+        fontSize: '14px',
+        textAlign: 'center'
+      }}>
+        Select an item to change its color
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      padding: '12px',
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '6px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    }}>
+      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+        Item {selectedItem + 1} Color:
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <input
+          type="color"
+          value={selectedItemData.color}
+          onChange={(e) => handleColorChange(e.target.value)}
+          style={{
+            width: '48px',
+            height: '36px',
+            border: '2px solid #dee2e6',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            padding: '2px'
+          }}
+        />
+        <span style={{ 
+          fontSize: '13px', 
+          color: '#495057',
+          fontFamily: 'monospace',
+          backgroundColor: '#e9ecef',
+          padding: '4px 8px',
+          borderRadius: '4px'
+        }}>
+          {selectedItemData.color}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 export default function Learn() {
   const [items, setItems] = useState<Item[]>([
@@ -417,17 +498,25 @@ export default function Learn() {
   }, [changeItem, items, selectedItem]);
 
   return (
-    <Player
-      style={{
-        width: '100%',
-      }}
-      component={Main}
-      compositionHeight={1080}
-      compositionWidth={1920}
-      durationInFrames={300}
-      fps={30}
-      inputProps={inputProps}
-      overflowVisible
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', gap: '16px', padding: '16px' }}>
+      <ColorPickerButton
+        selectedItem={selectedItem}
+        setItems={setItems}
+        items={items}
+      />
+      <Player
+        style={{
+          width: '100%',
+          flex: 1,
+        }}
+        component={Main}
+        compositionHeight={1080}
+        compositionWidth={1920}
+        durationInFrames={300}
+        fps={30}
+        inputProps={inputProps}
+        overflowVisible
+      />
+    </div>
   );
 };
