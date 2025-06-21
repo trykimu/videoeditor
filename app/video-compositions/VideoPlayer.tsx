@@ -10,6 +10,7 @@ type TimelineCompositionProps = {
     selectedItem: string | null;
     setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
     ScrubberState: ScrubberState[];
+    handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
 }
 
 // props for the preview mode player
@@ -20,17 +21,17 @@ export type VideoPlayerProps = {
     compositionWidth: number | null;    // if null, the player width = max(width)
     compositionHeight: number | null;   // if null, the player height = max(height)
     ScrubberState: ScrubberState[];
+    handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
 }
 
 
-export function TimelineComposition({ timelineData, isRendering, selectedItem, setSelectedItem, ScrubberState }: TimelineCompositionProps) {
-    console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
+export function TimelineComposition({ timelineData, isRendering, selectedItem, setSelectedItem, ScrubberState, handleUpdateScrubber }: TimelineCompositionProps) {
+    // console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
     const onPointerDown = useCallback(
         (e: React.PointerEvent) => {
             if (e.button !== 0) {
                 return;
             }
-
             setSelectedItem(null);
         },
         [setSelectedItem],
@@ -126,6 +127,7 @@ export function TimelineComposition({ timelineData, isRendering, selectedItem, s
                     {items}
                 </AbsoluteFill>
                 <SortedOutlines
+                    handleUpdateScrubber={handleUpdateScrubber}
                     selectedItem={selectedItem}
                     items={ScrubberState}
                     setSelectedItem={setSelectedItem}
@@ -140,7 +142,8 @@ export function TimelineComposition({ timelineData, isRendering, selectedItem, s
     // )
 }
 
-export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWidth, compositionHeight, ScrubberState }: VideoPlayerProps) {
+export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWidth, compositionHeight, ScrubberState, handleUpdateScrubber }: VideoPlayerProps) {
+    console.log('timelineData from videoplayer', JSON.stringify(timelineData, null, 2))
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
     // Calculate composition width if not provided
@@ -174,7 +177,7 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
             <Player
                 ref={ref}
                 component={TimelineComposition}
-                inputProps={{ timelineData, durationInFrames, isRendering: false, selectedItem, setSelectedItem, ScrubberState }}
+                inputProps={{ timelineData, durationInFrames, isRendering: false, selectedItem, setSelectedItem, ScrubberState, handleUpdateScrubber }}
                 durationInFrames={durationInFrames || 10}
                 compositionWidth={compositionWidth}
                 compositionHeight={compositionHeight}

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useCurrentScale, Sequence } from 'remotion';
 import { FPS, PIXELS_PER_SECOND, type ScrubberState } from '../components/timeline/types';
-import { useTimeline } from '../hooks/useTimeline';
 
 const HANDLE_SIZE = 10;
 
@@ -10,6 +9,7 @@ export const ResizeHandle: React.FC<{
   setItem: (updatedScrubber: ScrubberState) => void;
   ScrubberState: ScrubberState;
 }> = ({ type, setItem, ScrubberState }) => {
+  // console.log('resizehandle function is called');
   const scale = useCurrentScale();
   const size = Math.round(HANDLE_SIZE / scale);
   const borderSize = 1 / scale;
@@ -72,6 +72,7 @@ export const ResizeHandle: React.FC<{
 
   const onPointerDown = useCallback(
     (e: React.MouseEvent) => {
+      // console.log('onPointerDown is called');
       e.stopPropagation();
       if (e.button !== 0) {
         return;
@@ -87,19 +88,26 @@ export const ResizeHandle: React.FC<{
         const isLeft = type === 'top-left' || type === 'bottom-left';
         const isTop = type === 'top-left' || type === 'top-right';
 
-        const newWidth = ScrubberState.width + (isLeft ? -offsetX : offsetX);
-        const newHeight = ScrubberState.media_height + (isTop ? -offsetY : offsetY);
-        const newLeft = ScrubberState.left + (isLeft ? offsetX : 0);
+        const newWidth = ScrubberState.width_player + (isLeft ? -offsetX : offsetX);
+        const newHeight = ScrubberState.height_player + (isTop ? -offsetY : offsetY);
+        const newLeft = ScrubberState.left_player + (isLeft ? offsetX : 0);
         const newTop = ScrubberState.top_player + (isTop ? offsetY : 0);
-
+        // console.log('newWidth', newWidth);
+        // console.log('newHeight', newHeight);
+        // console.log('newLeft', newLeft);
+        // console.log('newTop', newTop);
+        // console.log('ScrubberState before openpointermove update', ScrubberState);
         setItem({
           ...ScrubberState,
-          width: Math.max(1, Math.round(newWidth)),
-          media_height: Math.max(1, Math.round(newHeight)),
-          left: Math.min(ScrubberState.left_player + ScrubberState.width_player - 1, Math.round(newLeft)),
-          top_player: Math.min(ScrubberState.top_player + ScrubberState.height_player - 1, Math.round(newTop)),
+          width_player: Math.max(1, Math.round(newWidth)),
+          height_player: Math.max(1, Math.round(newHeight)),
+          left_player: Math.round(newLeft),
+          top_player: Math.round(newTop),
           is_dragging: true,
         });
+        // console.log('ScrubberState after openpointermove update',
+        //   JSON.stringify(ScrubberState, null, 2)
+        // );
       };
 
       const onPointerUp = () => {
@@ -246,8 +254,8 @@ export const SortedOutlines: React.FC<{
   items: ScrubberState[];
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
-}> = ({ items, selectedItem, setSelectedItem }) => {
-  const { handleUpdateScrubber } = useTimeline();
+  handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
+}> = ({ items, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
   const itemsToDisplay = React.useMemo(
     () => displaySelectedItemOnTop(items, selectedItem),
     [items, selectedItem],

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "../components/timeline/types"
 import { generateUUID } from "../utils/uuid"
 
@@ -25,6 +25,11 @@ export const useTimeline = () => {
 
   const EXPANSION_THRESHOLD = 200
   const EXPANSION_AMOUNT = 1000
+
+  // TODO: remove this after testing
+  useEffect(() => {
+    console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
+  }, [timeline])
 
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const timelineData = [{
@@ -54,6 +59,8 @@ export const useTimeline = () => {
         }))
       )
     }]
+
+    // console.log('bahahh', JSON.stringify(timelineData, null, 2));
 
     return timelineData
   }, [timeline])
@@ -96,6 +103,10 @@ export const useTimeline = () => {
   }, [timeline])
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
+    // console.log(
+    //   'updatedScrubber handlescrubber',
+    //   JSON.stringify(updatedScrubber, null, 2)
+    // );
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map(track => ({
