@@ -98,7 +98,7 @@ export default function TimelineEditor() {
   }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize])
 
   const handleLogTimelineData = useCallback(() => {
-    console.log(getTimelineData())
+    console.log(JSON.stringify(getTimelineData(), null, 2))
   }, [getTimelineData])
 
   const handleWidthChange = useCallback((newWidth: number) => {
@@ -193,6 +193,8 @@ export default function TimelineEditor() {
           ref={playerRef}
           compositionWidth={isAutoSize ? null : width}
           compositionHeight={isAutoSize ? null : height}
+          timeline={timeline}
+          handleUpdateScrubber={handleUpdateScrubber}
         />
       </div>
 

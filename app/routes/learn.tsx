@@ -1,55 +1,522 @@
-import React, { useRef } from 'react';
+import { Player } from '@remotion/player';
+import React, { useCallback, useMemo, useState } from 'react';
+import { AbsoluteFill, Sequence, useCurrentScale } from 'remotion';
 
-interface MyInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  ref: React.RefObject<HTMLInputElement | null>;
-  label: string;
-}
+export type Item = {
+  id: number;
+  durationInFrames: number;
+  from: number;
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+  color: string;
+  isDragging: boolean;
+};
 
-function MyInput({ ref, label, ...props }: MyInputProps) {
+export const Layer: React.FC<{
+  item: Item;
+}> = ({ item }) => {
+  const style: React.CSSProperties = useMemo(() => {
+    return {
+      backgroundColor: item.color,
+      position: 'absolute',
+      left: item.left,
+      top: item.top,
+      width: item.width,
+      height: item.height,
+    };
+  }, [item.color, item.height, item.left, item.top, item.width]);
+
   return (
-    <div className="mb-4">
-      <label htmlFor={props.id || label} className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <input
-        ref={ref}
-        {...props}
-        id={props.id || label}
-        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-      />
+    <Sequence
+      key={item.id}
+      from={item.from}
+      durationInFrames={item.durationInFrames}
+      layout="none"
+    >
+      <div style={style} />
+    </Sequence>
+  );
+};
+
+const HANDLE_SIZE = 10;
+
+export const ResizeHandle: React.FC<{
+  type: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  setItem: (itemId: number, updater: (item: Item) => Item) => void;
+  item: Item;
+}> = ({ type, setItem, item }) => {
+  const scale = useCurrentScale();
+  const size = Math.round(HANDLE_SIZE / scale);
+  const borderSize = 1 / scale;
+
+  const sizeStyle: React.CSSProperties = useMemo(() => {
+    return {
+      position: 'absolute',
+      height: size,
+      width: size,
+      backgroundColor: 'white',
+      border: `${borderSize}px solid #0B84F3`,
+    };
+  }, [borderSize, size]);
+
+  const margin = -size / 2 - borderSize;
+
+  const style: React.CSSProperties = useMemo(() => {
+    if (type === 'top-left') {
+      return {
+        ...sizeStyle,
+        marginLeft: margin,
+        marginTop: margin,
+        cursor: 'nwse-resize',
+      };
+    }
+
+    if (type === 'top-right') {
+      return {
+        ...sizeStyle,
+        marginTop: margin,
+        marginRight: margin,
+        right: 0,
+        cursor: 'nesw-resize',
+      };
+    }
+
+    if (type === 'bottom-left') {
+      return {
+        ...sizeStyle,
+        marginBottom: margin,
+        marginLeft: margin,
+        bottom: 0,
+        cursor: 'nesw-resize',
+      };
+    }
+
+    if (type === 'bottom-right') {
+      return {
+        ...sizeStyle,
+        marginBottom: margin,
+        marginRight: margin,
+        right: 0,
+        bottom: 0,
+        cursor: 'nwse-resize',
+      };
+    }
+
+    throw new Error('Unknown type: ' + JSON.stringify(type));
+  }, [margin, sizeStyle, type]);
+
+  const onPointerDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (e.button !== 0) {
+        return;
+      }
+
+      const initialX = e.clientX;
+      const initialY = e.clientY;
+
+      const onPointerMove = (pointerMoveEvent: PointerEvent) => {
+        const offsetX = (pointerMoveEvent.clientX - initialX) / scale;
+        const offsetY = (pointerMoveEvent.clientY - initialY) / scale;
+
+        const isLeft = type === 'top-left' || type === 'bottom-left';
+        const isTop = type === 'top-left' || type === 'top-right';
+
+        setItem(item.id, (i) => {
+          const newWidth = item.width + (isLeft ? -offsetX : offsetX);
+          const newHeight = item.height + (isTop ? -offsetY : offsetY);
+          const newLeft = item.left + (isLeft ? offsetX : 0);
+          const newTop = item.top + (isTop ? offsetY : 0);
+
+          return {
+            ...i,
+            width: Math.max(1, Math.round(newWidth)),
+            height: Math.max(1, Math.round(newHeight)),
+            left: Math.min(item.left + item.width - 1, Math.round(newLeft)),
+            top: Math.min(item.top + item.height - 1, Math.round(newTop)),
+            isDragging: true,
+          };
+        });
+      };
+
+      const onPointerUp = () => {
+        setItem(item.id, (i) => {
+          return {
+            ...i,
+            isDragging: false,
+          };
+        });
+        window.removeEventListener('pointermove', onPointerMove);
+      };
+
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      window.addEventListener('pointerup', onPointerUp, {
+        once: true,
+      });
+    },
+    [item, scale, setItem, type],
+  );
+
+  return <div onPointerDown={onPointerDown} style={style} />;
+};
+
+export const SelectionOutline: React.FC<{
+  item: Item;
+  changeItem: (itemId: number, updater: (item: Item) => Item) => void;
+  setSelectedItem: React.Dispatch<React.SetStateAction<number | null>>;
+  selectedItem: number | null;
+  isDragging: boolean;
+}> = ({ item, changeItem, setSelectedItem, selectedItem, isDragging }) => {
+  const scale = useCurrentScale();
+  const scaledBorder = Math.ceil(2 / scale);
+
+  const [hovered, setHovered] = React.useState(false);
+
+  const onMouseEnter = useCallback(() => {
+    setHovered(true);
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    setHovered(false);
+  }, []);
+
+  const isSelected = item.id === selectedItem;
+
+  const style: React.CSSProperties = useMemo(() => {
+    return {
+      width: item.width,
+      height: item.height,
+      left: item.left,
+      top: item.top,
+      position: 'absolute',
+      outline:
+        (hovered && !isDragging) || isSelected
+          ? `${scaledBorder}px solid #0B84F3`
+          : undefined,
+      userSelect: 'none',
+      touchAction: 'none',
+    };
+  }, [item, hovered, isDragging, isSelected, scaledBorder]);
+
+  const startDragging = useCallback(
+    (e: PointerEvent | React.MouseEvent) => {
+      const initialX = e.clientX;
+      const initialY = e.clientY;
+
+      const onPointerMove = (pointerMoveEvent: PointerEvent) => {
+        const offsetX = (pointerMoveEvent.clientX - initialX) / scale;
+        const offsetY = (pointerMoveEvent.clientY - initialY) / scale;
+        changeItem(item.id, (i) => {
+          return {
+            ...i,
+            left: Math.round(item.left + offsetX),
+            top: Math.round(item.top + offsetY),
+            isDragging: true,
+          };
+        });
+      };
+
+      const onPointerUp = () => {
+        changeItem(item.id, (i) => {
+          return {
+            ...i,
+            isDragging: false,
+          };
+        });
+        window.removeEventListener('pointermove', onPointerMove);
+      };
+
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+
+      window.addEventListener('pointerup', onPointerUp, {
+        once: true,
+      });
+    },
+    [item, scale, changeItem],
+  );
+
+  const onPointerDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (e.button !== 0) {
+        return;
+      }
+
+      setSelectedItem(item.id);
+      startDragging(e);
+    },
+    [item.id, setSelectedItem, startDragging],
+  );
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerEnter={onMouseEnter}
+      onPointerLeave={onMouseLeave}
+      style={style}
+    >
+      {isSelected ? (
+        <>
+          <ResizeHandle item={item} setItem={changeItem} type="top-left" />
+          <ResizeHandle item={item} setItem={changeItem} type="top-right" />
+          <ResizeHandle item={item} setItem={changeItem} type="bottom-left" />
+          <ResizeHandle item={item} setItem={changeItem} type="bottom-right" />
+        </>
+      ) : null}
     </div>
   );
-}
+};
 
-MyInput.displayName = 'MyInput'; // Helpful for debugging
+const displaySelectedItemOnTop = (
+  items: Item[],
+  selectedItem: number | null,
+): Item[] => {
+  const selectedItems = items.filter((item) => item.id === selectedItem);
+  const unselectedItems = items.filter((item) => item.id !== selectedItem);
 
-// Example usage of the MyInput component
-export default function Learn() {
-  const inputRef = useRef<HTMLInputElement>(null);
+  return [...unselectedItems, ...selectedItems];
+};
 
-  const handleFocusClick = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+export const SortedOutlines: React.FC<{
+  items: Item[];
+  selectedItem: number | null;
+  changeItem: (itemId: number, updater: (item: Item) => Item) => void;
+  setSelectedItem: React.Dispatch<React.SetStateAction<number | null>>;
+}> = ({ items, selectedItem, changeItem, setSelectedItem }) => {
+  const itemsToDisplay = React.useMemo(
+    () => displaySelectedItemOnTop(items, selectedItem),
+    [items, selectedItem],
+  );
+
+  const isDragging = React.useMemo(
+    () => items.some((item) => item.isDragging),
+    [items],
+  );
+
+  return itemsToDisplay.map((item) => {
+    return (
+      <Sequence
+        key={item.id}
+        from={item.from}
+        durationInFrames={item.durationInFrames}
+        layout="none"
+      >
+        <SelectionOutline
+          changeItem={changeItem}
+          item={item}
+          setSelectedItem={setSelectedItem}
+          selectedItem={selectedItem}
+          isDragging={isDragging}
+        />
+      </Sequence>
+    );
+  });
+};
+
+export type MainProps = {
+  readonly items: Item[];
+  readonly setSelectedItem: React.Dispatch<React.SetStateAction<number | null>>;
+  readonly selectedItem: number | null;
+  readonly changeItem: (itemId: number, updater: (item: Item) => Item) => void;
+};
+
+const outer: React.CSSProperties = {
+  backgroundColor: '#eee',
+};
+
+const layerContainer: React.CSSProperties = {
+  overflow: 'hidden',
+};
+
+export function Main({
+  items,
+  setSelectedItem,
+  selectedItem,
+  changeItem,
+}: MainProps) {
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) {
+        return;
+      }
+
+      setSelectedItem(null);
+    },
+    [setSelectedItem],
+  );
+  console.log(JSON.stringify(items, null, 2));
+  return (
+    <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
+      <AbsoluteFill style={layerContainer}>
+        {items.map((item) => {
+          return <Layer key={item.id} item={item} />;
+        })}
+      </AbsoluteFill>
+      <SortedOutlines
+        selectedItem={selectedItem}
+        items={items}
+        setSelectedItem={setSelectedItem}
+        changeItem={changeItem}
+      />
+    </AbsoluteFill>
+  );
+};
+
+export const ColorPickerButton: React.FC<{
+  selectedItem: number | null;
+  setItems: React.Dispatch<React.SetStateAction<Item[]>>;
+  items: Item[];
+}> = ({ selectedItem, setItems, items }) => {
+  const selectedItemData = useMemo(() => {
+    return selectedItem !== null ? items.find(item => item.id === selectedItem) : null;
+  }, [selectedItem, items]);
+
+  const handleColorChange = useCallback(
+    (color: string) => {
+      if (selectedItem !== null) {
+        setItems((prevItems) => 
+          prevItems.map((item) => 
+            item.id === selectedItem 
+              ? { ...item, color } 
+              : item
+          )
+        );
+      }
+    },
+    [selectedItem, setItems],
+  );
+
+  if (selectedItem === null || !selectedItemData) {
+    return (
+      <div style={{
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '6px',
+        color: '#6c757d',
+        fontSize: '14px',
+        textAlign: 'center'
+      }}>
+        Select an item to change its color
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
-      <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Learning forwardRef</h1>
-      <MyInput
-        ref={inputRef}
-        label="My Input Field"
-        type="text"
-        placeholder="Enter text here"
-        id="learn-input"
+    <div style={{
+      padding: '12px',
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '6px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    }}>
+      <span style={{ fontSize: '14px', fontWeight: '500' }}>
+        Item {selectedItem + 1} Color:
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <input
+          type="color"
+          value={selectedItemData.color}
+          onChange={(e) => handleColorChange(e.target.value)}
+          style={{
+            width: '48px',
+            height: '36px',
+            border: '2px solid #dee2e6',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            padding: '2px'
+          }}
+        />
+        <span style={{ 
+          fontSize: '13px', 
+          color: '#495057',
+          fontFamily: 'monospace',
+          backgroundColor: '#e9ecef',
+          padding: '4px 8px',
+          borderRadius: '4px'
+        }}>
+          {selectedItemData.color}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default function Learn() {
+  const [items, setItems] = useState<Item[]>([
+    {
+      left: 395,
+      top: 270,
+      width: 540,
+      durationInFrames: 100,
+      from: 0,
+      height: 540,
+      id: 0,
+      color: '#ccc',
+      isDragging: false,
+    },
+    {
+      left: 985,
+      top: 270,
+      width: 540,
+      durationInFrames: 100,
+      from: 0,
+      height: 540,
+      id: 1,
+      color: '#ccc',
+      isDragging: false,
+    },
+  ]);
+  const [selectedItem, setSelectedItem] = useState<number | null>(null);
+
+  const changeItem = useCallback(
+    (itemId: number, updater: (item: Item) => Item) => {
+      setItems((oldItems) => {
+        return oldItems.map((item) => {
+          if (item.id === itemId) {
+            return updater(item);
+          }
+
+          return item;
+        });
+      });
+    },
+    [],
+  );
+
+  const inputProps: MainProps = useMemo(() => {
+    return {
+      items,
+      setSelectedItem,
+      changeItem,
+      selectedItem,
+    };
+  }, [changeItem, items, selectedItem]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', gap: '16px', padding: '16px' }}>
+      <ColorPickerButton
+        selectedItem={selectedItem}
+        setItems={setItems}
+        items={items}
       />
-      <button
-        onClick={handleFocusClick}
-        // style={{ marginTop: '10px' }} // Replaced by Tailwind class
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-4"
-      >
-        Focus the input
-      </button>
+      <Player
+        style={{
+          width: '100%',
+          flex: 1,
+        }}
+        component={Main}
+        compositionHeight={1080}
+        compositionWidth={1920}
+        durationInFrames={300}
+        fps={30}
+        inputProps={inputProps}
+        overflowVisible
+      />
     </div>
   );
 };

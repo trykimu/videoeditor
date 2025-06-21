@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react"
-import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "~/components/timeline/types"
-import { generateUUID } from "~/utils/uuid"
+import { useState, useCallback, useEffect } from "react"
+import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "../components/timeline/types"
+import { generateUUID } from "../utils/uuid"
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -26,6 +26,11 @@ export const useTimeline = () => {
   const EXPANSION_THRESHOLD = 200
   const EXPANSION_AMOUNT = 1000
 
+  // TODO: remove this after testing
+  // useEffect(() => {
+  //   console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
+  // }, [timeline])
+
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const timelineData = [{
       // id: timeline.id,
@@ -45,9 +50,17 @@ export const useTimeline = () => {
           media_width: scrubber.media_width,
           media_height: scrubber.media_height,
           text: scrubber.text,
+
+          // the following are the properties of the scrubber in <Player>
+          left_player: scrubber.left_player,
+          top_player: scrubber.top_player,
+          width_player: scrubber.width_player,
+          height_player: scrubber.height_player,
         }))
       )
     }]
+
+    // console.log('bahahh', JSON.stringify(timelineData, null, 2));
 
     return timelineData
   }, [timeline])
@@ -90,6 +103,10 @@ export const useTimeline = () => {
   }, [timeline])
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
+    // console.log(
+    //   'updatedScrubber handlescrubber',
+    //   JSON.stringify(updatedScrubber, null, 2)
+    // );
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map(track => ({
@@ -126,6 +143,14 @@ export const useTimeline = () => {
     const targetTrackIndex = timeline.tracks.findIndex(t => t.id === trackId);
     if (targetTrackIndex === -1) return;
 
+    // For text elements, provide default dimensions if they're 0
+    const playerWidth = item.mediaType === "text" && item.media_width === 0 
+      ? Math.max(200, (item.text?.textContent?.length || 10) * (item.text?.fontSize || 48) * 0.6)
+      : item.media_width;
+    const playerHeight = item.mediaType === "text" && item.media_height === 0
+      ? Math.max(80, (item.text?.fontSize || 48) * 1.5)
+      : item.media_height;
+
     const newScrubber: ScrubberState = {
       id: generateUUID(),
       left: dropLeftPx,
@@ -139,6 +164,13 @@ export const useTimeline = () => {
       media_width: item.media_width,
       media_height: item.media_height,
       text: item.text,
+
+      // the following are the properties of the scrubber in <Player>
+      left_player: 100,       // default values TODO: maybe move it to the center of the <Player> initially
+      top_player: 100,
+      width_player: playerWidth,
+      height_player: playerHeight,
+      is_dragging: false,
     };
 
     handleAddScrubberToTrack(trackId, newScrubber);
