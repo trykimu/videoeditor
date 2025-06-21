@@ -143,6 +143,14 @@ export const useTimeline = () => {
     const targetTrackIndex = timeline.tracks.findIndex(t => t.id === trackId);
     if (targetTrackIndex === -1) return;
 
+    // For text elements, provide default dimensions if they're 0
+    const playerWidth = item.mediaType === "text" && item.media_width === 0 
+      ? Math.max(200, (item.text?.textContent?.length || 10) * (item.text?.fontSize || 48) * 0.6)
+      : item.media_width;
+    const playerHeight = item.mediaType === "text" && item.media_height === 0
+      ? Math.max(80, (item.text?.fontSize || 48) * 1.5)
+      : item.media_height;
+
     const newScrubber: ScrubberState = {
       id: generateUUID(),
       left: dropLeftPx,
@@ -160,8 +168,8 @@ export const useTimeline = () => {
       // the following are the properties of the scrubber in <Player>
       left_player: 100,       // default values TODO: maybe move it to the center of the <Player> initially
       top_player: 100,
-      width_player: item.media_width,
-      height_player: item.media_height,
+      width_player: playerWidth,
+      height_player: playerHeight,
       is_dragging: false,
     };
 

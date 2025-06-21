@@ -9,7 +9,7 @@ export const ResizeHandle: React.FC<{
   setItem: (updatedScrubber: ScrubberState) => void;
   ScrubberState: ScrubberState;
 }> = ({ type, setItem, ScrubberState }) => {
-  // console.log('resizehandle function is called');
+  console.log('ResizeHandle', JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const size = Math.round(HANDLE_SIZE / scale);
   const borderSize = 1 / scale;
@@ -138,6 +138,7 @@ export const SelectionOutline: React.FC<{
   selectedItem: string | null;
   isDragging: boolean;
 }> = ({ ScrubberState, changeItem, setSelectedItem, selectedItem, isDragging }) => {
+  console.log('SelectionOutline', JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const scaledBorder = Math.ceil(2 / scale);
   const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
@@ -153,7 +154,7 @@ export const SelectionOutline: React.FC<{
   }, []);
 
   const isSelected = ScrubberState.id === selectedItem;
-
+  console.log('isSelected', isSelected);
   const style: React.CSSProperties = useMemo(() => {
     return {
       width: ScrubberState.width_player,
@@ -262,6 +263,7 @@ export const SortedOutlines: React.FC<{
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
 }> = ({ timeline, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
   // const items = timeline.tracks.flatMap((track: TrackState) => track.scrubbers);
+  console.log('timeline', timeline);
   const itemsToDisplay = React.useMemo(
     () => {
       return displaySelectedItemOnTop(timeline.tracks.flatMap((track: TrackState) => track.scrubbers), selectedItem);
