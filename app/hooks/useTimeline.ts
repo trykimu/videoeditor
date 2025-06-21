@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
-import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "~/components/timeline/types"
-import { generateUUID } from "~/utils/uuid"
+import { PIXELS_PER_SECOND, type TimelineState, type TrackState, type ScrubberState, type MediaBinItem, type TimelineDataItem } from "../components/timeline/types"
+import { generateUUID } from "../utils/uuid"
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -45,6 +45,12 @@ export const useTimeline = () => {
           media_width: scrubber.media_width,
           media_height: scrubber.media_height,
           text: scrubber.text,
+
+          // the following are the properties of the scrubber in <Player>
+          left_player: scrubber.left_player,
+          top_player: scrubber.top_player,
+          width_player: scrubber.width_player,
+          height_player: scrubber.height_player,
         }))
       )
     }]
@@ -139,6 +145,13 @@ export const useTimeline = () => {
       media_width: item.media_width,
       media_height: item.media_height,
       text: item.text,
+
+      // the following are the properties of the scrubber in <Player>
+      left_player: 100,       // default values TODO: maybe move it to the center of the <Player> initially
+      top_player: 100,
+      width_player: item.media_width,
+      height_player: item.media_height,
+      is_dragging: false,
     };
 
     handleAddScrubberToTrack(trackId, newScrubber);

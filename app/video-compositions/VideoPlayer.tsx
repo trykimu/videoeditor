@@ -1,11 +1,15 @@
 import { Player, type PlayerRef } from '@remotion/player';
 import { Sequence, AbsoluteFill, Img, Video } from 'remotion';
-import React from 'react';
-import type { TimelineDataItem } from '~/components/timeline/types';
+import React, { useCallback, useState } from 'react';
+import type { ScrubberState, TimelineDataItem } from '~/components/timeline/types';
+import { SortedOutlines, layerContainer, outer } from './DragDrop';
 
 type TimelineCompositionProps = {
     timelineData: TimelineDataItem[];
     isRendering: boolean;   // it's either render (True) or preview (False)
+    selectedItem: string | null;
+    setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
+    ScrubberState: ScrubberState[];
 }
 
 // props for the preview mode player
@@ -15,11 +19,22 @@ export type VideoPlayerProps = {
     ref: React.Ref<PlayerRef>;
     compositionWidth: number | null;    // if null, the player width = max(width)
     compositionHeight: number | null;   // if null, the player height = max(height)
+    ScrubberState: ScrubberState[];
 }
 
 
-export function TimelineComposition({ timelineData, isRendering }: TimelineCompositionProps) {
+export function TimelineComposition({ timelineData, isRendering, selectedItem, setSelectedItem, ScrubberState }: TimelineCompositionProps) {
     console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
+    const onPointerDown = useCallback(
+        (e: React.PointerEvent) => {
+            if (e.button !== 0) {
+                return;
+            }
+
+            setSelectedItem(null);
+        },
+        [setSelectedItem],
+    );
     // for this experiment it is all text that we are working with.
     const items: React.ReactNode[] = []
     const FPS = 30; // Assuming 30 FPS as set in VideoPlayer
@@ -32,6 +47,10 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
                 case 'text':
                     content = (
                         <AbsoluteFill style={{
+                            left: scrubber.left_player,
+                            top: scrubber.top_player,
+                            width: scrubber.width_player,
+                            height: scrubber.height_player,
                             justifyContent: 'center',
                             alignItems: 'center',
                         }}>
@@ -55,7 +74,12 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
                 case 'image': {
                     const imageUrl = isRendering ? scrubber.mediaUrlRemote : scrubber.mediaUrlLocal;
                     content = (
-                        <AbsoluteFill>
+                        <AbsoluteFill style={{
+                            left: scrubber.left_player,
+                            top: scrubber.top_player,
+                            width: scrubber.width_player,
+                            height: scrubber.height_player,
+                        }}>
                             <Img src={imageUrl!} />
                         </AbsoluteFill>
                     );
@@ -64,7 +88,12 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
                 case 'video': {
                     const videoUrl = isRendering ? scrubber.mediaUrlRemote : scrubber.mediaUrlLocal;
                     content = (
-                        <AbsoluteFill>
+                        <AbsoluteFill style={{
+                            left: scrubber.left_player,
+                            top: scrubber.top_player,
+                            width: scrubber.width_player,
+                            height: scrubber.height_player,
+                        }}>
                             <Video src={videoUrl!} />
                         </AbsoluteFill>
                     );
@@ -84,15 +113,36 @@ export function TimelineComposition({ timelineData, isRendering }: TimelineCompo
             }
         }
     }
-
-    return (
-        <div>
-            {items}
-        </div>
-    )
+    if (isRendering) {
+        return (
+            <div>
+                {items}
+            </div>
+        )
+    } else {
+        return (
+            <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
+                <AbsoluteFill style={layerContainer}>
+                    {items}
+                </AbsoluteFill>
+                <SortedOutlines
+                    selectedItem={selectedItem}
+                    items={ScrubberState}
+                    setSelectedItem={setSelectedItem}
+                />
+            </AbsoluteFill>
+        )
+    }
+    // return (
+    //     <div>
+    //         {items}
+    //     </div>
+    // )
 }
 
-export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWidth, compositionHeight }: VideoPlayerProps) {
+export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWidth, compositionHeight, ScrubberState }: VideoPlayerProps) {
+    const [selectedItem, setSelectedItem] = useState<string | null>(null);
+
     // Calculate composition width if not provided
     if (compositionWidth === null) {
         let maxWidth = 0;
@@ -124,7 +174,7 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
             <Player
                 ref={ref}
                 component={TimelineComposition}
-                inputProps={{ timelineData, durationInFrames, isRendering: false }}
+                inputProps={{ timelineData, durationInFrames, isRendering: false, selectedItem, setSelectedItem, ScrubberState }}
                 durationInFrames={durationInFrames || 10}
                 compositionWidth={compositionWidth}
                 compositionHeight={compositionHeight}

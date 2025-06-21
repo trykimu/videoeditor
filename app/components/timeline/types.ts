@@ -26,9 +26,16 @@ export interface MediaBinItem extends BaseScrubber {
 
 // state of the scrubber in the timeline
 export interface ScrubberState extends MediaBinItem {
-  left: number; // in pixels
+  left: number; // in pixels (for the scrubber in the timeline)
   y: number; // track position (0-based index)
   width: number;          // width is a css property for the scrubber width
+
+  // the following are the properties of the scrubber in <Player>
+  left_player: number;
+  top_player: number;
+  width_player: number;
+  height_player: number;
+  is_dragging: boolean;
 }
 
 // state of the track in the timeline
@@ -48,6 +55,12 @@ export interface TimelineDataItem {
     startTime: number;
     endTime: number;
     duration: number; // TODO: this should be calculated from the start and end time, for trimming, it should be done with the trimmer. This should be refactored later.
+
+    // the following are the properties of the scrubber in <Player>
+    left_player: number;
+    top_player: number;
+    width_player: number;
+    height_player: number;
   })[];
 }
 
@@ -55,4 +68,4 @@ export interface TimelineDataItem {
 export const PIXELS_PER_SECOND = 100;
 export const DEFAULT_TRACK_HEIGHT = 60;
 export const FPS = 30;
-export const RULER_HEIGHT = 48; 
+export const RULER_HEIGHT = 48;
