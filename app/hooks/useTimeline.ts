@@ -27,9 +27,9 @@ export const useTimeline = () => {
   const EXPANSION_AMOUNT = 1000
 
   // TODO: remove this after testing
-  useEffect(() => {
-    console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
-  }, [timeline])
+  // useEffect(() => {
+  //   console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
+  // }, [timeline])
 
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const timelineData = [{

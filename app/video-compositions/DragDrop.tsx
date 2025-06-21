@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useCurrentScale, Sequence } from 'remotion';
-import { FPS, PIXELS_PER_SECOND, type ScrubberState } from '../components/timeline/types';
+import { FPS, PIXELS_PER_SECOND, type ScrubberState, type TimelineState, type TrackState } from '../components/timeline/types';
 
 const HANDLE_SIZE = 10;
 
@@ -13,7 +13,8 @@ export const ResizeHandle: React.FC<{
   const scale = useCurrentScale();
   const size = Math.round(HANDLE_SIZE / scale);
   const borderSize = 1 / scale;
-
+  const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
+  
   const sizeStyle: React.CSSProperties = useMemo(() => {
     return {
       position: 'absolute',
@@ -97,14 +98,15 @@ export const ResizeHandle: React.FC<{
         // console.log('newLeft', newLeft);
         // console.log('newTop', newTop);
         // console.log('ScrubberState before openpointermove update', ScrubberState);
-        setItem({
+        newScrubberStateRef.current = {
           ...ScrubberState,
           width_player: Math.max(1, Math.round(newWidth)),
           height_player: Math.max(1, Math.round(newHeight)),
           left_player: Math.round(newLeft),
           top_player: Math.round(newTop),
           is_dragging: true,
-        });
+        }
+        setItem(newScrubberStateRef.current);
         // console.log('ScrubberState after openpointermove update',
         //   JSON.stringify(ScrubberState, null, 2)
         // );
@@ -112,7 +114,7 @@ export const ResizeHandle: React.FC<{
 
       const onPointerUp = () => {
         setItem({
-          ...ScrubberState,
+          ...newScrubberStateRef.current,
           is_dragging: false,
         });
         window.removeEventListener('pointermove', onPointerMove);
@@ -138,6 +140,7 @@ export const SelectionOutline: React.FC<{
 }> = ({ ScrubberState, changeItem, setSelectedItem, selectedItem, isDragging }) => {
   const scale = useCurrentScale();
   const scaledBorder = Math.ceil(2 / scale);
+  const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
 
   const [hovered, setHovered] = React.useState(false);
 
@@ -175,17 +178,19 @@ export const SelectionOutline: React.FC<{
       const onPointerMove = (pointerMoveEvent: PointerEvent) => {
         const offsetX = (pointerMoveEvent.clientX - initialX) / scale;
         const offsetY = (pointerMoveEvent.clientY - initialY) / scale;
-        changeItem({
+        newScrubberStateRef.current = {
           ...ScrubberState,
           left_player: Math.round(ScrubberState.left_player + offsetX),
           top_player: Math.round(ScrubberState.top_player + offsetY),
           is_dragging: true,
-        });
+        }
+        changeItem(newScrubberStateRef.current);
       };
 
       const onPointerUp = () => {
+        console.log("onPointerUp is called", JSON.stringify(ScrubberState, null, 2));
         changeItem({
-          ...ScrubberState,
+          ...newScrubberStateRef.current,
           is_dragging: false,
         });
         window.removeEventListener('pointermove', onPointerMove);
@@ -247,23 +252,26 @@ export const layerContainer: React.CSSProperties = {
 };
 
 export const outer: React.CSSProperties = {
-  backgroundColor: '#eee',
+  backgroundColor: '#000000',
 };
 
 export const SortedOutlines: React.FC<{
-  items: ScrubberState[];
+  timeline: TimelineState;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
-}> = ({ items, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
+}> = ({ timeline, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
+  // const items = timeline.tracks.flatMap((track: TrackState) => track.scrubbers);
   const itemsToDisplay = React.useMemo(
-    () => displaySelectedItemOnTop(items, selectedItem),
-    [items, selectedItem],
+    () => {
+      return displaySelectedItemOnTop(timeline.tracks.flatMap((track: TrackState) => track.scrubbers), selectedItem);
+    },
+    [timeline, selectedItem],
   );
 
   const isDragging = React.useMemo(
-    () => items.some((ScrubberState) => ScrubberState.is_dragging),
-    [items],
+    () => timeline.tracks.flatMap((track: TrackState) => track.scrubbers).some((ScrubberState) => ScrubberState.is_dragging),
+    [timeline],
   );
 
   return itemsToDisplay.map((ScrubberState) => {

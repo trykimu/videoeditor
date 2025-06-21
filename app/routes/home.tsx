@@ -193,7 +193,7 @@ export default function TimelineEditor() {
           ref={playerRef}
           compositionWidth={isAutoSize ? null : width}
           compositionHeight={isAutoSize ? null : height}
-          ScrubberState={getAllScrubbers()}
+          timeline={timeline}
           handleUpdateScrubber={handleUpdateScrubber}
         />
       </div>
