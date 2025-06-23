@@ -23,7 +23,8 @@ export default function RenderComposition() {
                 isRendering: false,
                 selectedItem: null,
                 setSelectedItem: () => {},
-                ScrubberState: []
+                timeline: { tracks: [] },
+                handleUpdateScrubber: () => {},
             }}
         />
     )
