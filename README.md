@@ -1,4 +1,4 @@
-<h1 align="center">React Video Editor</h1>
+<h1 align="center">Open-Source Video Editor</h1>
 <p align="center">Video Editor Application using React, Remotion & TypeScript.</p>
 
 > [!NOTE]  
