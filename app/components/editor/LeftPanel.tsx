@@ -21,39 +21,29 @@ export default function LeftPanel({ mediaBinItems, onAddMedia, onAddText }: Left
   const activeTab = getActiveTab()
   
   return (
-    <div className="w-1/3 bg-gray-50 rounded-lg shadow border border-gray-200 flex flex-col h-full">
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-300 bg-gray-100 rounded-t-lg">
-        <Link
-          to="/media-bin"
-          className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
-            activeTab === 'media-bin'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span>🗂️</span>
-            Media Bin
-          </span>
-        </Link>
-        <Link
-          to="/text-editor"
-          className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
-            activeTab === 'text-editor'
-              ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <span>📝</span>
-            Text Editor
-          </span>
-        </Link>
+    <div className="w-[280px] bg-gray-700 rounded flex flex-row h-full">
+      {/* Vertical Tab Navigation */}
+      <div className="flex flex-col border-r border-gray-700 bg-gray-800 rounded-l w-20 flex-shrink-0">
+        {[
+          { to: "/media-bin", label: "Media" },
+          { to: "/text-editor", label: "Text" },
+        ].map(tab => (
+          <Link
+            key={tab.to}
+            to={tab.to}
+            className={`px-3 py-3 text-center text-xs border-b border-gray-700 font-medium transition-colors ${
+              activeTab === tab.to.replace('/', '')
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
       
       {/* Tab Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0 bg-gray-700 rounded-r">
         <Outlet context={{
           // MediaBin props
           mediaBinItems,

@@ -177,42 +177,100 @@ export default function TimelineEditor() {
   }, [isDraggingRuler, handleRulerMouseMove, handleRulerMouseUp]);
 
   return (
-    <div className="h-screen w-full flex flex-col p-4">
-      {/* Top Section: Media Bin and Player */}
-      <div className="flex space-x-4 h-[300px] flex-shrink-0">
-        {/* Top Left: Video Editor Left Panel with tabs */}
-        <LeftPanel
-          mediaBinItems={mediaBinItems}
-          onAddMedia={handleAddMediaToBin}
-          onAddText={handleAddTextToBin}
-        />
-        {/* Top Right: Video Player */}
-        <VideoPlayer
-          timelineData={timelineData}
-          durationInFrames={durationInFrames}
-          ref={playerRef}
-          compositionWidth={isAutoSize ? null : width}
-          compositionHeight={isAutoSize ? null : height}
-          timeline={timeline}
-          handleUpdateScrubber={handleUpdateScrubber}
-        />
+    <div className="h-screen flex flex-col p-2 gap-2 bg-[#121212]">
+      {/* =============== Header =============== */}
+      <div className="bg-gray-800 border border-gray-700 flex rounded justify-between items-center p-3">
+        <h1 className="text-white font-medium text-lg">EasyEdits</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleAddMediaClick}
+            className="bg-gray-700 border border-gray-600 text-gray-100 rounded px-4 py-2 text-sm font-medium hover:bg-gray-600 hover:border-blue-500 hover:text-white transition-colors"
+          >
+            Import
+          </button>
+          <button 
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+            onClick={handleRenderClick}
+            disabled={isRendering}
+          >
+            {isRendering ? 'Rendering...' : 'Export'}
+          </button>
+        </div>
       </div>
 
-      {/* Controls Section */}
-      <TimelineControls
-        onAddMedia={handleAddMediaClick}
-        onAddText={handleAddTextClick}
-        onAddTrack={handleAddTrack}
-        onRenderVideo={handleRenderClick}
-        onLogTimelineData={handleLogTimelineData}
-        isRendering={isRendering}
-        width={width}
-        height={height}
-        onWidthChange={handleWidthChange}
-        onHeightChange={handleHeightChange}
-        isAutoSize={isAutoSize}
-        onAutoSizeChange={handleAutoSizeChange}
-      />
+      {/* =============== Main Content =============== */}
+      <div className="bg-gray-800 border border-gray-700 rounded flex flex-row gap-2 p-2">
+
+        {/* Side Panel */}
+        <div className="bg-gray-700 border border-gray-600 rounded h-[360px]">
+          <LeftPanel
+            mediaBinItems={mediaBinItems}
+            onAddMedia={handleAddMediaToBin}
+            onAddText={handleAddTextToBin}
+          />
+        </div>
+
+        {/* Player */}
+        <div className="bg-gray-700 border border-gray-600 rounded flex flex-col gap-4 flex-1 p-3">
+          <VideoPlayer
+            timelineData={timelineData}
+            durationInFrames={durationInFrames}
+            ref={playerRef}
+            compositionWidth={isAutoSize ? null : width}
+            compositionHeight={isAutoSize ? null : height}
+            timeline={timeline}
+            handleUpdateScrubber={handleUpdateScrubber}
+          />
+        </div>
+      </div>
+
+      {/* =============== Controls =============== */}
+      <div className="bg-gray-800 border border-gray-700 rounded flex flex-row justify-between items-center p-3">
+        <div className="flex items-center gap-3">
+          <button 
+            className="bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2 text-sm font-medium hover:bg-gray-600 hover:border-blue-500 hover:text-white transition-colors"
+            onClick={handleAddTrack}
+          >
+            + Add Track
+          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-gray-300 text-sm">
+              <input
+                type="checkbox"
+                checked={isAutoSize}
+                onChange={(e) => handleAutoSizeChange(e.target.checked)}
+                className="w-4 h-4 text-cyan-500 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500"
+              />
+              Auto Size
+            </label>
+            {!isAutoSize && (
+              <>
+                <input
+                  type="number"
+                  value={width}
+                  onChange={(e) => handleWidthChange(Number(e.target.value))}
+                  className="bg-gray-700 border border-gray-600 text-white px-2 py-1 w-20 rounded text-sm"
+                  placeholder="Width"
+                />
+                <span className="text-gray-400">×</span>
+                <input
+                  type="number"
+                  value={height}
+                  onChange={(e) => handleHeightChange(Number(e.target.value))}
+                  className="bg-gray-700 border border-gray-600 text-white px-2 py-1 w-20 rounded text-sm"
+                  placeholder="Height"
+                />
+              </>
+            )}
+          </div>
+        </div>
+        <button 
+          className="bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2 text-sm font-medium hover:bg-gray-600 hover:border-blue-500 hover:text-white transition-colors"
+          onClick={handleLogTimelineData}
+        >
+          Log Timeline
+        </button>
+      </div>
 
       {/* Hidden file input */}
       <input
@@ -225,10 +283,14 @@ export default function TimelineEditor() {
       />
 
       {/* Render Status */}
-      <RenderStatus renderStatus={renderStatus} />
+      {renderStatus && (
+        <div className="bg-gray-800 border border-gray-700 rounded p-3">
+          <RenderStatus renderStatus={renderStatus} />
+        </div>
+      )}
 
-      {/* Bottom Section: Timeline */}
-      <div className="w-full border rounded-lg bg-white shadow-lg flex flex-col flex-1 min-h-0">
+      {/* =============== Timeline =============== */}
+      <div className="bg-gray-800 border border-gray-700 rounded flex flex-col w-full flex-1 min-h-0">
         {/* Timeline Header: Delete Buttons + Ruler */}
         <TimelineRuler
           timelineWidth={timelineWidth}

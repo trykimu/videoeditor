@@ -173,7 +173,7 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
     }
 
     return (
-        <div className="w-2/3 bg-gray-900 rounded-lg overflow-hidden shadow">
+        // <div className="w-full bg-gray-900 rounded-lg shadow relative">
             <Player
                 ref={ref}
                 component={TimelineComposition}
@@ -185,9 +185,11 @@ export function VideoPlayer({ timelineData, durationInFrames, ref, compositionWi
                 style={{
                     width: '100%',
                     height: '100%',
+                    position: 'relative',
+                    zIndex: 1,
                 }}
                 controls
             />
-        </div>
+        // </div>
     );
 } 

@@ -263,7 +263,7 @@ export const SortedOutlines: React.FC<{
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
 }> = ({ timeline, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
   // const items = timeline.tracks.flatMap((track: TrackState) => track.scrubbers);
-  console.log('timeline', timeline);
+  // console.log('timeline', timeline);
   const itemsToDisplay = React.useMemo(
     () => {
       return displaySelectedItemOnTop(timeline.tracks.flatMap((track: TrackState) => track.scrubbers), selectedItem);

@@ -16,24 +16,32 @@ export default function MediaBin() {
   const { mediaBinItems, onAddMedia, onAddText } = useOutletContext<MediaBinProps>()
   
   return (
-    <div className="w-full bg-gray-50 p-3 h-full overflow-y-auto">
-      <h3 className="text-lg font-semibold mb-2">Media Bin</h3>
+    <div className="w-full h-full bg-gray-700 p-3 overflow-y-auto">
+      <h3 className="text-sm font-medium mb-3 text-gray-200">Media Bin</h3>
       <div className="space-y-2">
         {mediaBinItems.map(item => (
           <div
             key={item.id}
-            className="p-2 bg-blue-100 border border-blue-300 rounded shadow-sm cursor-grab"
+            className="p-2 bg-gray-600 border border-gray-500 rounded cursor-grab hover:bg-gray-500 transition-colors text-xs"
             draggable
             onDragStart={(e) => {
               e.dataTransfer.setData("text/plain", JSON.stringify(item));
               console.log("Dragging item:", item.name);
             }}
           >
-            {item.mediaType === "video" ? "🎥" : item.mediaType === "image" ? "🖼️" : "📝"} {item.name}
-            {item.mediaType === "video" && item.durationInSeconds > 0 && ` (${item.durationInSeconds.toFixed(2)}s)`}
+            <div className="flex items-center gap-2">
+              <span className="truncate text-gray-200">{item.name}</span>
+            </div>
+            {item.mediaType === "video" && item.durationInSeconds > 0 && (
+              <div className="text-xs text-gray-400 mt-1">{item.durationInSeconds.toFixed(2)}s</div>
+            )}
           </div>
         ))}
-        {mediaBinItems.length === 0 && <p className="text-sm text-gray-500">Add media or text elements.</p>}
+        {mediaBinItems.length === 0 && (
+          <div className="text-center py-6">
+            <p className="text-xs text-gray-400">No media files</p>
+          </div>
+        )}
       </div>
     </div>
   )
