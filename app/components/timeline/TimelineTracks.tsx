@@ -32,16 +32,16 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   return (
     <div className="flex flex-1 min-h-0">
       {/* Track delete buttons column */}
-      <div className="flex flex-col bg-gray-50 border-r border-gray-300 flex-shrink-0" style={{ width: '60px' }}>
+      <div className="flex flex-col bg-gray-600 border-r border-gray-500 flex-shrink-0" style={{ width: '60px' }}>
         {timeline.tracks.map((track) => (
           <div
             key={`delete-${track.id}`}
-            className="flex items-center justify-center border-b border-gray-300"
+            className="flex items-center justify-center border-b border-gray-500"
             style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
           >
             <button
               onClick={() => onDeleteTrack(track.id)}
-              className="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded transition-colors"
+              className="text-red-400 hover:text-red-300 p-2 hover:bg-gray-500 rounded transition-colors text-sm"
               title="Delete Track"
             >
               🗑️
@@ -53,12 +53,12 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
       {/* Scrollable Tracks Area (containerRef) */}
       <div
         ref={containerRef}
-        className="relative overflow-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-600 scrollbar-track-rounded scrollbar-thumb-rounded flex-1"
+        className="relative overflow-auto scrollbar-thin scrollbar-track-gray-700 scrollbar-thumb-gray-500 hover:scrollbar-thumb-gray-400 scrollbar-track-rounded scrollbar-thumb-rounded flex-1"
         onScroll={onScroll}
       >
         {/* Playhead Line - positioned relative to tracks */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-40"
+          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 pointer-events-none z-40"
           style={{
             left: `${rulerPositionPx}px`,
             height: '100%',
@@ -67,7 +67,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
 
         {/* Playhead Handle */}
         <div
-          className="absolute w-3 h-3 bg-red-500 cursor-pointer z-50 hover:bg-red-600 transition-colors rounded-full border border-white"
+          className="absolute w-3 h-3 bg-blue-500 cursor-pointer z-50 hover:bg-blue-600 transition-colors rounded-full border border-white"
           style={{
             left: `${rulerPositionPx - 6}px`,
             top: '-6px',
@@ -78,7 +78,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
 
         {/* Tracks Content */}
         <div
-          className="bg-gray-100 relative"
+          className="bg-gray-700 relative"
           style={{
             width: `${timelineWidth}px`,
             height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
@@ -118,8 +118,8 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
             <div key={track.id} className="relative" style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}>
               {/* Track background */}
               <div
-                className={`absolute w-full border-b border-gray-300 ${
-                  trackIndex % 2 === 0 ? 'bg-gray-50' : 'bg-gray-100'
+                className={`absolute w-full border-b border-gray-600 ${
+                  trackIndex % 2 === 0 ? 'bg-gray-500' : 'bg-gray-600'
                 }`}
                 style={{
                   top: `0px`,
@@ -129,7 +129,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
 
               {/* Track label - positioned at top-left with high z-index */}
               <div
-                className="absolute left-2 top-1 text-xs text-gray-600 font-medium pointer-events-none select-none z-50"
+                className="absolute left-2 top-1 text-xs text-gray-300 font-medium pointer-events-none select-none z-50"
                 style={{ userSelect: 'none' }}
               >
                 Track {trackIndex + 1}
@@ -139,7 +139,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((gridIndex) => (
                 <div
                   key={`grid-${track.id}-${gridIndex}`}
-                  className="absolute h-full bg-gray-300"
+                  className="absolute h-full bg-gray-400"
                   style={{
                     left: `${gridIndex * PIXELS_PER_SECOND}px`,
                     top: `0px`,

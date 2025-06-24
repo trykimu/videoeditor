@@ -24,17 +24,17 @@ export default function TextEditor() {
   }
 
   return (
-    <div className="w-full bg-gray-50 p-3 h-full overflow-y-auto">
-      <h3 className="text-lg font-semibold mb-3">Text Editor</h3>
+    <div className="w-full bg-gray-700 p-3 h-full overflow-y-auto">
+      <h3 className="text-sm font-medium mb-3 text-gray-200">Text Editor</h3>
       
       <div className="space-y-3">
         {/* Text Content */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Text</label>
+          <label className="block text-xs font-medium text-gray-300 mb-1">Text</label>
           <textarea
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
-            className="w-full h-16 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full h-16 p-2 text-sm bg-gray-600 border border-gray-500 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
             placeholder="Enter your text..."
           />
         </div>
@@ -42,22 +42,22 @@ export default function TextEditor() {
         {/* Font Controls Row */}
         <div className="flex items-end gap-2">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Size</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Size</label>
             <input
               type="number"
               min="8"
               max="200"
               value={fontSize}
               onChange={(e) => setFontSize(parseInt(e.target.value) || 48)}
-              className="w-full p-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full p-1 text-sm bg-gray-600 border border-gray-500 rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
             />
           </div>
           <div className="flex-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Font</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Font</label>
             <select
               value={fontFamily}
               onChange={(e) => setFontFamily(e.target.value)}
-              className="w-full p-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full p-1 text-sm bg-gray-600 border border-gray-500 rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
             >
               <option value="Arial">Arial</option>
               <option value="Helvetica">Helvetica</option>
@@ -68,12 +68,12 @@ export default function TextEditor() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Color</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Color</label>
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
+              className="w-8 h-8 bg-gray-600 border border-gray-500 rounded cursor-pointer"
             />
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function TextEditor() {
         <div className="flex items-center gap-3">
           {/* Text Alignment */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Align</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Align</label>
             <div className="flex">
               {(['left', 'center', 'right'] as const).map((align) => (
                 <button
@@ -90,12 +90,12 @@ export default function TextEditor() {
                   onClick={() => setTextAlign(align)}
                   className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l last:rounded-r ${
                     textAlign === align
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500 border border-gray-500'
                   }`}
                   title={`Align ${align}`}
                 >
-                  {align === 'left' ? '⬅' : align === 'center' ? '⬌' : '➡'}
+                  {align === 'left' ? 'L' : align === 'center' ? 'C' : 'R'}
                 </button>
               ))}
             </div>
@@ -103,7 +103,7 @@ export default function TextEditor() {
 
           {/* Font Weight */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Weight</label>
+            <label className="block text-xs font-medium text-gray-300 mb-1">Weight</label>
             <div className="flex">
               {(['normal', 'bold'] as const).map((weight) => (
                 <button
@@ -111,8 +111,8 @@ export default function TextEditor() {
                   onClick={() => setFontWeight(weight)}
                   className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l last:rounded-r ${
                     fontWeight === weight
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500 border border-gray-500'
                   }`}
                   title={weight}
                 >
@@ -129,8 +129,8 @@ export default function TextEditor() {
           disabled={!textContent.trim()}
           className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors ${
             textContent.trim()
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              ? 'bg-cyan-500 text-white hover:bg-cyan-600'
+              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
           }`}
         >
           Add Text to Timeline

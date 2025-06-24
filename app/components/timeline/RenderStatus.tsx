@@ -9,12 +9,12 @@ export const RenderStatus: React.FC<RenderStatusProps> = ({ renderStatus }) => {
 
   return (
     <div
-      className={`mb-4 p-3 rounded-lg flex-shrink-0 ${
+      className={`p-3 rounded flex-shrink-0 text-sm ${
         renderStatus.startsWith("Error")
-          ? "bg-red-100 text-red-700 border border-red-200"
+          ? "bg-red-900/50 text-red-300 border border-red-700"
           : renderStatus.includes("successfully")
-          ? "bg-green-100 text-green-700 border border-green-200"
-          : "bg-blue-100 text-blue-700 border border-blue-200"
+          ? "bg-green-900/50 text-green-300 border border-green-700"
+          : "bg-blue-900/50 text-blue-300 border border-blue-700"
       }`}
     >
       {renderStatus}

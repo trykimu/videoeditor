@@ -250,9 +250,14 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     }
   }, [handleMouseMove, handleMouseUp])
 
+  // Uniform scrubber color for professional look
+  const getScrubberColor = () => {
+    return "bg-blue-600 border-blue-500"; // Premiere-style blue scrubbers
+  }
+
   return (
     <div
-      className="absolute bg-blue-500 rounded-lg cursor-grab active:cursor-grabbing border border-blue-600 shadow-lg hover:shadow-xl transition-shadow"
+      className={`absolute rounded cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-shadow ${getScrubberColor()} select-none`}
       style={{
         left: `${scrubber.left}px`,
         width: `${scrubber.width}px`,
@@ -263,26 +268,23 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       }}
       onMouseDown={(e) => handleMouseDown(e, "drag")}
     >
-      {/* Media type indicator */}
-      <div className="absolute top-1 left-1 text-xs text-white/70 font-medium">
-        {scrubber.mediaType === "video" ? "🎥" : scrubber.mediaType === "image" ? "🖼️" : "📝"}
-      </div>
+      {/* Remove emoji indicator for cleaner look */}
 
       {/* Left resize handle */}
       <div
-        className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-l-lg transition-colors"
+        className="absolute top-0 left-0 h-full w-1 cursor-ew-resize z-10 hover:bg-white/10 rounded-l transition-colors"
         onMouseDown={(e) => handleMouseDown(e, "resize-left")}
       />
 
       {/* Right resize handle */}
       <div
-        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-10 hover:bg-white/30 rounded-r-lg transition-colors"
+        className="absolute top-0 right-0 h-full w-1 cursor-ew-resize z-10 hover:bg-white/10 rounded-r transition-colors"
         onMouseDown={(e) => handleMouseDown(e, "resize-right")}
       />
 
-      {/* Track indicator when dragging */}
+      {/* Track indicator tooltip when dragging */}
       {isDragging && (
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black/75 text-white text-xs px-2 py-1 rounded pointer-events-none">
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded pointer-events-none border border-gray-600">
           Track {(scrubber.y || 0) + 1}
         </div>
       )}
