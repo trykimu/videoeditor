@@ -9,9 +9,6 @@
 </p>
 <p align="center">An open-source alternative to Capcut, Canva, and RVE.</p>
 
-## Demo Video
-https://github.com/user-attachments/assets/5bbea594-8461-445c-b669-e86f1b1b7ba1
-
 ## ✨Features
 - 🎬Non Linear Video Editing
 - 🔀Multi-track Support
