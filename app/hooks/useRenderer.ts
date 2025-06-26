@@ -23,6 +23,16 @@ export const useRenderer = () => {
       console.log("Render server base URL:", apiUrl("/render"));
 
       try {
+        // Test server connection first
+        setRenderStatus("Connecting to render server...");
+        try {
+          await axios.get(apiUrl("/health"), { timeout: 5000 });
+        } catch (healthError) {
+          throw new Error(
+            "Cannot connect to render server. Make sure the server is running on http://localhost:8000"
+          );
+        }
+
         const timelineData = getTimelineData();
         // Calculate composition width if not provided
         if (compositionWidth === null) {

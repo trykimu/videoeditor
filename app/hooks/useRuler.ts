@@ -21,8 +21,20 @@ export const useRuler = (
         Math.min(newPositionPx, timelineWidth)
       );
       setRulerPositionPx(clampedPositionPx);
+
+      // Sync with player when not already updating from player
+      if (playerRef.current && !isUpdatingFromPlayerRef.current) {
+        isSeekingRef.current = true;
+        const timeInSeconds = clampedPositionPx / pixelsPerSecond;
+        const frame = Math.round(timeInSeconds * FPS);
+        playerRef.current.seekTo(frame);
+        // Reset seeking flag after a brief delay
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, 50);
+      }
     },
-    [timelineWidth]
+    [timelineWidth, playerRef, pixelsPerSecond]
   );
 
   const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -45,6 +57,22 @@ export const useRuler = (
   const handleRulerMouseUp = useCallback(() => {
     setIsDraggingRuler(false);
   }, []);
+
+  const updateRulerFromPlayer = useCallback(
+    (frame: number) => {
+      if (!isSeekingRef.current) {
+        isUpdatingFromPlayerRef.current = true;
+        const timeInSeconds = frame / FPS;
+        const newPositionPx = timeInSeconds * pixelsPerSecond;
+        setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
+        // Reset flag after state update
+        setTimeout(() => {
+          isUpdatingFromPlayerRef.current = false;
+        }, 50);
+      }
+    },
+    [pixelsPerSecond, timelineWidth]
+  );
 
   const handleScroll = useCallback(
     (
@@ -133,5 +161,6 @@ export const useRuler = (
     handleRulerMouseMove,
     handleRulerMouseUp,
     handleScroll,
+    updateRulerFromPlayer,
   };
 };

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
-import type { PlayerRef } from "@remotion/player";
+import type { PlayerRef, CallbackListener } from "@remotion/player";
 import {
   Moon,
   Sun,
@@ -89,6 +89,7 @@ export default function TimelineEditor() {
     handleRulerMouseMove,
     handleRulerMouseUp,
     handleScroll,
+    updateRulerFromPlayer,
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
 
   const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
@@ -189,7 +190,7 @@ export default function TimelineEditor() {
     handleScroll(containerRef, expandTimelineCallback);
   }, [handleScroll, expandTimelineCallback]);
 
-  // Play/pause controls
+  // Play/pause controls with Player sync
   const [isPlaying, setIsPlaying] = useState(false);
 
   const togglePlayback = useCallback(() => {
@@ -205,9 +206,33 @@ export default function TimelineEditor() {
     }
   }, []);
 
-  // Global spacebar play/pause functionality
+  // Sync player state with controls - simplified like original
+  useEffect(() => {
+    const player = playerRef.current;
+    if (player) {
+      const handlePlay: CallbackListener<"play"> = () => setIsPlaying(true);
+      const handlePause: CallbackListener<"pause"> = () => setIsPlaying(false);
+      const handleFrameUpdate: CallbackListener<"frameupdate"> = (e) => {
+        // Update ruler position from player
+        updateRulerFromPlayer(e.detail.frame);
+      };
+
+      player.addEventListener("play", handlePlay);
+      player.addEventListener("pause", handlePause);
+      player.addEventListener("frameupdate", handleFrameUpdate);
+
+      return () => {
+        player.removeEventListener("play", handlePlay);
+        player.removeEventListener("pause", handlePause);
+        player.removeEventListener("frameupdate", handleFrameUpdate);
+      };
+    }
+  }, [updateRulerFromPlayer]);
+
+  // Global spacebar play/pause functionality - like original
   useEffect(() => {
     const handleGlobalKeyPress = (event: KeyboardEvent) => {
+      // Only handle spacebar when not focused on input elements
       if (event.code === "Space") {
         const target = event.target as HTMLElement;
         const isInputElement =
@@ -216,37 +241,32 @@ export default function TimelineEditor() {
           target.contentEditable === "true" ||
           target.isContentEditable;
 
-        if (isInputElement) return;
+        // If user is typing in an input field, don't interfere
+        if (isInputElement) {
+          return;
+        }
 
+        // Prevent spacebar from scrolling the page
         event.preventDefault();
-        togglePlayback();
-      }
 
-      // Additional shortcuts for video editing
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.code) {
-          case "Equal": // Ctrl/Cmd + = for zoom in
-          case "NumpadAdd":
-            event.preventDefault();
-            handleZoomIn();
-            break;
-          case "Minus": // Ctrl/Cmd + - for zoom out
-          case "NumpadSubtract":
-            event.preventDefault();
-            handleZoomOut();
-            break;
-          case "Digit0": // Ctrl/Cmd + 0 for zoom reset
-          case "Numpad0":
-            event.preventDefault();
-            handleZoomReset();
-            break;
+        const player = playerRef.current;
+        if (player) {
+          if (player.isPlaying()) {
+            player.pause();
+          } else {
+            player.play();
+          }
         }
       }
     };
 
+    // Add event listener to document for global capture
     document.addEventListener("keydown", handleGlobalKeyPress);
-    return () => document.removeEventListener("keydown", handleGlobalKeyPress);
-  }, [togglePlayback, handleZoomIn, handleZoomOut, handleZoomReset]);
+
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyPress);
+    };
+  }, []); // Empty dependency array since we're accessing playerRef.current directly
 
   // Ruler mouse events
   useEffect(() => {
@@ -431,29 +451,21 @@ export default function TimelineEditor() {
                 </div>
 
                 {/* Video Preview - Proper Scaling */}
-                <div className="flex-1 bg-gradient-to-br from-black/95 to-black/98 flex items-center justify-center p-3">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div
-                      className="bg-card border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
-                      style={{
-                        aspectRatio: `${width}/${height}`,
-                        maxWidth: "100%",
-                        maxHeight: "100%",
-                        width: "auto",
-                        height: "auto",
-                      }}
-                    >
-                      <VideoPlayer
-                        timelineData={timelineData}
-                        durationInFrames={durationInFrames}
-                        ref={playerRef}
-                        compositionWidth={isAutoSize ? null : width}
-                        compositionHeight={isAutoSize ? null : height}
-                        timeline={timeline}
-                        handleUpdateScrubber={handleUpdateScrubber}
-                      />
-                    </div>
-                  </div>
+                <div
+                  // className="flex-1 bg-gradient-to-br from-black/95 via-gray-900 to-gray-800 flex items-center justify-center p-3 bg-card border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
+                  className={`flex-1 ${
+                    theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
+                  } flex items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                >
+                  <VideoPlayer
+                    timelineData={timelineData}
+                    durationInFrames={durationInFrames}
+                    ref={playerRef}
+                    compositionWidth={isAutoSize ? null : width}
+                    compositionHeight={isAutoSize ? null : height}
+                    timeline={timeline}
+                    handleUpdateScrubber={handleUpdateScrubber}
+                  />
                 </div>
               </div>
             </ResizablePanel>
@@ -473,12 +485,6 @@ export default function TimelineEditor() {
                     >
                       {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                     </Badge>
-                    <Badge
-                      variant="secondary"
-                      className="text-xs h-4 px-1.5 font-mono"
-                    >
-                      {Math.round(zoomLevel * 100)}%
-                    </Badge>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="flex items-center">
@@ -491,15 +497,14 @@ export default function TimelineEditor() {
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <Badge
+                        variant="secondary"
+                        className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
                         onClick={handleZoomReset}
-                        className="h-6 px-2 text-xs"
-                        title="Reset Zoom"
+                        title="Click to reset zoom to 100%"
                       >
-                        100%
-                      </Button>
+                        {Math.round(zoomLevel * 100)}%
+                      </Badge>
                       <Button
                         variant="ghost"
                         size="sm"

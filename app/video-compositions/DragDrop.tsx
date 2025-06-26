@@ -292,7 +292,7 @@ export const layerContainer: React.CSSProperties = {
 };
 
 export const outer: React.CSSProperties = {
-  backgroundColor: "transparent", // Use transparent to inherit theme background
+  backgroundColor: "#000000", // Black background for video preview
 };
 
 export const SortedOutlines: React.FC<{

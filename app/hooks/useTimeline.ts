@@ -47,7 +47,7 @@ export const useTimeline = () => {
     setZoomLevel((prev) => {
       const newZoom = Math.min(MAX_ZOOM, prev * 1.5);
       const zoomRatio = newZoom / prev;
-      
+
       // Update all scrubbers to maintain their time positions
       setTimeline((currentTimeline) => ({
         ...currentTimeline,
@@ -60,7 +60,7 @@ export const useTimeline = () => {
           })),
         })),
       }));
-      
+
       return newZoom;
     });
   }, []);
@@ -69,7 +69,7 @@ export const useTimeline = () => {
     setZoomLevel((prev) => {
       const newZoom = Math.max(MIN_ZOOM, prev / 1.5);
       const zoomRatio = newZoom / prev;
-      
+
       // Update all scrubbers to maintain their time positions
       setTimeline((currentTimeline) => ({
         ...currentTimeline,
@@ -82,7 +82,7 @@ export const useTimeline = () => {
           })),
         })),
       }));
-      
+
       return newZoom;
     });
   }, []);
@@ -91,7 +91,7 @@ export const useTimeline = () => {
     setZoomLevel((prev) => {
       const newZoom = DEFAULT_ZOOM;
       const zoomRatio = newZoom / prev;
-      
+
       // Update all scrubbers to maintain their time positions
       setTimeline((currentTimeline) => ({
         ...currentTimeline,
@@ -104,7 +104,7 @@ export const useTimeline = () => {
           })),
         })),
       }));
-      
+
       return newZoom;
     });
   }, []);

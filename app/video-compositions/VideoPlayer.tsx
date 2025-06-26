@@ -37,7 +37,8 @@ export function TimelineComposition({
   timeline,
   handleUpdateScrubber,
 }: TimelineCompositionProps) {
-  // console.log('Timeline Data => ', JSON.stringify(timelineData, null, 2));
+  const FPS = 30; // Must match the Player fps setting
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) {
@@ -47,9 +48,9 @@ export function TimelineComposition({
     },
     [setSelectedItem]
   );
+
   // for this experiment it is all text that we are working with.
   const items: React.ReactNode[] = [];
-  const FPS = 30; // Assuming 30 FPS as set in VideoPlayer
 
   for (const timeline of timelineData) {
     for (const scrubber of timeline.scrubbers) {
@@ -88,7 +89,7 @@ export function TimelineComposition({
                     padding: "20px",
                   }}
                 >
-                  {scrubber.text?.textContent || "insert text here"}
+                  {scrubber.text?.textContent || ""}
                 </p>
               </div>
             </AbsoluteFill>
@@ -130,6 +131,7 @@ export function TimelineComposition({
           );
           break;
         }
+
         default:
           console.warn(`Unknown media type: ${scrubber.mediaType}`);
           break;
@@ -148,68 +150,22 @@ export function TimelineComposition({
       }
     }
   }
+
   if (isRendering) {
-    return <div>{items}</div>;
+    return <AbsoluteFill>{items}</AbsoluteFill>;
   } else {
     return (
-      <AbsoluteFill
-        style={{
-          ...outer,
-          backgroundColor: "transparent", // Ensure transparency for preview
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "visible",
-        }}
-        onPointerDown={onPointerDown}
-      >
-        {items.length === 0 ? (
-          // Show placeholder when no items
-          <AbsoluteFill
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "transparent",
-            }}
-          >
-            <div
-              style={{
-                color: "rgb(161, 161, 170)",
-                fontSize: "16px",
-                fontFamily: "Inter, system-ui, sans-serif",
-                textAlign: "center",
-                padding: "20px",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                borderRadius: "8px",
-                border: "1px dashed rgba(161, 161, 170, 0.3)",
-              }}
-            >
-              Drop media or add text to get started
-            </div>
-          </AbsoluteFill>
-        ) : (
-          <AbsoluteFill style={layerContainer}>{items}</AbsoluteFill>
-        )}
-        {!isRendering && (
-          <SortedOutlines
-            handleUpdateScrubber={handleUpdateScrubber}
-            selectedItem={selectedItem}
-            timeline={timeline}
-            setSelectedItem={setSelectedItem}
-          />
-        )}
+      <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
+        <AbsoluteFill style={layerContainer}>{items}</AbsoluteFill>
+        <SortedOutlines
+          handleUpdateScrubber={handleUpdateScrubber}
+          selectedItem={selectedItem}
+          timeline={timeline}
+          setSelectedItem={setSelectedItem}
+        />
       </AbsoluteFill>
     );
   }
-  // return (
-  //     <div>
-  //         {items}
-  //     </div>
-  // )
 }
 
 export function VideoPlayer({
@@ -266,7 +222,7 @@ export function VideoPlayer({
         timeline,
         handleUpdateScrubber,
       }}
-      durationInFrames={durationInFrames || 30}
+      durationInFrames={durationInFrames || 10}
       compositionWidth={compositionWidth}
       compositionHeight={compositionHeight}
       fps={30}
@@ -275,9 +231,9 @@ export function VideoPlayer({
         height: "100%",
         position: "relative",
         zIndex: 1,
-        backgroundColor: "transparent", // Use transparent background to respect theme
       }}
       controls
+      acknowledgeRemotionLicense
     />
   );
 }

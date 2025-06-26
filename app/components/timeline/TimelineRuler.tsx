@@ -26,24 +26,41 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
   const currentTimeInSeconds = rulerPositionPx / pixelsPerSecond;
   const currentFrame = Math.round(currentTimeInSeconds * FPS);
 
-  // Format timestamp with better precision
+  // Format timestamp in HH:MM:SS:mmm format with trailing zero removal
   const formatTimestamp = (timeInSeconds: number) => {
-    const minutes = Math.floor(timeInSeconds / 60);
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
     const seconds = Math.floor(timeInSeconds % 60);
     const milliseconds = Math.round((timeInSeconds % 1) * 1000);
 
-    if (minutes > 0) {
-      return `${minutes.toString().padStart(2, "0")}:${seconds
+    // Format with appropriate precision, removing trailing zeros
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
         .toString()
-        .padStart(2, "0")}.${milliseconds
+        .padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
+    } else if (minutes > 0) {
+      return `${minutes}:${seconds.toString().padStart(2, "0")}.${milliseconds
         .toString()
-        .padStart(3, "0")
-        .slice(0, 2)}`;
+        .padStart(3, "0")}`;
     } else {
-      return `${seconds.toString().padStart(2, "0")}.${milliseconds
-        .toString()
-        .padStart(3, "0")
-        .slice(0, 2)}`;
+      return `${seconds}.${milliseconds.toString().padStart(3, "0")}`;
+    }
+  };
+
+  // Format ruler marks - simplified format for cleaner display
+  const formatRulerMark = (timeInSeconds: number) => {
+    if (timeInSeconds === 0) return "0s";
+
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+
+    if (hours > 0) {
+      return `${hours}h${minutes > 0 ? `${minutes}m` : ""}`;
+    } else if (minutes > 0) {
+      return `${minutes}m${seconds > 0 ? `${seconds}s` : ""}`;
+    } else {
+      return `${seconds}s`;
     }
   };
 
@@ -99,31 +116,31 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
     }
   };
 
-  // Determine intervals based on zoom level
+  // Determine intervals based on zoom level - more frequent markings like a real ruler
   const getRulerIntervals = () => {
     const pixelsPerSecondValue = pixelsPerSecond;
-    
+
     if (pixelsPerSecondValue >= 800) {
-      // Ultra-high zoom: major marks every 1s, medium every 0.2s, minor every 0.1s
-      return { major: 1, medium: 0.2, minor: 0.1 };
+      // Ultra-high zoom: major marks every 0.5s, medium every 0.1s, minor every 0.05s
+      return { major: 0.5, medium: 0.1, minor: 0.05 };
     } else if (pixelsPerSecondValue >= 400) {
-      // High zoom: major marks every 2s, medium every 0.5s, minor every 0.2s
-      return { major: 2, medium: 0.5, minor: 0.2 };
+      // High zoom: major marks every 1s, medium every 0.2s, minor every 0.1s
+      return { major: 1, medium: 0.2, minor: 0.1 };
     } else if (pixelsPerSecondValue >= 200) {
-      // Medium-high zoom: major marks every 5s, medium every 1s, minor every 0.5s
-      return { major: 5, medium: 1, minor: 0.5 };
+      // Medium-high zoom: major marks every 2s, medium every 0.5s, minor every 0.25s
+      return { major: 2, medium: 0.5, minor: 0.25 };
     } else if (pixelsPerSecondValue >= 100) {
-      // Medium zoom: major marks every 10s, medium every 2s, minor every 1s
-      return { major: 10, medium: 2, minor: 1 };
+      // Medium zoom: major marks every 5s, medium every 1s, minor every 0.5s
+      return { major: 5, medium: 1, minor: 0.5 };
     } else if (pixelsPerSecondValue >= 50) {
-      // Normal zoom: major marks every 20s, medium every 5s, minor every 2s
-      return { major: 20, medium: 5, minor: 2 };
+      // Normal zoom: major marks every 10s, medium every 2s, minor every 1s
+      return { major: 10, medium: 2, minor: 1 };
     } else if (pixelsPerSecondValue >= 20) {
-      // Low zoom: major marks every 30s, medium every 10s, minor every 5s
-      return { major: 30, medium: 10, minor: 5 };
+      // Low zoom: major marks every 30s, medium every 5s, minor every 2.5s
+      return { major: 30, medium: 5, minor: 2.5 };
     } else {
-      // Very low zoom: major marks every 60s, medium every 20s, minor every 10s
-      return { major: 60, medium: 20, minor: 10 };
+      // Very low zoom: major marks every 60s, medium every 10s, minor every 5s
+      return { major: 60, medium: 10, minor: 5 };
     }
   };
 
@@ -179,46 +196,57 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             }
           }}
         >
-          {/* Major markings - ruler-style with labels only on major intervals */}
+          {/* Major markings - ruler-style with timestamps */}
           {Array.from(
-            { length: Math.floor(timelineWidth / (intervals.major * pixelsPerSecond)) + 1 },
+            {
+              length:
+                Math.floor(
+                  timelineWidth / (intervals.major * pixelsPerSecond)
+                ) + 1,
+            },
             (_, index) => index
           ).map((tick) => {
             const timeValue = tick * intervals.major;
-            const showLabel = true; // Only show labels on 5s, 10s, etc. intervals
-            
+
             return (
               <div
                 key={`major-mark-${tick}`}
                 className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                style={{ left: `${tick * intervals.major * pixelsPerSecond}px` }}
+                style={{
+                  left: `${tick * intervals.major * pixelsPerSecond}px`,
+                }}
               >
-                {showLabel && (
-                  <span className="text-[10px] text-muted-foreground -ml-1.5 mt-0.5 bg-background/90 px-1 rounded-sm border border-border/30 font-mono">
-                    {Math.floor(timeValue)}s
-                  </span>
-                )}
-                <div className="w-0.5 bg-border h-6 mt-auto" />
+                <span className="text-[10px] text-muted-foreground -ml-2 mt-0.5 bg-background/90 px-1.5 py-0.5 rounded-sm border border-border/30 font-mono">
+                  {formatRulerMark(timeValue)}
+                </span>
+                <div className="w-0.5 bg-border h-7 mt-auto" />
               </div>
             );
           })}
 
           {/* Medium markings - medium lines */}
           {Array.from(
-            { length: Math.floor(timelineWidth / (intervals.medium * pixelsPerSecond)) + 1 },
+            {
+              length:
+                Math.floor(
+                  timelineWidth / (intervals.medium * pixelsPerSecond)
+                ) + 1,
+            },
             (_, index) => index
           ).map((tick) => {
             const timeValue = tick * intervals.medium;
             const isMajorTick = timeValue % intervals.major === 0;
-            
+
             // Skip if this coincides with a major tick
             if (isMajorTick) return null;
-            
+
             return (
               <div
                 key={`medium-mark-${tick}`}
                 className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
-                style={{ left: `${tick * intervals.medium * pixelsPerSecond}px` }}
+                style={{
+                  left: `${tick * intervals.medium * pixelsPerSecond}px`,
+                }}
               >
                 <div className="w-px bg-border/60 h-4 mt-auto" />
               </div>
@@ -226,27 +254,35 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           })}
 
           {/* Minor markings - small lines */}
-          {intervals.minor * pixelsPerSecond >= 3 && Array.from(
-            { length: Math.floor(timelineWidth / (intervals.minor * pixelsPerSecond)) + 1 },
-            (_, index) => index
-          ).map((tick) => {
-            const timeValue = tick * intervals.minor;
-            const isMediumTick = timeValue % intervals.medium === 0;
-            const isMajorTick = timeValue % intervals.major === 0;
-            
-            // Skip if this coincides with medium or major ticks
-            if (isMediumTick || isMajorTick) return null;
-            
-            return (
-              <div
-                key={`minor-mark-${tick}`}
-                className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
-                style={{ left: `${tick * intervals.minor * pixelsPerSecond}px` }}
-              >
-                <div className="w-px bg-border/30 h-2 mt-auto" />
-              </div>
-            );
-          })}
+          {intervals.minor * pixelsPerSecond >= 3 &&
+            Array.from(
+              {
+                length:
+                  Math.floor(
+                    timelineWidth / (intervals.minor * pixelsPerSecond)
+                  ) + 1,
+              },
+              (_, index) => index
+            ).map((tick) => {
+              const timeValue = tick * intervals.minor;
+              const isMediumTick = timeValue % intervals.medium === 0;
+              const isMajorTick = timeValue % intervals.major === 0;
+
+              // Skip if this coincides with medium or major ticks
+              if (isMediumTick || isMajorTick) return null;
+
+              return (
+                <div
+                  key={`minor-mark-${tick}`}
+                  className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
+                  style={{
+                    left: `${tick * intervals.minor * pixelsPerSecond}px`,
+                  }}
+                >
+                  <div className="w-px bg-border/30 h-2 mt-auto" />
+                </div>
+              );
+            })}
 
           {/* Playhead line - extends full height */}
           <div
@@ -257,15 +293,17 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             }}
           />
 
-          {/* Playhead handle - simplified and more visible */}
+          {/* Playhead handle - perfectly aligned with no lag or animations */}
           <div
-            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 hover:brightness-110 transition-all duration-150 border-2 border-background shadow-lg hover:shadow-xl"
+            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border-2 border-background shadow-lg"
             style={{
-              left: `${Math.max(0, Math.min(rulerPositionPx - 6, timelineWidth - 12))}px`,
-              top: "0px",
+              left: `${rulerPositionPx - 6}px`,
+              top: "1px",
               width: "12px",
-              height: "12px",
-              borderRadius: "3px",
+              height: "10px",
+              borderRadius: "2px",
+              transform: "none", // No transform to ensure perfect alignment
+              transition: "none", // No transitions for immediate response
             }}
             onMouseDown={onRulerMouseDown}
             title="Drag to seek"
