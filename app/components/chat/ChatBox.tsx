@@ -1,9 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, ChevronUp, ChevronDown, FileVideo, FileImage, Type } from "lucide-react";
+import {
+  Send,
+  Bot,
+  User,
+  ChevronDown,
+  AtSign,
+  FileVideo,
+  FileImage,
+  Type,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
 import { type MediaBinItem } from "../timeline/types";
+import { cn } from "~/lib/utils";
 
 // llm tools
 import { llmAddScrubberToTimeline } from "~/utils/llm-handler";
@@ -18,28 +29,40 @@ interface Message {
 interface ChatBoxProps {
   className?: string;
   mediaBinItems: MediaBinItem[];
-  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void;
+  handleDropOnTrack: (
+    item: MediaBinItem,
+    trackId: string,
+    dropLeftPx: number
+  ) => void;
+  isMinimized?: boolean;
+  onToggleMinimize?: () => void;
+  messages: Message[];
+  onMessagesChange: (messages: Message[]) => void;
 }
 
-export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: ChatBoxProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content: "Hello! I'm your video editing assistant. How can I help you today?",
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
+export function ChatBox({
+  className = "",
+  mediaBinItems,
+  handleDropOnTrack,
+  isMinimized = false,
+  onToggleMinimize,
+  messages,
+  onMessagesChange,
+}: ChatBoxProps) {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
+  const [showSendOptions, setShowSendOptions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [textareaHeight, setTextareaHeight] = useState(36); // Starting height for proper size
+  const [sendWithMedia, setSendWithMedia] = useState(false); // Track send mode
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentionsRef = useRef<HTMLDivElement>(null);
+  const sendOptionsRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -48,28 +71,54 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
     }
   }, [messages, isTyping]);
 
+  // Click outside handler for send options
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sendOptionsRef.current &&
+        !sendOptionsRef.current.contains(event.target as Node)
+      ) {
+        setShowSendOptions(false);
+      }
+    };
+
+    if (showSendOptions) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showSendOptions]);
+
   // Filter media bin items based on mention query
-  const filteredMentions = mediaBinItems.filter(item =>
+  const filteredMentions = mediaBinItems.filter((item) =>
     item.name.toLowerCase().includes(mentionQuery.toLowerCase())
   );
 
   // Handle input changes and @ mention detection
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart || 0;
 
     setInputValue(value);
     setCursorPosition(cursorPos);
 
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = "auto";
+    const newHeight = Math.min(textarea.scrollHeight, 96); // max about 4 lines
+    textarea.style.height = newHeight + "px";
+    setTextareaHeight(newHeight);
+
     // Check for @ mentions
     const beforeCursor = value.slice(0, cursorPos);
-    const lastAtIndex = beforeCursor.lastIndexOf('@');
+    const lastAtIndex = beforeCursor.lastIndexOf("@");
 
     if (lastAtIndex !== -1) {
       const afterAt = beforeCursor.slice(lastAtIndex + 1);
       // Only show mentions if @ is at start or after whitespace, and no spaces after @
-      const isValidMention = (lastAtIndex === 0 || /\s/.test(beforeCursor[lastAtIndex - 1])) &&
-        !afterAt.includes(' ');
+      const isValidMention =
+        (lastAtIndex === 0 || /\s/.test(beforeCursor[lastAtIndex - 1])) &&
+        !afterAt.includes(" ");
 
       if (isValidMention) {
         setMentionQuery(afterAt);
@@ -87,9 +136,10 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
   const insertMention = (item: MediaBinItem) => {
     const beforeCursor = inputValue.slice(0, cursorPosition);
     const afterCursor = inputValue.slice(cursorPosition);
-    const lastAtIndex = beforeCursor.lastIndexOf('@');
+    const lastAtIndex = beforeCursor.lastIndexOf("@");
 
-    const newValue = beforeCursor.slice(0, lastAtIndex) + `@${item.name} ` + afterCursor;
+    const newValue =
+      beforeCursor.slice(0, lastAtIndex) + `@${item.name} ` + afterCursor;
     setInputValue(newValue);
     setShowMentions(false);
 
@@ -101,19 +151,33 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
     }, 0);
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (includeAllMedia = false) => {
     if (!inputValue.trim()) return;
+
+    let messageContent = inputValue.trim();
+
+    // If sending with all media, include all media items as mentions
+    if (includeAllMedia && mediaBinItems.length > 0) {
+      const mediaList = mediaBinItems.map((item) => `@${item.name}`).join(" ");
+      messageContent = `${messageContent} ${mediaList}`;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue.trim(),
+      content: messageContent,
       isUser: true,
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    onMessagesChange([...messages, userMessage]);
     setInputValue("");
     setIsTyping(true);
+
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = "36px"; // Back to normal height
+      setTextareaHeight(36);
+    }
 
     // Simulate AI response
     setTimeout(() => {
@@ -123,33 +187,34 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiMessage]);
+      onMessagesChange([...messages, userMessage, aiMessage]);
       setIsTyping(false);
     }, 1000 + Math.random() * 2000);
   };
 
   const getAIResponse = (userInput: string): string => {
     // Parse command pattern: @<item> add to track <number> pos <number>
-    const commandPattern = /@(\w+(?:\s+\w+)*)\s+add\s+to\s+track\s+(\d+)\s+pos\s+(\d+)/i;
+    const commandPattern =
+      /@(\w+(?:\s+\w+)*)\s+add\s+to\s+track\s+(\d+)\s+pos\s+(\d+)/i;
     const match = userInput.match(commandPattern);
-    
+
     if (match) {
       const [, itemName, trackNumber, position] = match;
-      
+
       try {
         // Find the media item by name
-        const mediaItem = mediaBinItems.find(item => 
-          item.name.toLowerCase() === itemName.toLowerCase()
+        const mediaItem = mediaBinItems.find(
+          (item) => item.name.toLowerCase() === itemName.toLowerCase()
         );
-        
+
         if (!mediaItem) {
           return `Error: Media item "${itemName}" not found in the media bin. Please check the name and try again.`;
         }
-        
+
         // Convert position to pixels (assuming some conversion factor)
         const dropLeftPx = parseInt(position);
         const trackId = `track-${trackNumber}`;
-        
+
         // Execute the function
         llmAddScrubberToTimeline(
           mediaItem.id,
@@ -158,14 +223,17 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
           dropLeftPx,
           handleDropOnTrack
         );
-        
+
         return `✅ Successfully added "${mediaItem.name}" to track ${trackNumber} at position ${position}px.`;
-        
       } catch (error) {
-        return `❌ Error: ${error instanceof Error ? error.message : 'Failed to add item to timeline'}`;
+        return `❌ Error: ${
+          error instanceof Error
+            ? error.message
+            : "Failed to add item to timeline"
+        }`;
       }
     }
-    
+
     // Default responses for non-command messages
     const responses = [
       "I can help you with video editing tasks like trimming clips, adding transitions, or adjusting audio levels.",
@@ -182,14 +250,14 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
     if (showMentions && filteredMentions.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedMentionIndex(prev =>
+        setSelectedMentionIndex((prev) =>
           prev < filteredMentions.length - 1 ? prev + 1 : 0
         );
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedMentionIndex(prev =>
+        setSelectedMentionIndex((prev) =>
           prev > 0 ? prev - 1 : filteredMentions.length - 1
         );
         return;
@@ -206,105 +274,180 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
       }
     }
 
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        // Allow default behavior for Shift+Enter (new line)
+        return;
+      } else {
+        // Send message on Enter
+        e.preventDefault();
+        handleSendMessage(sendWithMedia);
+      }
     }
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
     <div className={`h-full flex flex-col bg-background ${className}`}>
       {/* Chat Header */}
-      <div className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-3 shrink-0">
+      <div className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-2">
           <Bot className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium tracking-tight">AI Assistant</span>
+          <span className="text-sm font-medium tracking-tight">Ask Kimu</span>
         </div>
+
+        {onToggleMinimize && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleMinimize}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            title={isMinimized ? "Expand chat" : "Minimize chat"}
+          >
+            {isMinimized ? (
+              <ChevronLeft className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
+        )}
       </div>
 
-      {/* Messages Area */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto p-3 scroll-smooth"
-      >
-        <div className="space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${message.isUser
-                  ? "bg-primary text-primary-foreground ml-8"
-                  : "bg-muted mr-8"
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col">
+        {messages.length === 0 ? (
+          // Default clean state - Copilot style
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Bot className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">Ask Kimu</h2>
+            <p className="text-sm text-muted-foreground mb-8 max-w-xs leading-relaxed">
+              Kimu is your AI assistant for video editing. Ask questions, get
+              help with timeline operations, or request specific edits.
+            </p>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <AtSign className="h-3 w-3" />
+                <span>to chat with media</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
+                  Enter
+                </kbd>
+                <span>to send</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
+                  Shift
+                </kbd>
+                <span>+</span>
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
+                  Enter
+                </kbd>
+                <span>for new line</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Messages Area
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-3 scroll-smooth"
+            style={{ maxHeight: "calc(100vh - 200px)" }}
+          >
+            <div className="space-y-3">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.isUser ? "justify-end" : "justify-start"
                   }`}
-              >
-                <div className="flex items-start gap-2">
-                  {!message.isUser && (
-                    <Bot className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
-                  )}
-                  <div className="flex-1">
-                    <p className="leading-relaxed">{message.content}</p>
-                    <span className="text-xs opacity-70 mt-1 block">
-                      {formatTime(message.timestamp)}
-                    </span>
-                  </div>
-                  {message.isUser && (
-                    <User className="h-3 w-3 mt-0.5 text-primary-foreground/70 shrink-0" />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg px-3 py-2 text-sm bg-muted mr-8">
-                <div className="flex items-center gap-2">
-                  <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
-                  <div className="flex space-x-1">
-                    <div className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-3 py-2 text-xs ${
+                      message.isUser
+                        ? "bg-primary text-primary-foreground ml-8"
+                        : "bg-muted mr-8"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {!message.isUser && (
+                        <Bot className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="leading-relaxed break-words overflow-wrap-anywhere">
+                          {message.content}
+                        </p>
+                        <span className="text-xs opacity-70 mt-1 block">
+                          {formatTime(message.timestamp)}
+                        </span>
+                      </div>
+                      {message.isUser && (
+                        <User className="h-3 w-3 mt-0.5 text-primary-foreground/70 shrink-0" />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              ))}
 
-          {/* Invisible element to scroll to */}
-          <div ref={messagesEndRef} />
-        </div>
+              {/* Typing Indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] rounded-lg px-3 py-2 text-xs bg-muted mr-8">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="flex space-x-1">
+                        <div
+                          className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <div
+                          className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        />
+                        <div
+                          className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Invisible element to scroll to */}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        )}
       </div>
 
-      <Separator />
-
-      {/* Input Area */}
-      <div className="p-3 bg-muted/20 relative">
+      {/* Input Area with enhanced overlap effect */}
+      <div className="relative bg-gradient-to-t from-background to-background/50 p-3 border-t border-border/30 backdrop-blur-sm -mt-2 pt-4">
         {/* Mentions Dropdown */}
         {showMentions && filteredMentions.length > 0 && (
           <div
             ref={mentionsRef}
-            className="absolute bottom-full left-3 right-3 mb-1 bg-background border border-border/50 rounded-lg shadow-lg max-h-40 overflow-y-auto z-50"
+            className="absolute bottom-full left-4 right-4 mb-2 bg-background border border-border/50 rounded-lg shadow-lg max-h-40 overflow-y-auto z-50"
           >
             {filteredMentions.map((item, index) => (
               <div
                 key={item.id}
-                className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${index === selectedMentionIndex
+                className={`px-3 py-2 text-xs cursor-pointer flex items-center gap-2 ${
+                  index === selectedMentionIndex
                     ? "bg-accent text-accent-foreground"
                     : "hover:bg-muted"
-                  }`}
+                }`}
                 onClick={() => insertMention(item)}
               >
                 <div className="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
-                  {item.mediaType === 'video' ? (
+                  {item.mediaType === "video" ? (
                     <FileVideo className="h-3 w-3 text-muted-foreground" />
-                  ) : item.mediaType === 'image' ? (
+                  ) : item.mediaType === "image" ? (
                     <FileImage className="h-3 w-3 text-muted-foreground" />
                   ) : (
                     <Type className="h-3 w-3 text-muted-foreground" />
@@ -319,29 +462,132 @@ export function ChatBox({ className = "", mediaBinItems, handleDropOnTrack }: Ch
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Input
+        {/* Send Options Dropdown */}
+        {showSendOptions && (
+          <div
+            ref={sendOptionsRef}
+            className="absolute bottom-full right-4 mb-2 bg-background border border-border/50 rounded-md shadow-lg z-50 min-w-48"
+          >
+            <div className="p-1">
+              <div
+                className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
+                onClick={() => {
+                  setSendWithMedia(false);
+                  setShowSendOptions(false);
+                  handleSendMessage(false);
+                }}
+              >
+                <span>Send</span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Enter
+                </span>
+              </div>
+              <div
+                className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
+                onClick={() => {
+                  setSendWithMedia(true);
+                  setShowSendOptions(false);
+                  handleSendMessage(true);
+                }}
+              >
+                <span>Send with all Media</span>
+                <span className="text-xs text-muted-foreground"></span>
+              </div>
+              <div
+                className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
+                onClick={() => {
+                  // Clear current messages and send to new chat
+                  onMessagesChange([]);
+                  setShowSendOptions(false);
+                  handleSendMessage(false);
+                }}
+              >
+                <span>Send to New Chat</span>
+                <span className="text-xs text-muted-foreground"></span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Input container with subtle shadow and better styling */}
+        <div className="relative border border-border/60 rounded-lg bg-background/90 backdrop-blur-sm focus-within: focus-within:border-ring transition-all duration-200 shadow-sm">
+          {/* Full-width textarea */}
+          <textarea
             ref={inputRef}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
-            placeholder="Ask about video editing... (type @ to mention media)"
-            className="flex-1 h-8 text-sm border-border/50 bg-background"
+            placeholder="Ask Kimu..."
+            className={cn(
+              "w-full min-h-8 max-h-20 resize-none text-xs bg-transparent border-0 px-3 pt-2.5 pb-1 placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "transition-all duration-200 leading-relaxed"
+            )}
             disabled={isTyping}
+            rows={1}
+            style={{ height: `${Math.max(textareaHeight, 32)}px` }}
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isTyping}
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Send className="h-3 w-3" />
-          </Button>
+
+          {/* Buttons row below text with refined styling */}
+          <div className="flex items-center justify-between px-2.5 pb-2 pt-0">
+            {/* @ Button - left side, smaller */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50"
+              onClick={() => {
+                if (inputRef.current) {
+                  const cursorPos =
+                    inputRef.current.selectionStart || inputValue.length;
+                  const newValue =
+                    inputValue.slice(0, cursorPos) +
+                    "@" +
+                    inputValue.slice(cursorPos);
+                  setInputValue(newValue);
+                  const newCursorPos = cursorPos + 1;
+                  setCursorPosition(newCursorPos);
+
+                  // Trigger mentions dropdown immediately
+                  setMentionQuery("");
+                  setShowMentions(true);
+                  setSelectedMentionIndex(0);
+
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                    inputRef.current?.setSelectionRange(
+                      newCursorPos,
+                      newCursorPos
+                    );
+                  }, 0);
+                }
+              }}
+            >
+              <AtSign className="h-2.5 w-2.5" />
+            </Button>
+
+            {/* Send buttons - right side, smaller and refined */}
+            <div className="flex items-center gap-0.5">
+              <Button
+                onClick={() => handleSendMessage(sendWithMedia)}
+                disabled={!inputValue.trim() || isTyping}
+                size="sm"
+                className="h-6 px-2 bg-transparent hover:bg-primary/10 text-primary hover:text-primary text-xs"
+                variant="ghost"
+              >
+                <Send className="h-2.5 w-2.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50"
+                disabled={isTyping}
+                onClick={() => setShowSendOptions(!showSendOptions)}
+              >
+                <ChevronDown className="h-2.5 w-2.5" />
+              </Button>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Press Enter to send • Shift+Enter for new line • @ to mention media
-        </p>
       </div>
     </div>
   );
-} 
+}
