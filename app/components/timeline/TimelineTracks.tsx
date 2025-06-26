@@ -19,6 +19,7 @@ interface TimelineTracksProps {
   onScroll: () => void;
   onDeleteTrack: (trackId: string) => void;
   onUpdateScrubber: (updatedScrubber: ScrubberState) => void;
+  onDeleteScrubber?: (scrubberId: string) => void;
   onDropOnTrack: (
     item: MediaBinItem,
     trackId: string,
@@ -38,6 +39,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onScroll,
   onDeleteTrack,
   onUpdateScrubber,
+  onDeleteScrubber,
   onDropOnTrack,
   getAllScrubbers,
   expandTimeline,
@@ -45,6 +47,9 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   pixelsPerSecond,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
+  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(
+    null
+  );
 
   // Sync track controls with timeline scroll
   useEffect(() => {
@@ -59,6 +64,21 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
   }, [onScroll, containerRef]);
+
+  // Global click handler to deselect when clicking outside timeline
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const timelineContainer = containerRef.current;
+      if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
+        setSelectedScrubberId(null);
+      }
+    };
+
+    if (selectedScrubberId) {
+      document.addEventListener("click", handleGlobalClick);
+      return () => document.removeEventListener("click", handleGlobalClick);
+    }
+  }, [selectedScrubberId, containerRef]);
 
   return (
     <div className="flex flex-1 min-h-0">
@@ -96,146 +116,169 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
       {/* Scrollable Tracks Area */}
       <div
         ref={containerRef}
-        className="relative overflow-auto flex-1 bg-timeline-background timeline-scrollbar"
-        onScroll={onScroll}
+        className={`relative flex-1 bg-timeline-background timeline-scrollbar ${
+          timeline.tracks.length === 0 ? "overflow-hidden" : "overflow-auto"
+        }`}
+        onScroll={timeline.tracks.length > 0 ? onScroll : undefined}
       >
-        {/* Playhead Line */}
-        <div
-          className="absolute top-0 w-0.5 bg-primary pointer-events-none z-40"
-          style={{
-            left: `${rulerPositionPx}px`,
-            height: `${Math.max(
-              timeline.tracks.length * DEFAULT_TRACK_HEIGHT,
-              200
-            )}px`,
-          }}
-        />
-
-        {/* Tracks Content */}
-        <div
-          className="bg-timeline-background relative"
-          style={{
-            width: `${timelineWidth}px`,
-            height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
-            minHeight: "100%",
-          }}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const itemString = e.dataTransfer.getData("text/plain");
-            if (!itemString) return;
-
-            const item: MediaBinItem = JSON.parse(itemString);
-            const timelineBounds = e.currentTarget.getBoundingClientRect();
-            const tracksScrollContainer = e.currentTarget.parentElement;
-
-            if (!timelineBounds || !tracksScrollContainer) return;
-
-            const scrollLeft = tracksScrollContainer.scrollLeft || 0;
-            const scrollTop = tracksScrollContainer.scrollTop || 0;
-            const dropXInTimeline =
-              e.clientX - timelineBounds.left + scrollLeft;
-            const dropYInTimeline = e.clientY - timelineBounds.top + scrollTop;
-
-            let trackIndex = Math.floor(dropYInTimeline / DEFAULT_TRACK_HEIGHT);
-            trackIndex = Math.max(
-              0,
-              Math.min(timeline.tracks.length - 1, trackIndex)
-            );
-
-            if (timeline.tracks[trackIndex]) {
-              onDropOnTrack(
-                item,
-                timeline.tracks[trackIndex].id,
-                dropXInTimeline
-              );
-            } else if (timeline.tracks.length > 0) {
-              onDropOnTrack(
-                item,
-                timeline.tracks[timeline.tracks.length - 1].id,
-                dropXInTimeline
-              );
-            } else {
-              console.warn("No tracks to drop on, or track detection failed.");
-            }
-          }}
-        >
-          {/* Track backgrounds and grid lines */}
-          {timeline.tracks.map((track, trackIndex) => (
+        {timeline.tracks.length === 0 ? (
+          /* Empty state - non-scrollable and centered */
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <p className="text-sm">No tracks. Click "Track" to get started.</p>
+          </div>
+        ) : (
+          <>
+            {/* Playhead Line */}
             <div
-              key={track.id}
-              className="relative"
-              style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
+              className="absolute top-0 w-0.5 bg-primary pointer-events-none z-40"
+              style={{
+                left: `${rulerPositionPx}px`,
+                height: `${Math.max(
+                  timeline.tracks.length * DEFAULT_TRACK_HEIGHT,
+                  200
+                )}px`,
+              }}
+            />
+
+            {/* Tracks Content */}
+            <div
+              className="bg-timeline-background relative"
+              style={{
+                width: `${timelineWidth}px`,
+                height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
+                minHeight: "100%",
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={(e) => {
+                // Deselect scrubber when clicking on empty timeline area
+                if (e.target === e.currentTarget) {
+                  setSelectedScrubberId(null);
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const itemString = e.dataTransfer.getData("text/plain");
+                if (!itemString) return;
+
+                const item: MediaBinItem = JSON.parse(itemString);
+                const timelineBounds = e.currentTarget.getBoundingClientRect();
+                const tracksScrollContainer = e.currentTarget.parentElement;
+
+                if (!timelineBounds || !tracksScrollContainer) return;
+
+                const scrollLeft = tracksScrollContainer.scrollLeft || 0;
+                const scrollTop = tracksScrollContainer.scrollTop || 0;
+                const dropXInTimeline =
+                  e.clientX - timelineBounds.left + scrollLeft;
+                const dropYInTimeline =
+                  e.clientY - timelineBounds.top + scrollTop;
+
+                let trackIndex = Math.floor(
+                  dropYInTimeline / DEFAULT_TRACK_HEIGHT
+                );
+                trackIndex = Math.max(
+                  0,
+                  Math.min(timeline.tracks.length - 1, trackIndex)
+                );
+
+                if (timeline.tracks[trackIndex]) {
+                  onDropOnTrack(
+                    item,
+                    timeline.tracks[trackIndex].id,
+                    dropXInTimeline
+                  );
+                } else if (timeline.tracks.length > 0) {
+                  onDropOnTrack(
+                    item,
+                    timeline.tracks[timeline.tracks.length - 1].id,
+                    dropXInTimeline
+                  );
+                } else {
+                  console.warn(
+                    "No tracks to drop on, or track detection failed."
+                  );
+                }
+              }}
             >
-              {/* Track background */}
-              <div
-                className={`absolute w-full border-b border-border/30 transition-colors ${
-                  trackIndex % 2 === 0
-                    ? "bg-timeline-track hover:bg-timeline-track/80"
-                    : "bg-timeline-background hover:bg-muted/20"
-                }`}
-                style={{
-                  top: `0px`,
-                  height: `${DEFAULT_TRACK_HEIGHT}px`,
-                }}
-              />
-
-              {/* Track label */}
-              <div
-                className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-50"
-                style={{ userSelect: "none" }}
-              >
-                Track {trackIndex + 1}
-              </div>
-
-              {/* Grid lines */}
-              {Array.from(
-                { length: Math.floor(timelineWidth / pixelsPerSecond) + 1 },
-                (_, index) => index
-              ).map((gridIndex) => (
+              {/* Track backgrounds and grid lines */}
+              {timeline.tracks.map((track, trackIndex) => (
                 <div
-                  key={`grid-${track.id}-${gridIndex}`}
-                  className="absolute h-full pointer-events-none"
-                  style={{
-                    left: `${gridIndex * pixelsPerSecond}px`,
-                    top: `0px`,
-                    width: "1px",
-                    height: `${DEFAULT_TRACK_HEIGHT}px`,
-                    backgroundColor: `rgb(var(--border) / ${
-                      gridIndex % 5 === 0 ? 0.5 : 0.25
-                    })`,
-                  }}
+                  key={track.id}
+                  className="relative"
+                  style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
+                >
+                  {/* Track background */}
+                  <div
+                    className={`absolute w-full border-b border-border/30 transition-colors ${
+                      trackIndex % 2 === 0
+                        ? "bg-timeline-track hover:bg-timeline-track/80"
+                        : "bg-timeline-background hover:bg-muted/20"
+                    }`}
+                    style={{
+                      top: `0px`,
+                      height: `${DEFAULT_TRACK_HEIGHT}px`,
+                    }}
+                    onClick={(e) => {
+                      // Deselect scrubber when clicking on track background
+                      if (e.target === e.currentTarget) {
+                        setSelectedScrubberId(null);
+                      }
+                    }}
+                  />
+
+                  {/* Track label - positioned behind scrubbers */}
+                  <div
+                    className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-[5]"
+                    style={{ userSelect: "none" }}
+                  >
+                    Track {trackIndex + 1}
+                  </div>
+
+                  {/* Grid lines */}
+                  {Array.from(
+                    { length: Math.floor(timelineWidth / pixelsPerSecond) + 1 },
+                    (_, index) => index
+                  ).map((gridIndex) => (
+                    <div
+                      key={`grid-${track.id}-${gridIndex}`}
+                      className="absolute h-full pointer-events-none"
+                      style={{
+                        left: `${gridIndex * pixelsPerSecond}px`,
+                        top: `0px`,
+                        width: "1px",
+                        height: `${DEFAULT_TRACK_HEIGHT}px`,
+                        backgroundColor: `rgb(var(--border) / ${
+                          gridIndex % 5 === 0 ? 0.5 : 0.25
+                        })`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+
+              {/* Scrubbers */}
+              {getAllScrubbers().map((scrubber) => (
+                <Scrubber
+                  key={scrubber.id}
+                  scrubber={scrubber}
+                  timelineWidth={timelineWidth}
+                  otherScrubbers={getAllScrubbers().filter(
+                    (s) => s.id !== scrubber.id
+                  )}
+                  onUpdate={onUpdateScrubber}
+                  onDelete={onDeleteScrubber}
+                  isSelected={selectedScrubberId === scrubber.id}
+                  onSelect={setSelectedScrubberId}
+                  containerRef={containerRef}
+                  expandTimeline={expandTimeline}
+                  snapConfig={{ enabled: true, distance: 10 }}
+                  trackCount={timeline.tracks.length}
+                  pixelsPerSecond={pixelsPerSecond}
                 />
               ))}
             </div>
-          ))}
-
-          {/* Scrubbers */}
-          {getAllScrubbers().map((scrubber) => (
-            <Scrubber
-              key={scrubber.id}
-              scrubber={scrubber}
-              timelineWidth={timelineWidth}
-              otherScrubbers={getAllScrubbers().filter(
-                (s) => s.id !== scrubber.id
-              )}
-              onUpdate={onUpdateScrubber}
-              containerRef={containerRef}
-              expandTimeline={expandTimeline}
-              snapConfig={{ enabled: true, distance: 10 }}
-              trackCount={timeline.tracks.length}
-              pixelsPerSecond={pixelsPerSecond}
-            />
-          ))}
-
-          {timeline.tracks.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <p className="text-sm">
-                No tracks. Click "Track" to get started.
-              </p>
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
