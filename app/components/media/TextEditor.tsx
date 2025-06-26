@@ -1,141 +1,218 @@
-import React, { useState } from "react"
-import { useOutletContext, useNavigate } from "react-router"
+import React, { useState } from "react";
+import { useOutletContext, useNavigate } from "react-router";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
+import {
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Bold,
+  Type,
+  Plus,
+} from "lucide-react";
 
 interface TextEditorProps {
-  onAddText: (textContent: string, fontSize: number, fontFamily: string, color: string, textAlign: "left" | "center" | "right", fontWeight: "normal" | "bold") => void
+  onAddText: (
+    textContent: string,
+    fontSize: number,
+    fontFamily: string,
+    color: string,
+    textAlign: "left" | "center" | "right",
+    fontWeight: "normal" | "bold"
+  ) => void;
 }
 
 export default function TextEditor() {
-  const { onAddText } = useOutletContext<TextEditorProps>()
-  const navigate = useNavigate()
-  
-  const [textContent, setTextContent] = useState("Hello World")
-  const [fontSize, setFontSize] = useState(48)
-  const [fontFamily, setFontFamily] = useState("Arial")
-  const [color, setColor] = useState("#ffffff")
-  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("center")
-  const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal")
+  const { onAddText } = useOutletContext<TextEditorProps>();
+  const navigate = useNavigate();
+
+  const [textContent, setTextContent] = useState("Hello World");
+  const [fontSize, setFontSize] = useState(48);
+  const [fontFamily, setFontFamily] = useState("Arial");
+  const [color, setColor] = useState("#ffffff");
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
+    "center"
+  );
+  const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
 
   const handleAddText = () => {
     if (textContent.trim()) {
-      onAddText(textContent, fontSize, fontFamily, color, textAlign, fontWeight)
-      navigate("/media-bin")
+      onAddText(
+        textContent,
+        fontSize,
+        fontFamily,
+        color,
+        textAlign,
+        fontWeight
+      );
+      navigate("/media-bin");
     }
-  }
+  };
 
   return (
-    <div className="w-full bg-gray-700 p-3 h-full overflow-y-auto">
-      <h3 className="text-sm font-medium mb-3 text-gray-200">Text Editor</h3>
-      
-      <div className="space-y-3">
-        {/* Text Content */}
-        <div>
-          <label className="block text-xs font-medium text-gray-300 mb-1">Text</label>
-          <textarea
-            value={textContent}
-            onChange={(e) => setTextContent(e.target.value)}
-            className="w-full h-16 p-2 text-sm bg-gray-600 border border-gray-500 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
-            placeholder="Enter your text..."
-          />
-        </div>
+    <div className="h-full flex flex-col bg-background">
+      <div className="flex-1 overflow-y-auto p-3">
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Type className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm">Text Properties</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Text Content */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Content</Label>
+              <textarea
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                className="w-full h-20 p-3 text-sm bg-muted/50 border border-border rounded-md text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
+                placeholder="Enter your text..."
+              />
+            </div>
 
-        {/* Font Controls Row */}
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-300 mb-1">Size</label>
-            <input
-              type="number"
-              min="8"
-              max="200"
-              value={fontSize}
-              onChange={(e) => setFontSize(parseInt(e.target.value) || 48)}
-              className="w-full p-1 text-sm bg-gray-600 border border-gray-500 rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
-            />
-          </div>
-          <div className="flex-2">
-            <label className="block text-xs font-medium text-gray-300 mb-1">Font</label>
-            <select
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="w-full p-1 text-sm bg-gray-600 border border-gray-500 rounded text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+            {/* Font Size & Family Row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Size</Label>
+                <Input
+                  type="number"
+                  min="8"
+                  max="200"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 48)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Font</Label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="w-full h-8 px-2 text-sm bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                >
+                  <option value="Arial">Arial</option>
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Times New Roman">Times</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Verdana">Verdana</option>
+                  <option value="Impact">Impact</option>
+                </select>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Style Controls */}
+            <div className="space-y-3">
+              <Label className="text-xs font-medium">Style</Label>
+
+              {/* Text Alignment */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Alignment
+                </Label>
+                <div className="flex rounded-md border border-border overflow-hidden">
+                  {(
+                    [
+                      { value: "left", icon: AlignLeft, label: "Left" },
+                      { value: "center", icon: AlignCenter, label: "Center" },
+                      { value: "right", icon: AlignRight, label: "Right" },
+                    ] as const
+                  ).map(({ value, icon: Icon, label }) => (
+                    <Button
+                      key={value}
+                      variant={textAlign === value ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setTextAlign(value)}
+                      className="flex-1 h-8 rounded-none border-0"
+                      title={label}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Weight & Color */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Weight
+                  </Label>
+                  <div className="flex rounded-md border border-border overflow-hidden">
+                    {(["normal", "bold"] as const).map((weight) => (
+                      <Button
+                        key={weight}
+                        variant={fontWeight === weight ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setFontWeight(weight)}
+                        className="flex-1 h-8 rounded-none border-0 text-xs"
+                        title={weight}
+                      >
+                        {weight === "normal" ? (
+                          "Normal"
+                        ) : (
+                          <Bold className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Color</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-full h-8 bg-muted/50 border border-border rounded-md cursor-pointer"
+                    />
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {color.toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Preview */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Preview</Label>
+              <div
+                className="w-full h-20 bg-muted/30 border border-border rounded-md flex items-center justify-center p-3"
+                style={{
+                  textAlign: textAlign,
+                  fontSize: `${Math.min(fontSize * 0.3, 18)}px`,
+                  fontFamily: fontFamily,
+                  fontWeight: fontWeight,
+                  color: color,
+                }}
+              >
+                {textContent || "Sample text"}
+              </div>
+            </div>
+
+            {/* Add Button */}
+            <Button
+              onClick={handleAddText}
+              disabled={!textContent.trim()}
+              className="w-full h-9"
+              size="sm"
             >
-              <option value="Arial">Arial</option>
-              <option value="Helvetica">Helvetica</option>
-              <option value="Times New Roman">Times</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Impact">Impact</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Color</label>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="w-8 h-8 bg-gray-600 border border-gray-500 rounded cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Style Controls Row */}
-        <div className="flex items-center gap-3">
-          {/* Text Alignment */}
-          <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Align</label>
-            <div className="flex">
-              {(['left', 'center', 'right'] as const).map((align) => (
-                <button
-                  key={align}
-                  onClick={() => setTextAlign(align)}
-                  className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l last:rounded-r ${
-                    textAlign === align
-                      ? 'bg-cyan-500 text-white'
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500 border border-gray-500'
-                  }`}
-                  title={`Align ${align}`}
-                >
-                  {align === 'left' ? 'L' : align === 'center' ? 'C' : 'R'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Font Weight */}
-          <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Weight</label>
-            <div className="flex">
-              {(['normal', 'bold'] as const).map((weight) => (
-                <button
-                  key={weight}
-                  onClick={() => setFontWeight(weight)}
-                  className={`px-2 py-1 text-xs font-medium transition-colors first:rounded-l last:rounded-r ${
-                    fontWeight === weight
-                      ? 'bg-cyan-500 text-white'
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500 border border-gray-500'
-                  }`}
-                  title={weight}
-                >
-                  {weight === 'normal' ? 'N' : 'B'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Add Text Button */}
-        <button
-          onClick={handleAddText}
-          disabled={!textContent.trim()}
-          className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors ${
-            textContent.trim()
-              ? 'bg-cyan-500 text-white hover:bg-cyan-600'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Add Text to Timeline
-        </button>
+              <Plus className="h-3.5 w-3.5 mr-2" />
+              Add Text to Timeline
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -1,49 +1,101 @@
-import { useState, useCallback, useEffect, useRef } from "react"
-import type { PlayerRef } from "@remotion/player"
-import { PIXELS_PER_SECOND, FPS } from "~/components/timeline/types"
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { PlayerRef } from "@remotion/player";
+import { PIXELS_PER_SECOND, FPS } from "~/components/timeline/types";
 
-export const useRuler = (playerRef: React.RefObject<PlayerRef | null>, timelineWidth: number) => {
-  const [rulerPositionPx, setRulerPositionPx] = useState(0)
-  const [scrollLeft, setScrollLeft] = useState(0)
-  const [isDraggingRuler, setIsDraggingRuler] = useState(false)
-  
-  const isSeekingRef = useRef(false)
-  const isUpdatingFromPlayerRef = useRef(false)
+export const useRuler = (
+  playerRef: React.RefObject<PlayerRef | null>,
+  timelineWidth: number,
+  pixelsPerSecond: number
+) => {
+  const [rulerPositionPx, setRulerPositionPx] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isDraggingRuler, setIsDraggingRuler] = useState(false);
 
-  const handleRulerDrag = useCallback((newPositionPx: number) => {
-    const clampedPositionPx = Math.max(0, Math.min(newPositionPx, timelineWidth));
-    setRulerPositionPx(clampedPositionPx);
-  }, [timelineWidth]);
+  const isSeekingRef = useRef(false);
+  const isUpdatingFromPlayerRef = useRef(false);
+
+  const handleRulerDrag = useCallback(
+    (newPositionPx: number) => {
+      const clampedPositionPx = Math.max(
+        0,
+        Math.min(newPositionPx, timelineWidth)
+      );
+      setRulerPositionPx(clampedPositionPx);
+
+      // Sync with player when not already updating from player
+      if (playerRef.current && !isUpdatingFromPlayerRef.current) {
+        isSeekingRef.current = true;
+        const timeInSeconds = clampedPositionPx / pixelsPerSecond;
+        const frame = Math.round(timeInSeconds * FPS);
+        playerRef.current.seekTo(frame);
+        // Reset seeking flag after a brief delay
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, 50);
+      }
+    },
+    [timelineWidth, playerRef, pixelsPerSecond]
+  );
 
   const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDraggingRuler(true);
   }, []);
 
-  const handleRulerMouseMove = useCallback((e: MouseEvent, containerRef: React.RefObject<HTMLDivElement | null>) => {
-    if (!isDraggingRuler || !containerRef.current) return;
+  const handleRulerMouseMove = useCallback(
+    (e: MouseEvent, containerRef: React.RefObject<HTMLDivElement | null>) => {
+      if (!isDraggingRuler || !containerRef.current) return;
 
-    e.preventDefault();
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft;
-    handleRulerDrag(mouseX);
-  }, [isDraggingRuler, handleRulerDrag]);
+      e.preventDefault();
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft;
+      handleRulerDrag(mouseX);
+    },
+    [isDraggingRuler, handleRulerDrag]
+  );
 
   const handleRulerMouseUp = useCallback(() => {
     setIsDraggingRuler(false);
   }, []);
 
-  const handleScroll = useCallback((containerRef: React.RefObject<HTMLDivElement | null>, expandTimeline: () => boolean) => {
-    if (containerRef.current) {
-      setScrollLeft(containerRef.current.scrollLeft);
-    }
-    expandTimeline()
-  }, [])
+  const updateRulerFromPlayer = useCallback(
+    (frame: number) => {
+      if (!isSeekingRef.current) {
+        isUpdatingFromPlayerRef.current = true;
+        const timeInSeconds = frame / FPS;
+        const newPositionPx = timeInSeconds * pixelsPerSecond;
+        setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
+        // Reset flag after state update
+        setTimeout(() => {
+          isUpdatingFromPlayerRef.current = false;
+        }, 50);
+      }
+    },
+    [pixelsPerSecond, timelineWidth]
+  );
+
+  const handleScroll = useCallback(
+    (
+      containerRef: React.RefObject<HTMLDivElement | null>,
+      expandTimeline: () => boolean
+    ) => {
+      if (containerRef.current) {
+        setScrollLeft(containerRef.current.scrollLeft);
+      }
+      expandTimeline();
+    },
+    []
+  );
 
   // Sync ruler with player position
   useEffect(() => {
-    if (playerRef.current && rulerPositionPx !== undefined && !isUpdatingFromPlayerRef.current && !isDraggingRuler) {
-      const targetFrame = Math.round((rulerPositionPx / PIXELS_PER_SECOND) * FPS);
+    if (
+      playerRef.current &&
+      rulerPositionPx !== undefined &&
+      !isUpdatingFromPlayerRef.current &&
+      !isDraggingRuler
+    ) {
+      const targetFrame = Math.round((rulerPositionPx / pixelsPerSecond) * FPS);
       const currentFrame = playerRef.current.getCurrentFrame();
 
       // Only seek if there's a significant difference to avoid micro-adjustments
@@ -69,7 +121,7 @@ export const useRuler = (playerRef: React.RefObject<PlayerRef | null>, timelineW
 
         const currentFrame = e.detail.frame;
         const currentTimeInSeconds = currentFrame / FPS;
-        const newPositionPx = currentTimeInSeconds * PIXELS_PER_SECOND;
+        const newPositionPx = currentTimeInSeconds * pixelsPerSecond;
 
         // Only update if there's a meaningful difference to prevent jitter
         if (Math.abs(newPositionPx - rulerPositionPx) > 2) {
@@ -90,12 +142,12 @@ export const useRuler = (playerRef: React.RefObject<PlayerRef | null>, timelineW
         }, 50);
       };
 
-      player.addEventListener('frameupdate', handleFrameUpdate);
-      player.addEventListener('seeked', handleSeeked);
+      player.addEventListener("frameupdate", handleFrameUpdate);
+      player.addEventListener("seeked", handleSeeked);
 
       return () => {
-        player.removeEventListener('frameupdate', handleFrameUpdate);
-        player.removeEventListener('seeked', handleSeeked);
+        player.removeEventListener("frameupdate", handleFrameUpdate);
+        player.removeEventListener("seeked", handleSeeked);
       };
     }
   }, [isDraggingRuler, rulerPositionPx, playerRef]);
@@ -109,5 +161,6 @@ export const useRuler = (playerRef: React.RefObject<PlayerRef | null>, timelineW
     handleRulerMouseMove,
     handleRulerMouseUp,
     handleScroll,
-  }
-} 
+    updateRulerFromPlayer,
+  };
+};

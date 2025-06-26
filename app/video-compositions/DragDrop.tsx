@@ -1,74 +1,82 @@
-import React, { useCallback, useMemo } from 'react';
-import { useCurrentScale, Sequence } from 'remotion';
-import { FPS, PIXELS_PER_SECOND, type ScrubberState, type TimelineState, type TrackState } from '../components/timeline/types';
+import React, { useCallback, useMemo } from "react";
+import { useCurrentScale, Sequence } from "remotion";
+import {
+  FPS,
+  PIXELS_PER_SECOND,
+  type ScrubberState,
+  type TimelineState,
+  type TrackState,
+} from "../components/timeline/types";
 
 const HANDLE_SIZE = 10;
 
 export const ResizeHandle: React.FC<{
-  type: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  type: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   setItem: (updatedScrubber: ScrubberState) => void;
   ScrubberState: ScrubberState;
 }> = ({ type, setItem, ScrubberState }) => {
-  console.log('ResizeHandle', JSON.stringify(ScrubberState, null, 2));
+  console.log("ResizeHandle", JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const size = Math.round(HANDLE_SIZE / scale);
   const borderSize = 1 / scale;
   const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
-  
+
   const sizeStyle: React.CSSProperties = useMemo(() => {
     return {
-      position: 'absolute',
+      position: "absolute",
       height: size,
       width: size,
-      backgroundColor: 'white',
-      border: `${borderSize}px solid #0B84F3`,
+      backgroundColor: "white",
+      border: `${borderSize}px solid rgb(59, 130, 246)`, // Use consistent blue
+      borderRadius: "2px",
+      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
     };
   }, [borderSize, size]);
 
   const margin = -size / 2 - borderSize;
 
   const style: React.CSSProperties = useMemo(() => {
-    if (type === 'top-left') {
+    if (type === "top-left") {
       return {
         ...sizeStyle,
         marginLeft: margin,
         marginTop: margin,
-        cursor: 'nwse-resize',
+        cursor: "nwse-resize",
       };
     }
 
-    if (type === 'top-right') {
+    if (type === "top-right") {
       return {
         ...sizeStyle,
         marginTop: margin,
         marginRight: margin,
         right: 0,
-        cursor: 'nesw-resize',
+        cursor: "nesw-resize",
       };
     }
 
-    if (type === 'bottom-left') {
+    if (type === "bottom-left") {
       return {
         ...sizeStyle,
         marginBottom: margin,
         marginLeft: margin,
         bottom: 0,
-        cursor: 'nesw-resize',
+        cursor: "nesw-resize",
       };
     }
 
-    if (type === 'bottom-right') {
+    if (type === "bottom-right") {
       return {
         ...sizeStyle,
         marginBottom: margin,
         marginRight: margin,
         right: 0,
         bottom: 0,
-        cursor: 'nwse-resize',
+        cursor: "nwse-resize",
       };
     }
 
-    throw new Error('Unknown type: ' + JSON.stringify(type));
+    throw new Error("Unknown type: " + JSON.stringify(type));
   }, [margin, sizeStyle, type]);
 
   const onPointerDown = useCallback(
@@ -86,11 +94,13 @@ export const ResizeHandle: React.FC<{
         const offsetX = (pointerMoveEvent.clientX - initialX) / scale;
         const offsetY = (pointerMoveEvent.clientY - initialY) / scale;
 
-        const isLeft = type === 'top-left' || type === 'bottom-left';
-        const isTop = type === 'top-left' || type === 'top-right';
+        const isLeft = type === "top-left" || type === "bottom-left";
+        const isTop = type === "top-left" || type === "top-right";
 
-        const newWidth = ScrubberState.width_player + (isLeft ? -offsetX : offsetX);
-        const newHeight = ScrubberState.height_player + (isTop ? -offsetY : offsetY);
+        const newWidth =
+          ScrubberState.width_player + (isLeft ? -offsetX : offsetX);
+        const newHeight =
+          ScrubberState.height_player + (isTop ? -offsetY : offsetY);
         const newLeft = ScrubberState.left_player + (isLeft ? offsetX : 0);
         const newTop = ScrubberState.top_player + (isTop ? offsetY : 0);
         // console.log('newWidth', newWidth);
@@ -105,7 +115,7 @@ export const ResizeHandle: React.FC<{
           left_player: Math.round(newLeft),
           top_player: Math.round(newTop),
           is_dragging: true,
-        }
+        };
         setItem(newScrubberStateRef.current);
         // console.log('ScrubberState after openpointermove update',
         //   JSON.stringify(ScrubberState, null, 2)
@@ -117,15 +127,15 @@ export const ResizeHandle: React.FC<{
           ...newScrubberStateRef.current,
           is_dragging: false,
         });
-        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener("pointermove", onPointerMove);
       };
 
-      window.addEventListener('pointermove', onPointerMove, { passive: true });
-      window.addEventListener('pointerup', onPointerUp, {
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
+      window.addEventListener("pointerup", onPointerUp, {
         once: true,
       });
     },
-    [ScrubberState, scale, setItem, type],
+    [ScrubberState, scale, setItem, type]
   );
 
   return <div onPointerDown={onPointerDown} style={style} />;
@@ -137,8 +147,14 @@ export const SelectionOutline: React.FC<{
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   selectedItem: string | null;
   isDragging: boolean;
-}> = ({ ScrubberState, changeItem, setSelectedItem, selectedItem, isDragging }) => {
-  console.log('SelectionOutline', JSON.stringify(ScrubberState, null, 2));
+}> = ({
+  ScrubberState,
+  changeItem,
+  setSelectedItem,
+  selectedItem,
+  isDragging,
+}) => {
+  console.log("SelectionOutline", JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const scaledBorder = Math.ceil(2 / scale);
   const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
@@ -154,20 +170,20 @@ export const SelectionOutline: React.FC<{
   }, []);
 
   const isSelected = ScrubberState.id === selectedItem;
-  console.log('isSelected', isSelected);
+  console.log("isSelected", isSelected);
   const style: React.CSSProperties = useMemo(() => {
     return {
       width: ScrubberState.width_player,
       height: ScrubberState.height_player,
       left: ScrubberState.left_player,
       top: ScrubberState.top_player,
-      position: 'absolute',
+      position: "absolute",
       outline:
         (hovered && !isDragging) || isSelected
-          ? `${scaledBorder}px solid #0B84F3`
+          ? `${scaledBorder}px solid rgb(59, 130, 246)` // Use a consistent blue
           : undefined,
-      userSelect: 'none',
-      touchAction: 'none',
+      userSelect: "none",
+      touchAction: "none",
     };
   }, [ScrubberState, hovered, isDragging, isSelected, scaledBorder]);
 
@@ -184,26 +200,29 @@ export const SelectionOutline: React.FC<{
           left_player: Math.round(ScrubberState.left_player + offsetX),
           top_player: Math.round(ScrubberState.top_player + offsetY),
           is_dragging: true,
-        }
+        };
         changeItem(newScrubberStateRef.current);
       };
 
       const onPointerUp = () => {
-        console.log("onPointerUp is called", JSON.stringify(ScrubberState, null, 2));
+        console.log(
+          "onPointerUp is called",
+          JSON.stringify(ScrubberState, null, 2)
+        );
         changeItem({
           ...newScrubberStateRef.current,
           is_dragging: false,
         });
-        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener("pointermove", onPointerMove);
       };
 
-      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
 
-      window.addEventListener('pointerup', onPointerUp, {
+      window.addEventListener("pointerup", onPointerUp, {
         once: true,
       });
     },
-    [ScrubberState, scale, changeItem],
+    [ScrubberState, scale, changeItem]
   );
 
   const onPointerDown = useCallback(
@@ -216,7 +235,7 @@ export const SelectionOutline: React.FC<{
       setSelectedItem(ScrubberState.id);
       startDragging(e);
     },
-    [ScrubberState.id, setSelectedItem, startDragging],
+    [ScrubberState.id, setSelectedItem, startDragging]
   );
 
   return (
@@ -228,10 +247,26 @@ export const SelectionOutline: React.FC<{
     >
       {isSelected ? (
         <>
-          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="top-left" />
-          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="top-right" />
-          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="bottom-left" />
-          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="bottom-right" />
+          <ResizeHandle
+            ScrubberState={ScrubberState}
+            setItem={changeItem}
+            type="top-left"
+          />
+          <ResizeHandle
+            ScrubberState={ScrubberState}
+            setItem={changeItem}
+            type="top-right"
+          />
+          <ResizeHandle
+            ScrubberState={ScrubberState}
+            setItem={changeItem}
+            type="bottom-left"
+          />
+          <ResizeHandle
+            ScrubberState={ScrubberState}
+            setItem={changeItem}
+            type="bottom-right"
+          />
         </>
       ) : null}
     </div>
@@ -240,20 +275,24 @@ export const SelectionOutline: React.FC<{
 
 const displaySelectedItemOnTop = (
   items: ScrubberState[],
-  selectedItem: string | null,
+  selectedItem: string | null
 ): ScrubberState[] => {
-  const selectedItems = items.filter((ScrubberState) => ScrubberState.id === selectedItem);
-  const unselectedItems = items.filter((ScrubberState) => ScrubberState.id !== selectedItem);
+  const selectedItems = items.filter(
+    (ScrubberState) => ScrubberState.id === selectedItem
+  );
+  const unselectedItems = items.filter(
+    (ScrubberState) => ScrubberState.id !== selectedItem
+  );
 
   return [...unselectedItems, ...selectedItems];
 };
 
 export const layerContainer: React.CSSProperties = {
-  overflow: 'hidden',
+  overflow: "hidden",
 };
 
 export const outer: React.CSSProperties = {
-  backgroundColor: '#000000',
+  backgroundColor: "#000000", // Black background for video preview
 };
 
 export const SortedOutlines: React.FC<{
@@ -264,24 +303,29 @@ export const SortedOutlines: React.FC<{
 }> = ({ timeline, selectedItem, setSelectedItem, handleUpdateScrubber }) => {
   // const items = timeline.tracks.flatMap((track: TrackState) => track.scrubbers);
   // console.log('timeline', timeline);
-  const itemsToDisplay = React.useMemo(
-    () => {
-      return displaySelectedItemOnTop(timeline.tracks.flatMap((track: TrackState) => track.scrubbers), selectedItem);
-    },
-    [timeline, selectedItem],
-  );
+  const itemsToDisplay = React.useMemo(() => {
+    return displaySelectedItemOnTop(
+      timeline.tracks.flatMap((track: TrackState) => track.scrubbers),
+      selectedItem
+    );
+  }, [timeline, selectedItem]);
 
   const isDragging = React.useMemo(
-    () => timeline.tracks.flatMap((track: TrackState) => track.scrubbers).some((ScrubberState) => ScrubberState.is_dragging),
-    [timeline],
+    () =>
+      timeline.tracks
+        .flatMap((track: TrackState) => track.scrubbers)
+        .some((ScrubberState) => ScrubberState.is_dragging),
+    [timeline]
   );
 
   return itemsToDisplay.map((ScrubberState) => {
     return (
       <Sequence
         key={ScrubberState.id}
-        from={Math.round(ScrubberState.left / PIXELS_PER_SECOND * FPS)}
-        durationInFrames={Math.round(ScrubberState.width / PIXELS_PER_SECOND * FPS)}
+        from={Math.round((ScrubberState.left / PIXELS_PER_SECOND) * FPS)}
+        durationInFrames={Math.round(
+          (ScrubberState.width / PIXELS_PER_SECOND) * FPS
+        )}
         layout="none"
       >
         <SelectionOutline
