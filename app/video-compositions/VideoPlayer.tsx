@@ -1,5 +1,5 @@
 import { Player, type PlayerRef } from "@remotion/player";
-import { Sequence, AbsoluteFill, Img, Video, useCurrentFrame } from "remotion";
+import { Sequence, AbsoluteFill, Img, Video } from "remotion";
 import React, { useCallback, useState } from "react";
 import type {
   ScrubberState,
@@ -38,7 +38,6 @@ export function TimelineComposition({
   handleUpdateScrubber,
 }: TimelineCompositionProps) {
   const FPS = 30; // Must match the Player fps setting
-  const currentFrame = useCurrentFrame();
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -52,18 +51,9 @@ export function TimelineComposition({
 
   // for this experiment it is all text that we are working with.
   const items: React.ReactNode[] = [];
-  const allItems: React.ReactNode[] = []; // For drag and drop outlines
 
   for (const timeline of timelineData) {
     for (const scrubber of timeline.scrubbers) {
-      const startFrame = Math.round(scrubber.startTime * FPS);
-      const durationInFrames = Math.round(scrubber.duration * FPS);
-      const endFrame = startFrame + durationInFrames;
-
-      // Check if the current frame is within the sequence's active range
-      const isActiveAtCurrentFrame =
-        currentFrame >= startFrame && currentFrame < endFrame;
-
       let content: React.ReactNode = null;
 
       switch (scrubber.mediaType) {
@@ -148,23 +138,15 @@ export function TimelineComposition({
       }
 
       if (content) {
-        const sequenceElement = (
+        items.push(
           <Sequence
-            from={startFrame}
-            durationInFrames={durationInFrames}
+            from={Math.round(scrubber.startTime * FPS)}
+            durationInFrames={Math.round(scrubber.duration * FPS)}
             key={scrubber.id}
           >
             {content}
           </Sequence>
         );
-
-        // Always add to allItems for drag and drop functionality
-        allItems.push(sequenceElement);
-
-        // Only add to items if the sequence is active at the current frame (for visual rendering)
-        if (isActiveAtCurrentFrame || isRendering) {
-          items.push(sequenceElement);
-        }
       }
     }
   }
@@ -174,33 +156,7 @@ export function TimelineComposition({
   } else {
     return (
       <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
-        <AbsoluteFill style={layerContainer}>
-          {items}
-          {/* Show a subtle indicator when no media is active at current frame */}
-          {items.length === 0 && (
-            <AbsoluteFill
-              style={{
-                backgroundColor: "transparent",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div
-                style={{
-                  color: "rgba(255, 255, 255, 0.1)",
-                  fontSize: "12px",
-                  fontFamily: "Arial, sans-serif",
-                  textAlign: "center",
-                  userSelect: "none",
-                  pointerEvents: "none",
-                }}
-              >
-                No media at current time
-              </div>
-            </AbsoluteFill>
-          )}
-        </AbsoluteFill>
+        <AbsoluteFill style={layerContainer}>{items}</AbsoluteFill>
         <SortedOutlines
           handleUpdateScrubber={handleUpdateScrubber}
           selectedItem={selectedItem}
