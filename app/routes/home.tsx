@@ -16,7 +16,6 @@ import { useTheme } from "next-themes";
 // Components
 import LeftPanel from "~/components/editor/LeftPanel";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
-import { TimelineControls } from "~/components/timeline/TimelineControls";
 import { RenderStatus } from "~/components/timeline/RenderStatus";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
@@ -41,7 +40,8 @@ import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
 import { FPS } from "~/components/timeline/types";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
+import { ChatBox } from "~/components/chat/ChatBox";
 
 export default function TimelineEditor() {
   // Refs
@@ -376,7 +376,7 @@ export default function TimelineEditor() {
         <ResizableHandle withHandle />
 
         {/* Main Content Area */}
-        <ResizablePanel defaultSize={80}>
+        <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup direction="vertical">
             {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
@@ -556,6 +556,15 @@ export default function TimelineEditor() {
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Right Panel - Chat */}
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+          <div className="h-full border-l border-border">
+            <ChatBox mediaBinItems={mediaBinItems} handleDropOnTrack={handleDropOnTrack} />
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 

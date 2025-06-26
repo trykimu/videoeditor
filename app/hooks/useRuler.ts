@@ -109,7 +109,7 @@ export const useRuler = (
         }, 150);
       }
     }
-  }, [rulerPositionPx, timelineWidth, isDraggingRuler, playerRef]);
+  }, [rulerPositionPx, timelineWidth, isDraggingRuler, playerRef, pixelsPerSecond]);
 
   // Listen for player frame updates
   useEffect(() => {
@@ -150,7 +150,7 @@ export const useRuler = (
         player.removeEventListener("seeked", handleSeeked);
       };
     }
-  }, [isDraggingRuler, rulerPositionPx, playerRef]);
+  }, [isDraggingRuler, rulerPositionPx, playerRef, pixelsPerSecond]);
 
   return {
     rulerPositionPx,
