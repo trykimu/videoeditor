@@ -2,7 +2,7 @@
 export interface BaseScrubber {
   id: string;
   mediaType: "video" | "image" | "text";
-  mediaUrlLocal: string | null;   // null for text
+  mediaUrlLocal: string | null; // null for text
   mediaUrlRemote: string | null;
   media_width: number; // width of the media in pixels
   media_height: number; // height of the media in pixels
@@ -10,12 +10,12 @@ export interface BaseScrubber {
 }
 
 export interface TextProperties {
-  textContent: string;  // Only present when mediaType is "text"
+  textContent: string; // Only present when mediaType is "text"
   fontSize: number;
   fontFamily: string;
   color: string;
-  textAlign: 'left' | 'center' | 'right';
-  fontWeight: 'normal' | 'bold';
+  textAlign: "left" | "center" | "right";
+  fontWeight: "normal" | "bold";
 }
 
 // state of the scrubber in the media bin
@@ -28,7 +28,7 @@ export interface MediaBinItem extends BaseScrubber {
 export interface ScrubberState extends MediaBinItem {
   left: number; // in pixels (for the scrubber in the timeline)
   y: number; // track position (0-based index)
-  width: number;          // width is a css property for the scrubber width
+  width: number; // width is a css property for the scrubber width
 
   // the following are the properties of the scrubber in <Player>
   left_player: number;
@@ -68,4 +68,9 @@ export interface TimelineDataItem {
 export const PIXELS_PER_SECOND = 100;
 export const DEFAULT_TRACK_HEIGHT = 60;
 export const FPS = 30;
-export const RULER_HEIGHT = 48;
+export const RULER_HEIGHT = 32;
+
+// Zoom constants
+export const MIN_ZOOM = 0.25;
+export const MAX_ZOOM = 4;
+export const DEFAULT_ZOOM = 1;

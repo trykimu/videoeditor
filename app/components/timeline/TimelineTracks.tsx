@@ -1,19 +1,33 @@
-import React from "react"
-import { Scrubber } from "./Scrubber"
-import { DEFAULT_TRACK_HEIGHT, PIXELS_PER_SECOND, type ScrubberState, type MediaBinItem, type TimelineState } from "./types"
+import React, { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Scrubber } from "./Scrubber";
+import {
+  DEFAULT_TRACK_HEIGHT,
+  PIXELS_PER_SECOND,
+  type ScrubberState,
+  type MediaBinItem,
+  type TimelineState,
+} from "./types";
 
 interface TimelineTracksProps {
-  timeline: TimelineState
-  timelineWidth: number
-  rulerPositionPx: number
-  containerRef: React.RefObject<HTMLDivElement | null>
-  onScroll: () => void
-  onDeleteTrack: (trackId: string) => void
-  onUpdateScrubber: (updatedScrubber: ScrubberState) => void
-  onDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void
-  getAllScrubbers: () => ScrubberState[]
-  expandTimeline: () => boolean
-  onRulerMouseDown: (e: React.MouseEvent) => void
+  timeline: TimelineState;
+  timelineWidth: number;
+  rulerPositionPx: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  onDeleteTrack: (trackId: string) => void;
+  onUpdateScrubber: (updatedScrubber: ScrubberState) => void;
+  onDropOnTrack: (
+    item: MediaBinItem,
+    trackId: string,
+    dropLeftPx: number
+  ) => void;
+  getAllScrubbers: () => ScrubberState[];
+  expandTimeline: () => boolean;
+  onRulerMouseDown: (e: React.MouseEvent) => void;
+  pixelsPerSecond: number;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -28,61 +42,82 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   getAllScrubbers,
   expandTimeline,
   onRulerMouseDown,
+  pixelsPerSecond,
 }) => {
+  const [scrollTop, setScrollTop] = useState(0);
+
+  // Sync track controls with timeline scroll
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setScrollTop(container.scrollTop);
+      onScroll();
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [onScroll, containerRef]);
+
   return (
     <div className="flex flex-1 min-h-0">
-      {/* Track delete buttons column */}
-      <div className="flex flex-col bg-gray-600 border-r border-gray-500 flex-shrink-0" style={{ width: '60px' }}>
-        {timeline.tracks.map((track) => (
-          <div
-            key={`delete-${track.id}`}
-            className="flex items-center justify-center border-b border-gray-500"
-            style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
-          >
-            <button
-              onClick={() => onDeleteTrack(track.id)}
-              className="text-red-400 hover:text-red-300 p-2 hover:bg-gray-500 rounded transition-colors text-sm"
-              title="Delete Track"
+      {/* Track controls column - scrolls with tracks */}
+      <div className="w-12 bg-muted border-r border-border/50 flex-shrink-0 overflow-hidden">
+        <div
+          className="flex flex-col"
+          style={{
+            transform: `translateY(-${containerRef.current?.scrollTop || 0}px)`,
+            height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
+          }}
+        >
+          {timeline.tracks.map((track, index) => (
+            <div
+              key={`control-${track.id}`}
+              className="flex items-center justify-center border-b border-border/30 bg-muted/30 relative"
+              style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
             >
-              🗑️
-            </button>
-          </div>
-        ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDeleteTrack(track.id)}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 relative z-10"
+                title={`Delete Track ${index + 1}`}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+              {/* Track indicator line */}
+              <div className="absolute right-0 top-0 bottom-0 w-px bg-border/50" />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Scrollable Tracks Area (containerRef) */}
+      {/* Scrollable Tracks Area */}
       <div
         ref={containerRef}
-        className="relative overflow-auto scrollbar-thin scrollbar-track-gray-700 scrollbar-thumb-gray-500 hover:scrollbar-thumb-gray-400 scrollbar-track-rounded scrollbar-thumb-rounded flex-1"
+        className="relative overflow-auto flex-1 bg-timeline-background timeline-scrollbar"
         onScroll={onScroll}
       >
-        {/* Playhead Line - positioned relative to tracks */}
+        {/* Playhead Line */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 pointer-events-none z-40"
+          className="absolute top-0 w-0.5 bg-primary pointer-events-none z-40"
           style={{
             left: `${rulerPositionPx}px`,
-            height: '100%',
+            height: `${Math.max(
+              timeline.tracks.length * DEFAULT_TRACK_HEIGHT,
+              200
+            )}px`,
           }}
-        />
-
-        {/* Playhead Handle */}
-        <div
-          className="absolute w-3 h-3 bg-blue-500 cursor-pointer z-50 hover:bg-blue-600 transition-colors rounded-full border border-white"
-          style={{
-            left: `${rulerPositionPx - 6}px`,
-            top: '-6px',
-          }}
-          onMouseDown={onRulerMouseDown}
-          title="Drag to seek"
         />
 
         {/* Tracks Content */}
         <div
-          className="bg-gray-700 relative"
+          className="bg-timeline-background relative"
           style={{
             width: `${timelineWidth}px`,
             height: `${timeline.tracks.length * DEFAULT_TRACK_HEIGHT}px`,
-            minHeight: '100%',
+            minHeight: "100%",
           }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -98,16 +133,28 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
 
             const scrollLeft = tracksScrollContainer.scrollLeft || 0;
             const scrollTop = tracksScrollContainer.scrollTop || 0;
-            const dropXInTimeline = e.clientX - timelineBounds.left + scrollLeft;
+            const dropXInTimeline =
+              e.clientX - timelineBounds.left + scrollLeft;
             const dropYInTimeline = e.clientY - timelineBounds.top + scrollTop;
 
             let trackIndex = Math.floor(dropYInTimeline / DEFAULT_TRACK_HEIGHT);
-            trackIndex = Math.max(0, Math.min(timeline.tracks.length - 1, trackIndex));
+            trackIndex = Math.max(
+              0,
+              Math.min(timeline.tracks.length - 1, trackIndex)
+            );
 
             if (timeline.tracks[trackIndex]) {
-              onDropOnTrack(item, timeline.tracks[trackIndex].id, dropXInTimeline);
+              onDropOnTrack(
+                item,
+                timeline.tracks[trackIndex].id,
+                dropXInTimeline
+              );
             } else if (timeline.tracks.length > 0) {
-              onDropOnTrack(item, timeline.tracks[timeline.tracks.length - 1].id, dropXInTimeline);
+              onDropOnTrack(
+                item,
+                timeline.tracks[timeline.tracks.length - 1].id,
+                dropXInTimeline
+              );
             } else {
               console.warn("No tracks to drop on, or track detection failed.");
             }
@@ -115,11 +162,17 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
         >
           {/* Track backgrounds and grid lines */}
           {timeline.tracks.map((track, trackIndex) => (
-            <div key={track.id} className="relative" style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}>
+            <div
+              key={track.id}
+              className="relative"
+              style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
+            >
               {/* Track background */}
               <div
-                className={`absolute w-full border-b border-gray-600 ${
-                  trackIndex % 2 === 0 ? 'bg-gray-500' : 'bg-gray-600'
+                className={`absolute w-full border-b border-border/30 transition-colors ${
+                  trackIndex % 2 === 0
+                    ? "bg-timeline-track hover:bg-timeline-track/80"
+                    : "bg-timeline-background hover:bg-muted/20"
                 }`}
                 style={{
                   top: `0px`,
@@ -127,25 +180,30 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 }}
               />
 
-              {/* Track label - positioned at top-left with high z-index */}
+              {/* Track label */}
               <div
-                className="absolute left-2 top-1 text-xs text-gray-300 font-medium pointer-events-none select-none z-50"
-                style={{ userSelect: 'none' }}
+                className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-50"
+                style={{ userSelect: "none" }}
               >
                 Track {trackIndex + 1}
               </div>
 
               {/* Grid lines */}
-              {Array.from({ length: Math.floor(timelineWidth / PIXELS_PER_SECOND) + 1 }, (_, index) => index).map((gridIndex) => (
+              {Array.from(
+                { length: Math.floor(timelineWidth / pixelsPerSecond) + 1 },
+                (_, index) => index
+              ).map((gridIndex) => (
                 <div
                   key={`grid-${track.id}-${gridIndex}`}
-                  className="absolute h-full bg-gray-400"
+                  className="absolute h-full pointer-events-none"
                   style={{
-                    left: `${gridIndex * PIXELS_PER_SECOND}px`,
+                    left: `${gridIndex * pixelsPerSecond}px`,
                     top: `0px`,
-                    width: '1px',
+                    width: "1px",
                     height: `${DEFAULT_TRACK_HEIGHT}px`,
-                    opacity: gridIndex % 5 === 0 ? 0.6 : 0.3,
+                    backgroundColor: `rgb(var(--border) / ${
+                      gridIndex % 5 === 0 ? 0.5 : 0.25
+                    })`,
                   }}
                 />
               ))}
@@ -158,21 +216,27 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               key={scrubber.id}
               scrubber={scrubber}
               timelineWidth={timelineWidth}
-              otherScrubbers={getAllScrubbers().filter((s) => s.id !== scrubber.id)}
+              otherScrubbers={getAllScrubbers().filter(
+                (s) => s.id !== scrubber.id
+              )}
               onUpdate={onUpdateScrubber}
               containerRef={containerRef}
               expandTimeline={expandTimeline}
               snapConfig={{ enabled: true, distance: 10 }}
               trackCount={timeline.tracks.length}
+              pixelsPerSecond={pixelsPerSecond}
             />
           ))}
+
           {timeline.tracks.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-              <p>No tracks. Click "Add Track" to get started.</p>
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+              <p className="text-sm">
+                No tracks. Click "Track" to get started.
+              </p>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
-} 
+  );
+};
