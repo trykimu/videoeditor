@@ -192,16 +192,24 @@ export const useTimeline = () => {
   }, [timeline]);
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
-    // console.log(
-    //   'updatedScrubber handlescrubber',
-    //   JSON.stringify(updatedScrubber, null, 2)
-    // );
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
         scrubbers: track.scrubbers.map((scrubber) =>
           scrubber.id === updatedScrubber.id ? updatedScrubber : scrubber
+        ),
+      })),
+    }));
+  }, []);
+
+  const handleDeleteScrubber = useCallback((scrubberId: string) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.filter(
+          (scrubber) => scrubber.id !== scrubberId
         ),
       })),
     }));
@@ -300,6 +308,7 @@ export const useTimeline = () => {
     handleDeleteTrack,
     getAllScrubbers,
     handleUpdateScrubber,
+    handleDeleteScrubber,
     handleAddScrubberToTrack,
     handleDropOnTrack,
     handleZoomIn,

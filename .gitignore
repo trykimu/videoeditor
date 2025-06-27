@@ -1,11 +1,65 @@
+# OS specific
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Dependencies
 /node_modules/
-out/
-
-# React Router
-/.react-router/
-/build/
-
-# pnpm
 .pnpm-store
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# Environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+/build/
+/dist/
+/.react-router/
+out/
+*.egg-info/
+*.egg
+
+# IDE specific
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+/coverage/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.docusaurus/
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.DS_Store

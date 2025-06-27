@@ -12,11 +12,14 @@ export interface ScrubberProps {
   timelineWidth: number;
   otherScrubbers: ScrubberState[];
   onUpdate: (updatedScrubber: ScrubberState) => void;
+  onDelete?: (scrubberId: string) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
   expandTimeline: () => boolean;
   snapConfig: SnapConfig;
   trackCount: number;
   pixelsPerSecond: number;
+  isSelected?: boolean;
+  onSelect?: (scrubberId: string) => void;
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -24,11 +27,14 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   timelineWidth,
   otherScrubbers,
   onUpdate,
+  onDelete,
   containerRef,
   expandTimeline,
   snapConfig,
   trackCount,
   pixelsPerSecond,
+  isSelected = false,
+  onSelect,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -39,8 +45,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     startLeft: 0,
     startWidth: 0,
   });
+  const lastUpdateTimeRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   const MINIMUM_WIDTH = 20;
+  const UPDATE_THROTTLE = 16; // ~60fps
 
   // Get snap points (scrubber edges and grid marks)
   const getSnapPoints = useCallback(
@@ -125,6 +134,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       e.preventDefault();
       e.stopPropagation();
 
+      // Select the scrubber when clicked
+      if (onSelect) {
+        onSelect(scrubber.id);
+      }
+
       if (mode === "drag") {
         setIsDragging(true);
         dragStateRef.current.offsetX = e.clientX - scrubber.left;
@@ -136,118 +150,133 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         dragStateRef.current.startWidth = scrubber.width;
       }
     },
-    [scrubber]
+    [scrubber, onSelect]
   );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging && !isResizing) return;
 
-      if (isDragging) {
-        let newLeft = e.clientX - dragStateRef.current.offsetX;
-        const min = 0;
-        const max = timelineWidth - scrubber.width;
-        newLeft = Math.max(min, Math.min(max, newLeft));
+      // Throttle updates using requestAnimationFrame
+      const now = performance.now();
+      if (now - lastUpdateTimeRef.current < UPDATE_THROTTLE) {
+        return;
+      }
+      lastUpdateTimeRef.current = now;
 
-        // Apply snapping
-        newLeft = findSnapPoint(newLeft, scrubber.id);
+      // Cancel any pending animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
 
-        // Calculate track changes based on mouse Y position
-        let newTrack = scrubber.y || 0;
-        if (containerRef.current) {
-          const containerRect = containerRef.current.getBoundingClientRect();
-          const mouseY = e.clientY - containerRect.top;
-          const trackIndex = Math.floor(mouseY / DEFAULT_TRACK_HEIGHT);
-          newTrack = Math.max(0, Math.min(trackCount - 1, trackIndex));
-        }
+      animationFrameRef.current = requestAnimationFrame(() => {
+        if (isDragging) {
+          let newLeft = e.clientX - dragStateRef.current.offsetX;
+          const min = 0;
+          const max = timelineWidth - scrubber.width;
+          newLeft = Math.max(min, Math.min(max, newLeft));
 
-        const newScrubber = { ...scrubber, left: newLeft, y: newTrack };
-
-        // Use track-aware collision detection
-        if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
-          onUpdate(newScrubber);
-        }
-
-        // Auto-scroll when dragging near edges
-        if (containerRef.current) {
-          const scrollSpeed = 10;
-          const scrollThreshold = 100;
-          const containerRect = containerRef.current.getBoundingClientRect();
-          const mouseX = e.clientX;
-
-          if (mouseX < containerRect.left + scrollThreshold) {
-            containerRef.current.scrollLeft -= scrollSpeed;
-          } else if (mouseX > containerRect.right - scrollThreshold) {
-            containerRef.current.scrollLeft += scrollSpeed;
-            expandTimeline();
-          }
-        }
-      } else if (isResizing) {
-        const deltaX = e.clientX - dragStateRef.current.startX;
-
-        if (resizeMode === "left") {
-          let newLeft = dragStateRef.current.startLeft + deltaX;
-          let newWidth = dragStateRef.current.startWidth - deltaX;
-
-          if (scrubber.width === MINIMUM_WIDTH && deltaX > 0) {
-            return;
-          }
-
-          newLeft = Math.max(0, newLeft);
-          newWidth = Math.max(MINIMUM_WIDTH, newWidth);
-
-          // Apply snapping to left edge
+          // Apply snapping
           newLeft = findSnapPoint(newLeft, scrubber.id);
-          newWidth =
-            dragStateRef.current.startLeft +
-            dragStateRef.current.startWidth -
-            newLeft;
 
-          if (newLeft === 0) {
-            newWidth =
-              dragStateRef.current.startLeft + dragStateRef.current.startWidth;
+          // Calculate track changes based on mouse Y position
+          let newTrack = scrubber.y || 0;
+          if (containerRef.current) {
+            const containerRect = containerRef.current.getBoundingClientRect();
+            const mouseY = e.clientY - containerRect.top;
+            const trackIndex = Math.floor(mouseY / DEFAULT_TRACK_HEIGHT);
+            newTrack = Math.max(0, Math.min(trackCount - 1, trackIndex));
           }
 
-          if (newLeft + newWidth > timelineWidth) {
-            newWidth = timelineWidth - newLeft;
-          }
+          const newScrubber = { ...scrubber, left: newLeft, y: newTrack };
 
-          const newScrubber = { ...scrubber, left: newLeft, width: newWidth };
-
+          // Use track-aware collision detection
           if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
             onUpdate(newScrubber);
           }
-        } else if (resizeMode === "right") {
-          let newWidth = dragStateRef.current.startWidth + deltaX;
 
-          newWidth = Math.max(MINIMUM_WIDTH, newWidth);
+          // Auto-scroll when dragging near edges
+          if (containerRef.current) {
+            const scrollSpeed = 10;
+            const scrollThreshold = 100;
+            const containerRect = containerRef.current.getBoundingClientRect();
+            const mouseX = e.clientX;
 
-          // Apply snapping to right edge
-          const rightEdge = dragStateRef.current.startLeft + newWidth;
-          const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
-          newWidth = snappedRightEdge - dragStateRef.current.startLeft;
-
-          if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
-            if (expandTimeline()) {
-              // Recalculate after expansion
-              const rightEdge =
-                dragStateRef.current.startLeft +
-                dragStateRef.current.startWidth +
-                deltaX;
-              const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
-              newWidth = snappedRightEdge - dragStateRef.current.startLeft;
-            } else {
-              newWidth = timelineWidth - dragStateRef.current.startLeft;
+            if (mouseX < containerRect.left + scrollThreshold) {
+              containerRef.current.scrollLeft -= scrollSpeed;
+            } else if (mouseX > containerRect.right - scrollThreshold) {
+              containerRef.current.scrollLeft += scrollSpeed;
+              expandTimeline();
             }
           }
+        } else if (isResizing) {
+          const deltaX = e.clientX - dragStateRef.current.startX;
 
-          const newScrubber = { ...scrubber, width: newWidth };
+          if (resizeMode === "left") {
+            let newLeft = dragStateRef.current.startLeft + deltaX;
+            let newWidth = dragStateRef.current.startWidth - deltaX;
 
-          if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
-            onUpdate(newScrubber);
+            if (scrubber.width === MINIMUM_WIDTH && deltaX > 0) {
+              return;
+            }
+
+            newLeft = Math.max(0, newLeft);
+            newWidth = Math.max(MINIMUM_WIDTH, newWidth);
+
+            // Apply snapping to left edge
+            newLeft = findSnapPoint(newLeft, scrubber.id);
+            newWidth =
+              dragStateRef.current.startLeft +
+              dragStateRef.current.startWidth -
+              newLeft;
+
+            if (newLeft === 0) {
+              newWidth =
+                dragStateRef.current.startLeft +
+                dragStateRef.current.startWidth;
+            }
+
+            if (newLeft + newWidth > timelineWidth) {
+              newWidth = timelineWidth - newLeft;
+            }
+
+            const newScrubber = { ...scrubber, left: newLeft, width: newWidth };
+
+            if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
+              onUpdate(newScrubber);
+            }
+          } else if (resizeMode === "right") {
+            let newWidth = dragStateRef.current.startWidth + deltaX;
+
+            newWidth = Math.max(MINIMUM_WIDTH, newWidth);
+
+            // Apply snapping to right edge
+            const rightEdge = dragStateRef.current.startLeft + newWidth;
+            const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
+            newWidth = snappedRightEdge - dragStateRef.current.startLeft;
+
+            if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
+              if (expandTimeline()) {
+                // Recalculate after expansion
+                const rightEdge =
+                  dragStateRef.current.startLeft +
+                  dragStateRef.current.startWidth +
+                  deltaX;
+                const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
+                newWidth = snappedRightEdge - dragStateRef.current.startLeft;
+              } else {
+                newWidth = timelineWidth - dragStateRef.current.startLeft;
+              }
+            }
+
+            const newScrubber = { ...scrubber, width: newWidth };
+
+            if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
+              onUpdate(newScrubber);
+            }
           }
         }
-      }
+      });
     },
     [
       isDragging,
@@ -268,6 +297,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     setIsDragging(false);
     setIsResizing(false);
     setResizeMode(null);
+
+    // Cancel any pending animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -277,64 +312,132 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+
+      // Cancel any pending animation frame on cleanup
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // Handle deletion with Delete/Backspace keys
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isSelected && (e.key === "Delete" || e.key === "Backspace")) {
+        // Prevent default behavior and check if we're not in an input field
+        const target = e.target as HTMLElement;
+        const isInputElement =
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.contentEditable === "true" ||
+          target.isContentEditable;
+
+        if (!isInputElement && onDelete) {
+          e.preventDefault();
+          onDelete(scrubber.id);
+        }
+      }
+    };
+
+    if (isSelected) {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isSelected, onDelete, scrubber.id]);
+
   // Professional scrubber colors based on media type
   const getScrubberColor = () => {
-    switch (scrubber.mediaType) {
-      case "video":
-        return "bg-primary border-primary/60 text-primary-foreground";
-      case "image":
-        return "bg-green-600 border-green-500 text-white";
-      case "text":
-        return "bg-purple-600 border-purple-500 text-white";
+    const baseColors = {
+      video: "bg-primary border-primary/60 text-primary-foreground",
+      image: "bg-green-600 border-green-500 text-white",
+      text: "bg-purple-600 border-purple-500 text-white",
+      default: "bg-primary border-primary/60 text-primary-foreground",
+    };
+
+    const selectedColors = {
+      video:
+        "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
+      image:
+        "bg-green-600 border-green-400 text-white ring-2 ring-green-400/50",
+      text: "bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400/50",
       default:
-        return "bg-primary border-primary/60 text-primary-foreground";
-    }
+        "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
+    };
+
+    const colorSet = isSelected ? selectedColors : baseColors;
+    return colorSet[scrubber.mediaType] || colorSet.default;
   };
 
   return (
     <div
-      className={`absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-all ${getScrubberColor()} select-none`}
+      className={`group absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-all ${getScrubberColor()} select-none`}
       style={{
         left: `${scrubber.left}px`,
         width: `${scrubber.width}px`,
         top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px`,
         height: `${DEFAULT_TRACK_HEIGHT - 4}px`,
         minWidth: "20px",
-        zIndex: isDragging ? 1000 : 10,
+        zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
       }}
       onMouseDown={(e) => handleMouseDown(e, "drag")}
     >
-      {/* Media type indicator */}
-      <div className="absolute top-0.5 left-1 text-xs font-medium opacity-80">
+      {/* Media type indicator - positioned after left resize handle */}
+      <div className="absolute top-0.5 left-3 text-xs font-medium opacity-80 pointer-events-none">
         {scrubber.mediaType === "video" && "V"}
         {scrubber.mediaType === "image" && "I"}
         {scrubber.mediaType === "text" && "T"}
       </div>
 
       {/* Media name */}
-      <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90">
+      <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90 pointer-events-none">
         {scrubber.name}
       </div>
 
-      {/* Left resize handle */}
+      {/* Left resize handle - more visible */}
       <div
-        className="absolute top-0 left-0 h-full w-1 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+        className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
         onMouseDown={(e) => handleMouseDown(e, "resize-left")}
+        title="Resize left edge"
       />
 
-      {/* Right resize handle */}
+      {/* Right resize handle - more visible */}
       <div
-        className="absolute top-0 right-0 h-full w-1 cursor-ew-resize z-10 hover:bg-white/20 transition-colors"
+        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
         onMouseDown={(e) => handleMouseDown(e, "resize-right")}
+        title="Resize right edge"
       />
 
-      {/* Track indicator tooltip when dragging */}
+      {/* Selection indicator - theme-appropriate glow effect */}
+      {isSelected && (
+        <div className="absolute -inset-0.5 rounded-sm pointer-events-none shadow-md shadow-primary/30 ring-1 ring-primary/60" />
+      )}
+
+      {/* Name and position tooltip when dragging - positioned above or below based on track */}
       {isDragging && (
-        <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md">
-          Track {(scrubber.y || 0) + 1}
+        <div
+          className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+            (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+          }`}
+        >
+          {scrubber.name} • {(scrubber.left / pixelsPerSecond).toFixed(2)}s -{" "}
+          {((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s
+        </div>
+      )}
+
+      {/* Resize tooltips when resizing - showing precise timestamps with dynamic positioning */}
+      {isResizing && (
+        <div
+          className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+            (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+          }`}
+        >
+          {resizeMode === "left"
+            ? `Start: ${(scrubber.left / pixelsPerSecond).toFixed(2)}s`
+            : `End: ${(
+                (scrubber.left + scrubber.width) /
+                pixelsPerSecond
+              ).toFixed(2)}s`}
         </div>
       )}
     </div>

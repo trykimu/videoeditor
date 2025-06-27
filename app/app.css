@@ -195,4 +195,26 @@ body {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--muted-foreground) / 0.5) rgb(var(--muted));
   }
+
+  /* Chat specific styles - ensure proper text wrapping */
+  .chat-message-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    white-space: pre-wrap;
+    max-width: 100%;
+  }
+
+  /* Prevent horizontal overflow in chat areas */
+  .chat-container * {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Ensure textarea never exceeds container width */
+  .chat-input-area textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }

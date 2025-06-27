@@ -34,3 +34,9 @@ services:
     mem_limit: 2g
     memswap_limit: 2g
     shm_size: 1g
+
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: videoeditor-fastapi

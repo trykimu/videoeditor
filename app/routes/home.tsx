@@ -10,13 +10,13 @@ import {
   Settings,
   Plus,
   Minus,
+  ChevronLeft,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 // Components
 import LeftPanel from "~/components/editor/LeftPanel";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
-import { TimelineControls } from "~/components/timeline/TimelineControls";
 import { RenderStatus } from "~/components/timeline/RenderStatus";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
@@ -41,7 +41,15 @@ import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
 import { FPS } from "~/components/timeline/types";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
+import { ChatBox } from "~/components/chat/ChatBox";
+
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
 
 export default function TimelineEditor() {
   // Refs
@@ -59,6 +67,10 @@ export default function TimelineEditor() {
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
   const [isAutoSize, setIsAutoSize] = useState<boolean>(false);
+  const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
 
   // Custom hooks
   const {
@@ -72,6 +84,7 @@ export default function TimelineEditor() {
     handleDeleteTrack,
     getAllScrubbers,
     handleUpdateScrubber,
+    handleDeleteScrubber,
     handleDropOnTrack,
     handleZoomIn,
     handleZoomOut,
@@ -376,7 +389,7 @@ export default function TimelineEditor() {
         <ResizableHandle withHandle />
 
         {/* Main Content Area */}
-        <ResizablePanel defaultSize={80}>
+        <ResizablePanel defaultSize={isChatMinimized ? 80 : 60}>
           <ResizablePanelGroup direction="vertical">
             {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
@@ -447,12 +460,31 @@ export default function TimelineEditor() {
                       <Plus className="h-3 w-3 mr-1" />
                       Track
                     </Button>
+
+                    {/* Show chat toggle when minimized */}
+                    {isChatMinimized && (
+                      <>
+                        <Separator
+                          orientation="vertical"
+                          className="h-4 mx-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsChatMinimized(false)}
+                          className="h-6 px-2 text-xs"
+                          title="Show Chat"
+                        >
+                          <ChevronLeft className="h-3 w-3 mr-1" />
+                          Chat
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* Video Preview - Proper Scaling */}
                 <div
-                  // className="flex-1 bg-gradient-to-br from-black/95 via-gray-900 to-gray-800 flex items-center justify-center p-3 bg-card border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
                   className={`flex-1 ${
                     theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
                   } flex items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
@@ -519,6 +551,16 @@ export default function TimelineEditor() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={handleAddTrackClick}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Track
+                    </Button>
+                    <Separator orientation="vertical" className="h-4 mx-1" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleLogTimelineData}
                       className="h-6 px-2 text-xs"
                     >
@@ -547,6 +589,7 @@ export default function TimelineEditor() {
                   onScroll={handleScrollCallback}
                   onDeleteTrack={handleDeleteTrack}
                   onUpdateScrubber={handleUpdateScrubber}
+                  onDeleteScrubber={handleDeleteScrubber}
                   onDropOnTrack={handleDropOnTrack}
                   getAllScrubbers={getAllScrubbers}
                   expandTimeline={expandTimelineCallback}
@@ -557,6 +600,28 @@ export default function TimelineEditor() {
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
+
+        {/* Conditionally render chat panel */}
+        {!isChatMinimized && (
+          <>
+            <ResizableHandle withHandle />
+
+            {/* Right Panel - Chat */}
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+              <div className="h-full border-l border-border">
+                <ChatBox
+                  mediaBinItems={mediaBinItems}
+                  handleDropOnTrack={handleDropOnTrack}
+                  isMinimized={false}
+                  onToggleMinimize={() => setIsChatMinimized(true)}
+                  messages={chatMessages}
+                  onMessagesChange={setChatMessages}
+                  timelineState={timeline}
+                />
+              </div>
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
 
       {/* Hidden file input */}
