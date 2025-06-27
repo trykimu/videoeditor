@@ -12,9 +12,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Separator } from "~/components/ui/separator";
-import { type MediaBinItem } from "../timeline/types";
+import { type MediaBinItem, type TimelineState } from "../timeline/types";
 import { cn } from "~/lib/utils";
+import axios from "axios";
+import { apiUrl } from "~/utils/api";
 
 // llm tools
 import { llmAddScrubberToTimeline } from "~/utils/llm-handler";
@@ -38,6 +39,7 @@ interface ChatBoxProps {
   onToggleMinimize?: () => void;
   messages: Message[];
   onMessagesChange: (messages: Message[]) => void;
+  timelineState: TimelineState;
 }
 
 export function ChatBox({
@@ -48,6 +50,7 @@ export function ChatBox({
   onToggleMinimize,
   messages,
   onMessagesChange,
+  timelineState,
 }: ChatBoxProps) {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -58,6 +61,7 @@ export function ChatBox({
   const [cursorPosition, setCursorPosition] = useState(0);
   const [textareaHeight, setTextareaHeight] = useState(36); // Starting height for proper size
   const [sendWithMedia, setSendWithMedia] = useState(false); // Track send mode
+  const [mentionedItems, setMentionedItems] = useState<MediaBinItem[]>([]); // Store actual mentioned items
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -109,6 +113,13 @@ export function ChatBox({
     textarea.style.height = newHeight + "px";
     setTextareaHeight(newHeight);
 
+    // Clean up mentioned items that are no longer in the text
+    const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
+    const currentMentions = Array.from(value.matchAll(mentionPattern)).map(match => match[1]);
+    setMentionedItems(prev => prev.filter(item => 
+      currentMentions.some(mention => mention.toLowerCase() === item.name.toLowerCase())
+    ));
+
     // Check for @ mentions
     const beforeCursor = value.slice(0, cursorPos);
     const lastAtIndex = beforeCursor.lastIndexOf("@");
@@ -143,6 +154,15 @@ export function ChatBox({
     setInputValue(newValue);
     setShowMentions(false);
 
+    // Store the actual item reference for later use
+    setMentionedItems(prev => {
+      // Avoid duplicates
+      if (!prev.find(existingItem => existingItem.id === item.id)) {
+        return [...prev, item];
+      }
+      return prev;
+    });
+
     // Focus back to input
     setTimeout(() => {
       inputRef.current?.focus();
@@ -155,11 +175,16 @@ export function ChatBox({
     if (!inputValue.trim()) return;
 
     let messageContent = inputValue.trim();
+    let itemsToSend = mentionedItems;
 
-    // If sending with all media, include all media items as mentions
+    // If sending with all media, include all media items
     if (includeAllMedia && mediaBinItems.length > 0) {
       const mediaList = mediaBinItems.map((item) => `@${item.name}`).join(" ");
       messageContent = `${messageContent} ${mediaList}`;
+      // Add all media items to the items to send
+      itemsToSend = [...mentionedItems, ...mediaBinItems.filter(item => 
+        !mentionedItems.find(mentioned => mentioned.id === item.id)
+      )];
     }
 
     const userMessage: Message = {
@@ -171,6 +196,7 @@ export function ChatBox({
 
     onMessagesChange([...messages, userMessage]);
     setInputValue("");
+    setMentionedItems([]); // Clear mentioned items after sending
     setIsTyping(true);
 
     // Reset textarea height
@@ -179,71 +205,80 @@ export function ChatBox({
       setTextareaHeight(36);
     }
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Use the stored mentioned items to get their IDs
+      const mentionedScrubberIds = itemsToSend.map(item => item.id);
+
+      // Make API call to the backend
+      const response = await axios.post(apiUrl("/ai", true), {
+        message: messageContent,
+        mentioned_scrubber_ids: mentionedScrubberIds,
+        timeline_state: timelineState,
+        mediabin_items: mediaBinItems,
+      });
+
+      const functionCallResponse = response.data;
+      let aiResponseContent = "";
+
+      // Handle the function call based on function_name
+      if (functionCallResponse.function_call) {
+        const { function_call } = functionCallResponse;
+        
+        try {
+          if (function_call.function_name === "LLMAddScrubberToTimeline") {
+            // Find the media item by ID
+            const mediaItem = mediaBinItems.find(
+              item => item.id === function_call.scrubber_id
+            );
+
+            if (!mediaItem) {
+              aiResponseContent = `❌ Error: Media item with ID "${function_call.scrubber_id}" not found in the media bin.`;
+            } else {
+              // Execute the function
+              llmAddScrubberToTimeline(
+                function_call.scrubber_id,
+                mediaBinItems,
+                function_call.track_id,
+                function_call.drop_left_px,
+                handleDropOnTrack
+              );
+
+              aiResponseContent = `✅ Successfully added "${mediaItem.name}" to ${function_call.track_id} at position ${function_call.drop_left_px}px.`;
+            }
+          } else {
+            aiResponseContent = `❌ Unknown function: ${function_call.function_name}`;
+          }
+        } catch (error) {
+          aiResponseContent = `❌ Error executing function: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`;
+        }
+      } else {
+        aiResponseContent = "I understand your request, but I couldn't determine a specific action to take. Could you please be more specific?";
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: getAIResponse(userMessage.content),
+        content: aiResponseContent,
         isUser: false,
         timestamp: new Date(),
       };
+
       onMessagesChange([...messages, userMessage, aiMessage]);
+    } catch (error) {
+      console.error("Error calling AI API:", error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: `❌ Sorry, I encountered an error while processing your request. Please try again.`,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      
+      onMessagesChange([...messages, userMessage, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 2000);
-  };
-
-  const getAIResponse = (userInput: string): string => {
-    // Parse command pattern: @<item> add to track <number> pos <number>
-    const commandPattern =
-      /@(\w+(?:\s+\w+)*)\s+add\s+to\s+track\s+(\d+)\s+pos\s+(\d+)/i;
-    const match = userInput.match(commandPattern);
-
-    if (match) {
-      const [, itemName, trackNumber, position] = match;
-
-      try {
-        // Find the media item by name
-        const mediaItem = mediaBinItems.find(
-          (item) => item.name.toLowerCase() === itemName.toLowerCase()
-        );
-
-        if (!mediaItem) {
-          return `Error: Media item "${itemName}" not found in the media bin. Please check the name and try again.`;
-        }
-
-        // Convert position to pixels (assuming some conversion factor)
-        const dropLeftPx = parseInt(position);
-        const trackId = `track-${trackNumber}`;
-
-        // Execute the function
-        llmAddScrubberToTimeline(
-          mediaItem.id,
-          mediaBinItems,
-          trackId,
-          dropLeftPx,
-          handleDropOnTrack
-        );
-
-        return `✅ Successfully added "${mediaItem.name}" to track ${trackNumber} at position ${position}px.`;
-      } catch (error) {
-        return `❌ Error: ${
-          error instanceof Error
-            ? error.message
-            : "Failed to add item to timeline"
-        }`;
-      }
     }
-
-    // Default responses for non-command messages
-    const responses = [
-      "I can help you with video editing tasks like trimming clips, adding transitions, or adjusting audio levels.",
-      "Would you like me to explain how to use any specific feature of the timeline editor?",
-      "I can assist with rendering settings, export options, or organizing your media bin.",
-      "Feel free to ask about keyboard shortcuts, timeline navigation, or composition settings.",
-      "I'm here to help make your video editing workflow more efficient!",
-      "Try using commands like '@itemname add to track 1 pos 100' to add media to the timeline.",
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -491,7 +526,6 @@ export function ChatBox({
                 }}
               >
                 <span>Send with all Media</span>
-                <span className="text-xs text-muted-foreground"></span>
               </div>
               <div
                 className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
@@ -503,7 +537,6 @@ export function ChatBox({
                 }}
               >
                 <span>Send to New Chat</span>
-                <span className="text-xs text-muted-foreground"></span>
               </div>
             </div>
           </div>

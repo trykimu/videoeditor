@@ -44,6 +44,13 @@ import { FPS } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 export default function TimelineEditor() {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +70,7 @@ export default function TimelineEditor() {
   const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
 
   // Chat state
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
 
   // Custom hooks
   const {
@@ -609,6 +616,7 @@ export default function TimelineEditor() {
                   onToggleMinimize={() => setIsChatMinimized(true)}
                   messages={chatMessages}
                   onMessagesChange={setChatMessages}
+                  timelineState={timeline}
                 />
               </div>
             </ResizablePanel>
