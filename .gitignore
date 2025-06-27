@@ -11,3 +11,4 @@ out/
 
 # backend python
 .venv/
+.env
