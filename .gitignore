@@ -8,3 +8,4 @@ out/
 
 # pnpm
 .pnpm-store
+.env
