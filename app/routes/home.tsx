@@ -136,7 +136,7 @@ export default function TimelineEditor() {
           toast.success(`Added ${file.name} to media bin`);
           e.target.value = "";
         } catch (error) {
-          toast.error("Failed to add media file");
+          toast.error(error instanceof Error ? error.message : "Unknown error");
         }
       }
     },

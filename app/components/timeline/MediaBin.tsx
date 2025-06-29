@@ -1,7 +1,8 @@
 import { useOutletContext } from "react-router";
-import { FileVideo, FileImage, Type, Clock } from "lucide-react";
+import { FileVideo, FileImage, Type, Clock, Upload } from "lucide-react";
 import { type MediaBinItem } from "./types";
 import { Badge } from "~/components/ui/badge";
+import { Progress } from "~/components/ui/progress";
 
 interface MediaBinProps {
   mediaBinItems: MediaBinItem[];
@@ -55,32 +56,65 @@ export default function MediaBin() {
         {mediaBinItems.map((item) => (
           <div
             key={item.id}
-            className="group p-2 bg-card border border-border/50 rounded-md cursor-grab hover:bg-accent/50 transition-colors"
-            draggable
+            className={`group p-2 border border-border/50 rounded-md transition-colors ${
+              item.isUploading 
+                ? "bg-accent/30 cursor-default" 
+                : "bg-card cursor-grab hover:bg-accent/50"
+            }`}
+            draggable={!item.isUploading}
             onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", JSON.stringify(item));
-              console.log("Dragging item:", item.name);
+              if (!item.isUploading) {
+                e.dataTransfer.setData("text/plain", JSON.stringify(item));
+                console.log("Dragging item:", item.name);
+              }
             }}
           >
             <div className="flex items-start gap-2">
-              <div className="flex-shrink-0 text-muted-foreground group-hover:text-foreground transition-colors">
-                {getMediaIcon(item.mediaType)}
+              <div className={`flex-shrink-0 transition-colors ${
+                item.isUploading 
+                  ? "text-muted-foreground" 
+                  : "text-muted-foreground group-hover:text-foreground"
+              }`}>
+                {item.isUploading ? (
+                  <Upload className="h-4 w-4 animate-pulse" />
+                ) : (
+                  getMediaIcon(item.mediaType)
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate group-hover:text-accent-foreground transition-colors">
-                  {item.name}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xs font-medium truncate transition-colors ${
+                    item.isUploading 
+                      ? "text-muted-foreground" 
+                      : "text-foreground group-hover:text-accent-foreground"
+                  }`}>
+                    {item.name}
+                  </p>
+                  
+                  {item.isUploading && typeof item.uploadProgress === "number" && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {item.uploadProgress}%
+                    </span>
+                  )}
+                </div>
+
+                {/* Upload Progress Bar */}
+                {item.isUploading && typeof item.uploadProgress === "number" && (
+                  <div className="mt-1 mb-1">
+                    <Progress value={item.uploadProgress} className="h-1" />
+                  </div>
+                )}
 
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge
                     variant="secondary"
                     className="text-xs px-1 py-0 h-auto"
                   >
-                    {item.mediaType}
+                    {item.isUploading ? "uploading" : item.mediaType}
                   </Badge>
 
-                  {item.mediaType === "video" && item.durationInSeconds > 0 && (
+                  {item.mediaType === "video" && item.durationInSeconds > 0 && !item.isUploading && (
                     <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
                       <Clock className="h-2.5 w-2.5" />
                       {item.durationInSeconds.toFixed(1)}s
@@ -88,7 +122,7 @@ export default function MediaBin() {
                   )}
                 </div>
 
-                {item.mediaType === "text" && item.text && (
+                {item.mediaType === "text" && item.text && !item.isUploading && (
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     "{item.text.textContent}"
                   </p>
