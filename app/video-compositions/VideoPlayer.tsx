@@ -232,7 +232,6 @@ export function VideoPlayer({
         position: "relative",
         zIndex: 1,
       }}
-      controls
       acknowledgeRemotionLicense
     />
   );
