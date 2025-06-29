@@ -1,6 +1,0 @@
-dotenv
-uvicorn
-fastapi
-fastapi-middleware-cors
-google
-pydantic
