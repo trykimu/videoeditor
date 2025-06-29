@@ -49,8 +49,8 @@ export function TimelineComposition({
     [setSelectedItem]
   );
 
-  // for this experiment it is all text that we are working with.
-  const items: React.ReactNode[] = [];
+  // Temporary array to store items with trackIndex for sorting
+  const tempItems: { content: React.ReactNode; trackIndex: number }[] = [];
 
   for (const timeline of timelineData) {
     for (const scrubber of timeline.scrubbers) {
@@ -138,21 +138,33 @@ export function TimelineComposition({
       }
 
       if (content) {
-        items.push(
-          <Sequence
-            from={Math.round(scrubber.startTime * FPS)}
-            durationInFrames={Math.round(scrubber.duration * FPS)}
-            key={scrubber.id}
-          >
-            {content}
-          </Sequence>
-        );
+        tempItems.push({
+          content: (
+            <Sequence
+              from={Math.round(scrubber.startTime * FPS)}
+              durationInFrames={Math.round(scrubber.duration * FPS)}
+              key={scrubber.id}
+            >
+              {content}
+            </Sequence>
+          ),
+          trackIndex: scrubber.trackIndex,
+        });
       }
     }
   }
 
+  // Sort by trackIndex (ascending) and push to items
+  const items: React.ReactNode[] = tempItems
+    .sort((a, b) => a.trackIndex - b.trackIndex)
+    .map(item => item.content);
+
   if (isRendering) {
-    return <AbsoluteFill>{items}</AbsoluteFill>;
+    return (
+      <AbsoluteFill style={outer}>
+        <AbsoluteFill style={layerContainer}>{items}</AbsoluteFill>
+      </AbsoluteFill>
+    );
   } else {
     return (
       <AbsoluteFill style={outer} onPointerDown={onPointerDown}>

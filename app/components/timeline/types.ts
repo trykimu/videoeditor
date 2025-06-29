@@ -55,6 +55,7 @@ export interface TimelineDataItem {
     startTime: number;
     endTime: number;
     duration: number; // TODO: this should be calculated from the start and end time, for trimming, it should be done with the trimmer. This should be refactored later.
+    trackIndex: number; // track index in the timeline
 
     // the following are the properties of the scrubber in <Player>
     left_player: number;
