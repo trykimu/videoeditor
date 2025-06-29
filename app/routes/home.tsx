@@ -136,7 +136,7 @@ export default function TimelineEditor() {
           toast.success(`Added ${file.name} to media bin`);
           e.target.value = "";
         } catch (error) {
-          toast.error("Failed to add media file");
+          toast.error(error instanceof Error ? error.message : "Unknown error");
         }
       }
     },
@@ -397,57 +397,8 @@ export default function TimelineEditor() {
             {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
               <div className="h-full flex flex-col bg-background">
-                {/* Video Preview */}
-                <div
-                  className={`flex-1 ${
-                    theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                  } flex items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
-                >
-                  <VideoPlayer
-                    timelineData={timelineData}
-                    durationInFrames={durationInFrames}
-                    ref={playerRef}
-                    compositionWidth={isAutoSize ? null : width}
-                    compositionHeight={isAutoSize ? null : height}
-                    timeline={timeline}
-                    handleUpdateScrubber={handleUpdateScrubber}
-                  />
-                </div>
-
-                {/* Bottom Control Bar - Combining Resolution Controls and Video Controls */}
-                <div className="h-8 border-t border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0 relative">
-                  {/* Left side - Track button */}
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleAddTrackClick}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Track
-                    </Button>
-                  </div>
-
-                  {/* Center - Video player controls (absolutely centered) */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
-                    <MuteButton playerRef={playerRef} />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={togglePlayback}
-                      className="h-6 w-6 p-0"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-3 w-3" />
-                      ) : (
-                        <Play className="h-3 w-3" />
-                      )}
-                    </Button>
-                    <FullscreenButton playerRef={playerRef} />
-                  </div>
-
-                  {/* Right side - Resolution controls and Chat */}
+                {/* Compact Top Bar */}
+                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Resolution:</span>
                     <div className="flex items-center gap-1">
@@ -471,7 +422,10 @@ export default function TimelineEditor() {
                         className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
                       />
                     </div>
-                    <div className="flex items-center gap-1 ml-2">
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                       <Switch
                         id="auto-size"
                         checked={isAutoSize}
@@ -488,7 +442,7 @@ export default function TimelineEditor() {
                       <>
                         <Separator
                           orientation="vertical"
-                          className="h-4 mx-2"
+                          className="h-4 mx-1"
                         />
                         <Button
                           variant="ghost"
@@ -502,6 +456,54 @@ export default function TimelineEditor() {
                         </Button>
                       </>
                     )}
+                  </div>
+                </div>
+
+                {/* Video Preview */}
+                <div
+                  className={`flex-1 ${
+                    theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
+                  } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                >
+                  <div className="flex-1 flex items-center justify-center w-full">
+                    <VideoPlayer
+                      timelineData={timelineData}
+                      durationInFrames={durationInFrames}
+                      ref={playerRef}
+                      compositionWidth={isAutoSize ? null : width}
+                      compositionHeight={isAutoSize ? null : height}
+                      timeline={timeline}
+                      handleUpdateScrubber={handleUpdateScrubber}
+                    />
+                  </div>
+
+                  {/* Custom Video Controls - Below Player */}
+                  <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                    {/* Left side controls */}
+                    <div className="flex items-center gap-1">
+                      <MuteButton playerRef={playerRef} />
+                    </div>
+
+                    {/* Center play/pause button */}
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={togglePlayback}
+                        className="h-6 w-6 p-0"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Right side controls */}
+                    <div className="flex items-center gap-1">
+                      <FullscreenButton playerRef={playerRef} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -552,6 +554,16 @@ export default function TimelineEditor() {
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
+                    <Separator orientation="vertical" className="h-4 mx-1" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddTrackClick}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Track
+                    </Button>
                     <Separator orientation="vertical" className="h-4 mx-1" />
                     <Button
                       variant="ghost"

@@ -290,6 +290,10 @@ export const useTimeline = () => {
         width_player: playerWidth,
         height_player: playerHeight,
         is_dragging: false,
+
+        // upload tracking properties
+        uploadProgress: item.uploadProgress,
+        isUploading: item.isUploading,
       };
 
       handleAddScrubberToTrack(trackId, newScrubber);

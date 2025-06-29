@@ -60,26 +60,6 @@ export default function NotFound(): React.ReactElement {
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 relative overflow-hidden">
       {/* Video Editor Background Interface - Animated Opacity Waves */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Top Menu Bar - Wave 1 */}
-        <motion.div
-          className="absolute top-0 left-0 right-0 h-12 border-b-2 border-muted-foreground/30 bg-muted/20"
-          animate={{
-            opacity: [0.08, 0.12, 0.08],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <div className="flex items-center h-full px-4 gap-6">
-            <div className="w-20 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-16 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-18 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-14 h-7 bg-muted-foreground/40 rounded"></div>
-          </div>
-        </motion.div>
-
         {/* Left Panel - Media Bin - Wave 2 */}
         <motion.div
           className="absolute top-12 left-0 w-72 bottom-48 border-r-2 border-muted-foreground/30 bg-muted/15"
@@ -93,9 +73,6 @@ export default function NotFound(): React.ReactElement {
             delay: 2,
           }}
         >
-          <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
-          </div>
           <div className="p-4 space-y-3">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -106,8 +83,6 @@ export default function NotFound(): React.ReactElement {
                 ) : (
                   <Music className="w-5 h-5 text-muted-foreground/60" />
                 )}
-                <div className="w-24 h-4 bg-muted-foreground/40 rounded"></div>
-                <div className="w-12 h-3 bg-muted-foreground/30 rounded text-xs"></div>
               </div>
             ))}
           </div>
@@ -126,9 +101,6 @@ export default function NotFound(): React.ReactElement {
             delay: 4,
           }}
         >
-          <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-16 h-5 bg-muted-foreground/40 rounded"></div>
-          </div>
           <div className="p-6">
             <div className="w-full h-48 border-2 border-muted-foreground/40 rounded-lg bg-muted/20 flex items-center justify-center">
               <motion.div
@@ -195,12 +167,6 @@ export default function NotFound(): React.ReactElement {
               }}
             >
               <Video className="w-5 h-5 mr-3 text-muted-foreground/60" />
-              <div className="flex gap-2">
-                <div className="w-20 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-16 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-24 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-12 h-6 bg-blue-500/50 rounded"></div>
-              </div>
             </motion.div>
 
             {/* Audio track */}
@@ -217,11 +183,6 @@ export default function NotFound(): React.ReactElement {
               }}
             >
               <Music className="w-5 h-5 mr-3 text-muted-foreground/60" />
-              <div className="flex gap-2">
-                <div className="w-32 h-6 bg-green-500/50 rounded"></div>
-                <div className="w-20 h-6 bg-green-500/50 rounded"></div>
-                <div className="w-16 h-6 bg-green-500/50 rounded"></div>
-              </div>
             </motion.div>
 
             {/* Effects track */}
@@ -238,12 +199,6 @@ export default function NotFound(): React.ReactElement {
               }}
             >
               <Scissors className="w-5 h-5 mr-3 text-muted-foreground/60" />
-              <div className="flex gap-2">
-                <div className="w-12 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-8 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-14 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-10 h-6 bg-purple-500/50 rounded"></div>
-              </div>
             </motion.div>
           </div>
 
@@ -275,9 +230,6 @@ export default function NotFound(): React.ReactElement {
             delay: 3,
           }}
         >
-          <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
-          </div>
           <div className="p-4 grid grid-cols-6 gap-3">
             {[...Array(12)].map((_, i) => (
               <motion.div
@@ -481,7 +433,6 @@ export default function NotFound(): React.ReactElement {
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="text-sm font-semibold text-primary">Kimu</span>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
               </div>
               <div className="bg-muted/15 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[280px] sm:max-w-xs">
                 <p className="text-sm text-foreground">Hey there! 👋</p>
@@ -495,7 +446,6 @@ export default function NotFound(): React.ReactElement {
 
           {/* Second message - consecutive message */}
           <div className="flex items-start gap-3 mb-1">
-            <div className="w-8 h-8 flex-shrink-0"></div>
             <div className="flex flex-col flex-1 min-w-0 relative">
               {/* Typing indicator */}
               <motion.div
@@ -566,7 +516,6 @@ export default function NotFound(): React.ReactElement {
 
           {/* Third message - Button as message */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 flex-shrink-0"></div>
             <div className="flex flex-col flex-1 min-w-0 mt-2">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

@@ -22,6 +22,10 @@ export interface TextProperties {
 export interface MediaBinItem extends BaseScrubber {
   name: string;
   durationInSeconds: number; // For media, to calculate initial width
+  
+  // Upload tracking properties
+  uploadProgress: number | null; // 0-100, null when upload complete
+  isUploading: boolean; // True while upload is in progress
 }
 
 // state of the scrubber in the timeline
