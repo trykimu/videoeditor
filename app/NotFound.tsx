@@ -58,21 +58,41 @@ export default function NotFound(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Video Editor Background Interface - More Visible */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.08]">
-        {/* ...existing video editor background code... */}
-        {/* Top Menu Bar */}
-        <div className="absolute top-0 left-0 right-0 h-12 border-b-2 border-muted-foreground/30 bg-muted/20">
+      {/* Video Editor Background Interface - Animated Opacity Waves */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Top Menu Bar - Wave 1 */}
+        <motion.div
+          className="absolute top-0 left-0 right-0 h-12 border-b-2 border-muted-foreground/30 bg-muted/20"
+          animate={{
+            opacity: [0.08, 0.12, 0.08],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
           <div className="flex items-center h-full px-4 gap-6">
             <div className="w-20 h-7 bg-muted-foreground/40 rounded"></div>
             <div className="w-16 h-7 bg-muted-foreground/40 rounded"></div>
             <div className="w-18 h-7 bg-muted-foreground/40 rounded"></div>
             <div className="w-14 h-7 bg-muted-foreground/40 rounded"></div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Left Panel - Media Bin */}
-        <div className="absolute top-12 left-0 w-72 bottom-48 border-r-2 border-muted-foreground/30 bg-muted/15">
+        {/* Left Panel - Media Bin - Wave 2 */}
+        <motion.div
+          className="absolute top-12 left-0 w-72 bottom-48 border-r-2 border-muted-foreground/30 bg-muted/15"
+          animate={{
+            opacity: [0.06, 0.1, 0.06],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
           </div>
@@ -91,16 +111,39 @@ export default function NotFound(): React.ReactElement {
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Right Panel - Preview */}
-        <div className="absolute top-12 right-0 w-96 h-80 border-l-2 border-b-2 border-muted-foreground/30 bg-muted/15">
+        {/* Right Panel - Preview - Wave 3 */}
+        <motion.div
+          className="absolute top-12 right-0 w-96 h-80 border-l-2 border-b-2 border-muted-foreground/30 bg-muted/15"
+          animate={{
+            opacity: [0.05, 0.09, 0.05],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4,
+          }}
+        >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-16 h-5 bg-muted-foreground/40 rounded"></div>
           </div>
           <div className="p-6">
             <div className="w-full h-48 border-2 border-muted-foreground/40 rounded-lg bg-muted/20 flex items-center justify-center">
-              <Play className="w-12 h-12 text-muted-foreground/60" />
+              <motion.div
+                animate={{
+                  scale: [1, 1.05, 1],
+                  opacity: [0.6, 0.8, 0.6],
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <Play className="w-12 h-12 text-muted-foreground/60" />
+              </motion.div>
             </div>
             <div className="flex justify-center gap-4 mt-4">
               <SkipBack className="w-6 h-6 text-muted-foreground/60" />
@@ -109,10 +152,21 @@ export default function NotFound(): React.ReactElement {
               <Volume2 className="w-6 h-6 text-muted-foreground/60 ml-4" />
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Bottom Timeline */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 border-t-2 border-muted-foreground/30 bg-muted/15">
+        {/* Bottom Timeline - Wave 4 */}
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 h-48 border-t-2 border-muted-foreground/30 bg-muted/15"
+          animate={{
+            opacity: [0.07, 0.11, 0.07],
+          }}
+          transition={{
+            duration: 9,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        >
           {/* Timeline ruler */}
           <div className="h-8 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-6">
             {[...Array(15)].map((_, i) => (
@@ -128,7 +182,18 @@ export default function NotFound(): React.ReactElement {
           {/* Timeline tracks */}
           <div className="flex-1 space-y-1 p-2">
             {/* Video track */}
-            <div className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4">
+            <motion.div
+              className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4"
+              animate={{
+                opacity: [1, 0.7, 1],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.5,
+              }}
+            >
               <Video className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-20 h-6 bg-blue-500/50 rounded"></div>
@@ -136,20 +201,42 @@ export default function NotFound(): React.ReactElement {
                 <div className="w-24 h-6 bg-blue-500/50 rounded"></div>
                 <div className="w-12 h-6 bg-blue-500/50 rounded"></div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Audio track */}
-            <div className="h-10 border border-muted-foreground/30 bg-muted/10 rounded flex items-center px-4">
+            <motion.div
+              className="h-10 border border-muted-foreground/30 bg-muted/10 rounded flex items-center px-4"
+              animate={{
+                opacity: [1, 0.6, 1],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 1.5,
+              }}
+            >
               <Music className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-32 h-6 bg-green-500/50 rounded"></div>
                 <div className="w-20 h-6 bg-green-500/50 rounded"></div>
                 <div className="w-16 h-6 bg-green-500/50 rounded"></div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Effects track */}
-            <div className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4">
+            <motion.div
+              className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4"
+              animate={{
+                opacity: [1, 0.8, 1],
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 2.5,
+              }}
+            >
               <Scissors className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-12 h-6 bg-purple-500/50 rounded"></div>
@@ -157,27 +244,58 @@ export default function NotFound(): React.ReactElement {
                 <div className="w-14 h-6 bg-purple-500/50 rounded"></div>
                 <div className="w-10 h-6 bg-purple-500/50 rounded"></div>
               </div>
-            </div>
+            </motion.div>
           </div>
 
-          {/* Playhead */}
-          <div className="absolute top-8 left-40 w-1 h-32 bg-red-500/70 rounded"></div>
-        </div>
+          {/* Playhead - Animated */}
+          <motion.div
+            className="absolute top-8 left-40 w-1 h-32 bg-red-500/70 rounded"
+            animate={{
+              opacity: [0.7, 1, 0.7],
+              scaleY: [1, 1.05, 1],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </motion.div>
 
-        {/* Tools Panel */}
-        <div className="absolute top-96 right-0 w-96 h-40 border-l-2 border-t-2 border-muted-foreground/30 bg-muted/15">
+        {/* Tools Panel - Wave 5 */}
+        <motion.div
+          className="absolute top-96 right-0 w-96 h-40 border-l-2 border-t-2 border-muted-foreground/30 bg-muted/15"
+          animate={{
+            opacity: [0.04, 0.08, 0.04],
+          }}
+          transition={{
+            duration: 11,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 3,
+          }}
+        >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
           </div>
           <div className="p-4 grid grid-cols-6 gap-3">
             {[...Array(12)].map((_, i) => (
-              <div
+              <motion.div
                 key={i}
                 className="w-full h-10 border border-muted-foreground/30 rounded bg-muted/20"
-              ></div>
+                animate={{
+                  opacity: [1, 0.5, 1],
+                }}
+                transition={{
+                  duration: 7,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.3,
+                }}
+              />
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Enhanced floating elements for playful touch */}
@@ -313,7 +431,7 @@ export default function NotFound(): React.ReactElement {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <div className="relative inline-block">
-            <div className="flex items-center justify-center gap-2 sm:gap-4 text-6xl sm:text-7xl md:text-8xl font-bold text-primary/30 mb-3">
+            <div className="flex items-center justify-center gap-2 sm:gap-4 text-6xl sm:text-7xl md:text-8xl font-bold text-muted/70 mb-3">
               <span className="tracking-tight">4</span>
               <motion.div
                 animate={{
@@ -326,12 +444,12 @@ export default function NotFound(): React.ReactElement {
                   ease: "easeInOut",
                 }}
               >
-                <Clapperboard className="w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 text-primary/40 mx-1" />
+                <Clapperboard className="w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 text-muted/70 mx-1" />
               </motion.div>
               <span className="tracking-tight">4</span>
             </div>
             {/* Subtle glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl blur-3xl -z-10"></div>
+            {/* <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl blur-3xl -z-10"></div> */}
           </div>
         </motion.div>
 
@@ -369,7 +487,7 @@ export default function NotFound(): React.ReactElement {
                 <p className="text-sm text-foreground">Hey there! 👋</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   I couldn't find that page for you. It seems to have
-                  disappeared into the digital void!
+                  disappeared into the digital void...
                 </p>
               </div>
             </div>
@@ -405,9 +523,9 @@ export default function NotFound(): React.ReactElement {
                         />
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground italic">
+                    {/* <span className="text-xs text-muted-foreground italic">
                       typing...
-                    </span>
+                    </span> */}
                   </div>
                 </div>
               </motion.div>
@@ -449,7 +567,7 @@ export default function NotFound(): React.ReactElement {
           {/* Third message - Button as message */}
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 flex-shrink-0"></div>
-            <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex flex-col flex-1 min-w-0 mt-2">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{
@@ -496,8 +614,9 @@ export default function NotFound(): React.ReactElement {
               transition: "opacity 0.6s ease 1s",
             }}
           >
-            <p className="text-sm text-muted-foreground/80 font-medium">
-              🎥 Ready to bring your vision to life? Let's dive into the editor!
+            <p className="text-xs text-muted-foreground/30 font-medium">
+              Ready to bring your vision to life? <br /> Let's dive into the
+              editor!
             </p>
           </div>
         </motion.div>
