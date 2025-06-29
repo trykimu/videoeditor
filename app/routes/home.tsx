@@ -12,6 +12,9 @@ import {
   Minus,
   ChevronLeft,
 } from "lucide-react";
+
+// Custom video controls
+import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
 import { useTheme } from "next-themes";
 
 // Components
@@ -394,96 +397,7 @@ export default function TimelineEditor() {
             {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
               <div className="h-full flex flex-col bg-background">
-                {/* Compact Preview Controls */}
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={togglePlayback}
-                      className="h-6 w-6 p-0"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-3 w-3" />
-                      ) : (
-                        <Play className="h-3 w-3" />
-                      )}
-                    </Button>
-
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>Resolution:</span>
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          value={width}
-                          onChange={(e) =>
-                            handleWidthChange(Number(e.target.value))
-                          }
-                          disabled={isAutoSize}
-                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        />
-                        <span>×</span>
-                        <Input
-                          type="number"
-                          value={height}
-                          onChange={(e) =>
-                            handleHeightChange(Number(e.target.value))
-                          }
-                          disabled={isAutoSize}
-                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      <Switch
-                        id="auto-size"
-                        checked={isAutoSize}
-                        onCheckedChange={handleAutoSizeChange}
-                        className="scale-75"
-                      />
-                      <Label htmlFor="auto-size" className="text-xs">
-                        Auto
-                      </Label>
-                    </div>
-
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleAddTrackClick}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Track
-                    </Button>
-
-                    {/* Show chat toggle when minimized */}
-                    {isChatMinimized && (
-                      <>
-                        <Separator
-                          orientation="vertical"
-                          className="h-4 mx-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsChatMinimized(false)}
-                          className="h-6 px-2 text-xs"
-                          title="Show Chat"
-                        >
-                          <ChevronLeft className="h-3 w-3 mr-1" />
-                          Chat
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Video Preview - Proper Scaling */}
+                {/* Video Preview */}
                 <div
                   className={`flex-1 ${
                     theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
@@ -498,6 +412,97 @@ export default function TimelineEditor() {
                     timeline={timeline}
                     handleUpdateScrubber={handleUpdateScrubber}
                   />
+                </div>
+
+                {/* Bottom Control Bar - Combining Resolution Controls and Video Controls */}
+                <div className="h-8 border-t border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0 relative">
+                  {/* Left side - Track button */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddTrackClick}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Track
+                    </Button>
+                  </div>
+
+                  {/* Center - Video player controls (absolutely centered) */}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-1">
+                    <MuteButton playerRef={playerRef} />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={togglePlayback}
+                      className="h-6 w-6 p-0"
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-3 w-3" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                    </Button>
+                    <FullscreenButton playerRef={playerRef} />
+                  </div>
+
+                  {/* Right side - Resolution controls and Chat */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Resolution:</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={width}
+                        onChange={(e) =>
+                          handleWidthChange(Number(e.target.value))
+                        }
+                        disabled={isAutoSize}
+                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                      />
+                      <span>×</span>
+                      <Input
+                        type="number"
+                        value={height}
+                        onChange={(e) =>
+                          handleHeightChange(Number(e.target.value))
+                        }
+                        disabled={isAutoSize}
+                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      <Switch
+                        id="auto-size"
+                        checked={isAutoSize}
+                        onCheckedChange={handleAutoSizeChange}
+                        className="scale-75"
+                      />
+                      <Label htmlFor="auto-size" className="text-xs">
+                        Auto
+                      </Label>
+                    </div>
+
+                    {/* Show chat toggle when minimized */}
+                    {isChatMinimized && (
+                      <>
+                        <Separator
+                          orientation="vertical"
+                          className="h-4 mx-2"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsChatMinimized(false)}
+                          className="h-6 px-2 text-xs"
+                          title="Show Chat"
+                        >
+                          <ChevronLeft className="h-3 w-3 mr-1" />
+                          Chat
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </ResizablePanel>
@@ -547,16 +552,6 @@ export default function TimelineEditor() {
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleAddTrackClick}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Track
-                    </Button>
                     <Separator orientation="vertical" className="h-4 mx-1" />
                     <Button
                       variant="ghost"
