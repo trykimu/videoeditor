@@ -40,7 +40,7 @@ async def process_ai_message(request: Message) -> FunctionCallResponse:
     try:
         response = gemini_api.models.generate_content(
             model="gemini-2.5-flash",
-            contents=f"""You are a helpful assistant that is good at video editing. You are given a list of functions from which you should call the most appropriate one to help the user. Return the structured output. The user's message is: {request.message}
+            contents=f"""You are Kimu, a helpful assistant that is good at video editing. You are given a list of functions from which you should call the most appropriate one to help the user. Return the structured output. The user's message is: {request.message}
             The mentioned scrubber ids are: {request.mentioned_scrubber_ids}
             The timeline state is: {request.timeline_state}
             The mediabin items are: {request.mediabin_items}
