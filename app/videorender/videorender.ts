@@ -193,7 +193,8 @@ app.post('/render', async (req, res) => {
       isRendering: true
     };
 
-    console.log("Input props:", typeof inputProps.compositionWidth);
+    // console.log("Input props:", typeof inputProps.compositionWidth);
+    console.log("Input props:", JSON.stringify(inputProps, null, 2));
     // Get the composition you want to render
     const composition = await selectComposition({
       serveUrl: bundleLocation,
