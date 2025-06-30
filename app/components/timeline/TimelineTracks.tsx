@@ -29,6 +29,8 @@ interface TimelineTracksProps {
   expandTimeline: () => boolean;
   onRulerMouseDown: (e: React.MouseEvent) => void;
   pixelsPerSecond: number;
+  selectedScrubberId: string | null;
+  onSelectScrubber: (scrubberId: string | null) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -45,11 +47,10 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   expandTimeline,
   onRulerMouseDown,
   pixelsPerSecond,
+  selectedScrubberId,
+  onSelectScrubber,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
-  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(
-    null
-  );
 
   // Sync track controls with timeline scroll
   useEffect(() => {
@@ -70,7 +71,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     const handleGlobalClick = (e: MouseEvent) => {
       const timelineContainer = containerRef.current;
       if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
-        setSelectedScrubberId(null);
+        onSelectScrubber(null);
       }
     };
 
@@ -78,7 +79,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
       document.addEventListener("click", handleGlobalClick);
       return () => document.removeEventListener("click", handleGlobalClick);
     }
-  }, [selectedScrubberId, containerRef]);
+  }, [selectedScrubberId, containerRef, onSelectScrubber]);
 
   return (
     <div className="flex flex-1 min-h-0">
@@ -152,7 +153,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               onClick={(e) => {
                 // Deselect scrubber when clicking on empty timeline area
                 if (e.target === e.currentTarget) {
-                  setSelectedScrubberId(null);
+                  onSelectScrubber(null);
                 }
               }}
               onDrop={(e) => {
@@ -221,7 +222,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     onClick={(e) => {
                       // Deselect scrubber when clicking on track background
                       if (e.target === e.currentTarget) {
-                        setSelectedScrubberId(null);
+                        onSelectScrubber(null);
                       }
                     }}
                   />
@@ -268,7 +269,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                   onUpdate={onUpdateScrubber}
                   onDelete={onDeleteScrubber}
                   isSelected={selectedScrubberId === scrubber.id}
-                  onSelect={setSelectedScrubberId}
+                  onSelect={onSelectScrubber}
                   containerRef={containerRef}
                   expandTimeline={expandTimeline}
                   snapConfig={{ enabled: true, distance: 10 }}

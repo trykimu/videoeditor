@@ -40,6 +40,10 @@ export interface ScrubberState extends MediaBinItem {
   width_player: number;
   height_player: number;
   is_dragging: boolean;
+
+  // for video scrubbers (and audio in the future)
+  trimBefore: number | null; // in frames
+  trimAfter: number | null; // in frames
 }
 
 // state of the track in the timeline
@@ -66,6 +70,10 @@ export interface TimelineDataItem {
     top_player: number;
     width_player: number;
     height_player: number;
+
+    // for video scrubbers (and audio in the future)
+    trimBefore: number | null; // in frames
+    trimAfter: number | null; // in frames
   })[];
 }
 

@@ -9,6 +9,7 @@ import {
   type ScrubberState,
   type MediaBinItem,
   type TimelineDataItem,
+  FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
 
@@ -141,6 +142,10 @@ export const useTimeline = () => {
             top_player: scrubber.top_player,
             width_player: scrubber.width_player,
             height_player: scrubber.height_player,
+
+            // for video scrubbers (and audio in the future)
+            trimBefore: scrubber.trimBefore,
+            trimAfter: scrubber.trimAfter,
           }))
         ),
       },
@@ -294,12 +299,94 @@ export const useTimeline = () => {
         // upload tracking properties
         uploadProgress: item.uploadProgress,
         isUploading: item.isUploading,
+
+        // for video scrubbers (and audio in the future)
+        trimBefore: null,
+        trimAfter: null,
       };
 
       handleAddScrubberToTrack(trackId, newScrubber);
     },
     [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond]
   );
+
+  const handleSplitScrubberAtRuler = useCallback((rulerPositionPx: number, selectedScrubberId: string | null) => {
+    if (!selectedScrubberId) {
+      return 0; // No scrubber selected
+    }
+    
+    const pixelsPerSecond = getPixelsPerSecond();
+    const splitTimeInSeconds = rulerPositionPx / pixelsPerSecond;
+    
+    // Find the selected scrubber
+    const allScrubbers = timeline.tracks.flatMap(track => track.scrubbers);
+    const selectedScrubber = allScrubbers.find(scrubber => scrubber.id === selectedScrubberId);
+    
+    if (!selectedScrubber) {
+      return 0; // Selected scrubber not found
+    }
+    
+    const startTime = selectedScrubber.left / pixelsPerSecond;
+    const endTime = (selectedScrubber.left + selectedScrubber.width) / pixelsPerSecond;
+    
+    // Check if split time is within the selected scrubber (excluding edges)
+    if (splitTimeInSeconds <= startTime || splitTimeInSeconds >= endTime) {
+      return 0; // Split time is not within the selected scrubber
+    }
+
+    const scrubberDuration = endTime - startTime;
+    const splitOffsetTime = splitTimeInSeconds - startTime;
+    
+    // Calculate current trim values
+    const currentTrimBefore = selectedScrubber.trimBefore || 0;
+    const currentTrimAfter = selectedScrubber.trimAfter || 0;
+    
+    // Calculate split point in original media frames
+    const splitFrameOffset = Math.round(splitOffsetTime * FPS);
+    const splitFrameInOriginal = currentTrimBefore + splitFrameOffset;
+    
+    // Calculate the original media duration in frames
+    // If we have durationInSeconds, use it; otherwise estimate from current trim + displayed duration
+    const displayedDurationFrames = Math.round(scrubberDuration * FPS);
+    const originalDurationFrames = selectedScrubber.durationInSeconds 
+      ? Math.round(selectedScrubber.durationInSeconds * FPS)
+      : currentTrimBefore + displayedDurationFrames + currentTrimAfter;
+    
+    // Create first scrubber (from start to split point)
+    const firstScrubber: ScrubberState = {
+      ...selectedScrubber,
+      id: generateUUID(),
+      width: splitOffsetTime * pixelsPerSecond,
+      trimBefore: currentTrimBefore,
+      trimAfter: originalDurationFrames - splitFrameInOriginal,
+    };
+    
+    // Create second scrubber (from split point to end)  
+    const secondScrubber: ScrubberState = {
+      ...selectedScrubber,
+      id: generateUUID(),
+      left: selectedScrubber.left + splitOffsetTime * pixelsPerSecond,
+      width: (scrubberDuration - splitOffsetTime) * pixelsPerSecond,
+      trimBefore: splitFrameInOriginal,
+      trimAfter: currentTrimAfter,
+    };
+    
+    // Apply the replacement in a single state update
+    setTimeline(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(track => ({
+        ...track,
+        scrubbers: track.scrubbers.flatMap(scrubber => {
+          if (scrubber.id === selectedScrubberId) {
+            return [firstScrubber, secondScrubber];
+          }
+          return [scrubber];
+        })
+      }))
+    }));
+    
+    return 1; // One scrubber was split
+  }, [timeline, getPixelsPerSecond]);
 
   return {
     timeline,
@@ -315,6 +402,7 @@ export const useTimeline = () => {
     handleDeleteScrubber,
     handleAddScrubberToTrack,
     handleDropOnTrack,
+    handleSplitScrubberAtRuler,
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,

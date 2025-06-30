@@ -139,6 +139,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         onSelect(scrubber.id);
       }
 
+      // Prevent resizing for video media
+      if ((mode === "resize-left" || mode === "resize-right") && scrubber.mediaType === "video") {
+        return;
+      }
+
       if (mode === "drag") {
         setIsDragging(true);
         dragStateRef.current.offsetX = e.clientX - scrubber.left;
@@ -395,18 +400,22 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       </div>
 
       {/* Left resize handle - more visible */}
-      <div
-        className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
-        onMouseDown={(e) => handleMouseDown(e, "resize-left")}
-        title="Resize left edge"
-      />
+      {scrubber.mediaType !== "video" && (
+        <div
+          className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
+          onMouseDown={(e) => handleMouseDown(e, "resize-left")}
+          title="Resize left edge"
+        />
+      )}
 
       {/* Right resize handle - more visible */}
-      <div
-        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
-        onMouseDown={(e) => handleMouseDown(e, "resize-right")}
-        title="Resize right edge"
-      />
+      {scrubber.mediaType !== "video" && (
+        <div
+          className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
+          onMouseDown={(e) => handleMouseDown(e, "resize-right")}
+          title="Resize right edge"
+        />
+      )}
 
       {/* Selection indicator - theme-appropriate glow effect */}
       {isSelected && (
