@@ -1,5 +1,5 @@
 import { Player, type PlayerRef } from "@remotion/player";
-import { Sequence, AbsoluteFill, Img, Video } from "remotion";
+import { Sequence, AbsoluteFill, Img, Video, OffthreadVideo } from "remotion";
 import React, { useCallback, useState } from "react";
 import type {
   ScrubberState,
@@ -84,7 +84,6 @@ export function TimelineComposition({
                     fontFamily:
                       scrubber.text?.fontFamily || "Arial, sans-serif",
                     fontWeight: scrubber.text?.fontWeight || "normal",
-                    textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
                     margin: 0,
                     padding: "20px",
                   }}
@@ -126,7 +125,7 @@ export function TimelineComposition({
                 height: scrubber.height_player,
               }}
             >
-              <Video src={videoUrl!} />
+              <Video src={videoUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />
             </AbsoluteFill>
           );
           break;

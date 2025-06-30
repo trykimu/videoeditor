@@ -11,6 +11,7 @@ import {
   Plus,
   Minus,
   ChevronLeft,
+  Scissors,
 } from "lucide-react";
 
 // Custom video controls
@@ -75,6 +76,9 @@ export default function TimelineEditor() {
   // Chat state
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
 
+  // Scrubber selection state
+  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
+
   // Custom hooks
   const {
     timeline,
@@ -89,6 +93,7 @@ export default function TimelineEditor() {
     handleUpdateScrubber,
     handleDeleteScrubber,
     handleDropOnTrack,
+    handleSplitScrubberAtRuler,
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
@@ -197,6 +202,27 @@ export default function TimelineEditor() {
   const handleAddTrackClick = useCallback(() => {
     handleAddTrack();
   }, [handleAddTrack]);
+
+  const handleSplitClick = useCallback(() => {
+    if (!selectedScrubberId) {
+      toast.error("Please select a scrubber to split first!");
+      return;
+    }
+    
+    if (timelineData.length === 0 ||
+        timelineData.every((item) => item.scrubbers.length === 0)) {
+      toast.error("No scrubbers to split. Add some media first!");
+      return;
+    }
+    
+    const splitCount = handleSplitScrubberAtRuler(rulerPositionPx, selectedScrubberId);
+    if (splitCount === 0) {
+      toast.info("Cannot split: ruler is not positioned within the selected scrubber");
+    } else {
+      setSelectedScrubberId(null); // Clear selection since original scrubber is replaced
+      toast.success(`Split the selected scrubber at ruler position`);
+    }
+  }, [handleSplitScrubberAtRuler, rulerPositionPx, selectedScrubberId, timelineData]);
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef);
@@ -568,6 +594,17 @@ export default function TimelineEditor() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={handleSplitClick}
+                      className="h-6 px-2 text-xs"
+                      title="Split selected scrubber at ruler position"
+                    >
+                      <Scissors className="h-3 w-3 mr-1" />
+                      Split
+                    </Button>
+                    <Separator orientation="vertical" className="h-4 mx-1" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleLogTimelineData}
                       className="h-6 px-2 text-xs"
                     >
@@ -602,6 +639,8 @@ export default function TimelineEditor() {
                   expandTimeline={expandTimelineCallback}
                   onRulerMouseDown={handleRulerMouseDown}
                   pixelsPerSecond={getPixelsPerSecond()}
+                  selectedScrubberId={selectedScrubberId}
+                  onSelectScrubber={setSelectedScrubberId}
                 />
               </div>
             </ResizablePanel>
