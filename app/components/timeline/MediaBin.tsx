@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router";
-import { FileVideo, FileImage, Type, Clock, Upload } from "lucide-react";
+import { FileVideo, FileImage, Type, Clock, Upload, Music } from "lucide-react";
 import { type MediaBinItem } from "./types";
 import { Badge } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
@@ -34,6 +34,8 @@ export default function MediaBin() {
         return <FileImage className="h-4 w-4" />;
       case "text":
         return <Type className="h-4 w-4" />;
+      case "audio":
+        return <Music className="h-4 w-4" />;
       default:
         return <FileImage className="h-4 w-4" />;
     }

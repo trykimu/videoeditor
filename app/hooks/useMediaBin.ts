@@ -5,7 +5,7 @@ import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
 
 // Helper function to get media metadata
-const getMediaMetadata = (file: File, mediaType: "video" | "image"): Promise<{
+const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): Promise<{
   durationInSeconds?: number;
   width: number;
   height: number;
@@ -57,6 +57,27 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image"): Promise<{
       };
 
       img.src = url;
+    } else if (mediaType === "audio") {
+      const audio = document.createElement("audio");
+      audio.preload = "metadata";
+
+      audio.onloadedmetadata = () => {
+        const durationInSeconds = audio.duration;
+
+        URL.revokeObjectURL(url);
+        resolve({
+          durationInSeconds: isFinite(durationInSeconds) ? durationInSeconds : undefined,
+          width: 0, // Audio files don't have visual dimensions
+          height: 0
+        });
+      };
+
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Failed to load audio metadata"));
+      };
+
+      audio.src = url;
     }
   });
 };
@@ -67,9 +88,10 @@ export const useMediaBin = () => {
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
     const name = file.name;
-    let mediaType: "video" | "image" = "image";
+    let mediaType: "video" | "image" | "audio";
     if (file.type.startsWith("video/")) mediaType = "video";
     else if (file.type.startsWith("image/")) mediaType = "image";
+    else if (file.type.startsWith("audio/")) mediaType = "audio";
     else {
       alert("Unsupported file type. Please select a video or image.");
       return;

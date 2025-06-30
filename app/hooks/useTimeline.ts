@@ -248,7 +248,7 @@ export const useTimeline = () => {
 
       const pixelsPerSecond = getPixelsPerSecond();
       let widthPx = item.mediaType === "text" ? 80 : 150;
-      if (item.mediaType === "video" && item.durationInSeconds) {
+      if ((item.mediaType === "video" || item.mediaType === "audio") && item.durationInSeconds) {
         widthPx = item.durationInSeconds * pixelsPerSecond;
       } else if (item.mediaType === "image") {
         widthPx = 100;
