@@ -1,5 +1,5 @@
 import { Player, type PlayerRef } from "@remotion/player";
-import { Sequence, AbsoluteFill, Img, Video, OffthreadVideo } from "remotion";
+import { Sequence, AbsoluteFill, Img, Video, OffthreadVideo, Audio } from "remotion";
 import React, { useCallback, useState } from "react";
 import type {
   ScrubberState,
@@ -130,7 +130,13 @@ export function TimelineComposition({
           );
           break;
         }
-
+        case "audio": {
+          const audioUrl = isRendering
+            ? scrubber.mediaUrlRemote
+            : scrubber.mediaUrlLocal;
+          content = <Audio src={audioUrl!} />;
+          break;
+        }
         default:
           console.warn(`Unknown media type: ${scrubber.mediaType}`);
           break;
