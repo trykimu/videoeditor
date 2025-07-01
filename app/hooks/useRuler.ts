@@ -47,8 +47,15 @@ export const useRuler = (
       if (!isDraggingRuler || !containerRef.current) return;
 
       e.preventDefault();
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft;
+      
+      // Get the timeline container (the one that scrolls)
+      const timelineContainer = containerRef.current;
+      const rect = timelineContainer.getBoundingClientRect();
+      
+      // Calculate mouse position relative to the timeline, accounting for scroll
+      const scrollLeft = timelineContainer.scrollLeft || 0;
+      const mouseX = e.clientX - rect.left + scrollLeft;
+      
       handleRulerDrag(mouseX);
     },
     [isDraggingRuler, handleRulerDrag]

@@ -188,11 +188,14 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           }}
           onClick={(e) => {
             if (containerRef.current) {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickXInRuler = e.clientX - rect.left;
-              const newPositionPx =
-                clickXInRuler + (containerRef.current.scrollLeft || 0);
-              onRulerDrag(newPositionPx);
+              // e.currentTarget is the ruler content div that's already positioned with transform
+              // The click position relative to this div is already the correct timeline position
+              const rulerRect = e.currentTarget.getBoundingClientRect();
+              const clickXInRuler = e.clientX - rulerRect.left;
+              
+              // Since the ruler content is already transformed to account for scroll,
+              // clickXInRuler is already the correct absolute position in the timeline
+              onRulerDrag(clickXInRuler);
             }
           }}
         >

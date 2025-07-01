@@ -46,8 +46,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     startLeft: 0,
     startWidth: 0,
   });
-  const lastUpdateTimeRef = useRef(0);
-  const animationFrameRef = useRef<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     x: number;
@@ -55,7 +53,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   }>({ visible: false, x: 0, y: 0 });
 
   const MINIMUM_WIDTH = 20;
-  const UPDATE_THROTTLE = 16; // ~60fps
 
   // Get snap points (scrubber edges and grid marks)
   const getSnapPoints = useCallback(
@@ -168,126 +165,171 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     (e: MouseEvent) => {
       if (!isDragging && !isResizing) return;
 
-      // Throttle updates using requestAnimationFrame
-      const now = performance.now();
-      if (now - lastUpdateTimeRef.current < UPDATE_THROTTLE) {
-        return;
-      }
-      lastUpdateTimeRef.current = now;
+      // Remove throttling and requestAnimationFrame for responsive dragging
+      if (isDragging) {
+        let rawNewLeft = e.clientX - dragStateRef.current.offsetX;
+        const min = 0;
+        const max = timelineWidth - scrubber.width;
+        rawNewLeft = Math.max(min, Math.min(max, rawNewLeft));
 
-      // Cancel any pending animation frame
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+        // Calculate track changes based on mouse Y position with scroll offset
+        let newTrack = scrubber.y || 0;
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect();
+          const scrollTop = containerRef.current.scrollTop || 0;
+          const mouseY = e.clientY - containerRect.top + scrollTop;
+          const trackIndex = Math.floor(mouseY / DEFAULT_TRACK_HEIGHT);
+          newTrack = Math.max(0, Math.min(trackCount - 1, trackIndex));
+        }
 
-      animationFrameRef.current = requestAnimationFrame(() => {
-        if (isDragging) {
-          let newLeft = e.clientX - dragStateRef.current.offsetX;
-          const min = 0;
-          const max = timelineWidth - scrubber.width;
-          newLeft = Math.max(min, Math.min(max, newLeft));
+        // Smart collision handling with push-through logic
+        const rawScrubber = { ...scrubber, left: rawNewLeft, y: newTrack };
+        
+        // Find colliding scrubbers on the same track
+        const collidingScrubbers = otherScrubbers.filter(other => {
+          if (other.y !== newTrack) return false;
+          const otherStart = other.left;
+          const otherEnd = other.left + other.width;
+          const newStart = rawNewLeft;
+          const newEnd = rawNewLeft + scrubber.width;
+          return !(newEnd <= otherStart || newStart >= otherEnd);
+        });
 
-          // Apply snapping
-          newLeft = findSnapPoint(newLeft, scrubber.id);
+        if (collidingScrubbers.length === 0) {
+          // No collision - try snapping to nearby edges
+          const snappedLeft = findSnapPoint(rawNewLeft, scrubber.id);
+          const snappedScrubber = { ...scrubber, left: snappedLeft, y: newTrack };
+          
+          // Double-check snapped position doesn't cause collision
+          if (!checkCollisionWithTrack(snappedScrubber, scrubber.id)) {
+            onUpdate(snappedScrubber);
+          } else {
+            onUpdate(rawScrubber);
+          }
+        } else {
+          // Collision detected - try smart positioning
+          const collidingScrubber = collidingScrubbers[0]; // Handle first collision
+          const collidingStart = collidingScrubber.left;
+          const collidingEnd = collidingScrubber.left + collidingScrubber.width;
+          
+          // Determine which side of the colliding scrubber the mouse is closest to
+          const mouseCenter = rawNewLeft + scrubber.width / 2;
+          const collidingCenter = collidingStart + collidingScrubber.width / 2;
+          
+          let snapToLeft: number;
+          let snapToRight: number;
+          
+          if (mouseCenter < collidingCenter) {
+            // Mouse is on the left side - try snapping to left edge first
+            snapToLeft = collidingStart - scrubber.width;
+            snapToRight = collidingEnd;
+          } else {
+            // Mouse is on the right side - try snapping to right edge first
+            snapToRight = collidingEnd;
+            snapToLeft = collidingStart - scrubber.width;
+          }
+          
+          // Try the preferred side first
+          const preferredScrubber = mouseCenter < collidingCenter 
+            ? { ...scrubber, left: Math.max(0, snapToLeft), y: newTrack }
+            : { ...scrubber, left: Math.min(snapToRight, timelineWidth - scrubber.width), y: newTrack };
+            
+          if (!checkCollisionWithTrack(preferredScrubber, scrubber.id)) {
+            onUpdate(preferredScrubber);
+          } else {
+            // Try the other side
+            const alternateScrubber = mouseCenter < collidingCenter
+              ? { ...scrubber, left: Math.min(snapToRight, timelineWidth - scrubber.width), y: newTrack }
+              : { ...scrubber, left: Math.max(0, snapToLeft), y: newTrack };
+              
+            if (!checkCollisionWithTrack(alternateScrubber, scrubber.id)) {
+              onUpdate(alternateScrubber);
+            }
+            // If both sides are blocked, don't update (scrubber stops)
+          }
+        }
 
-          // Calculate track changes based on mouse Y position
-          let newTrack = scrubber.y || 0;
-          if (containerRef.current) {
-            const containerRect = containerRef.current.getBoundingClientRect();
-            const mouseY = e.clientY - containerRect.top;
-            const trackIndex = Math.floor(mouseY / DEFAULT_TRACK_HEIGHT);
-            newTrack = Math.max(0, Math.min(trackCount - 1, trackIndex));
+        // Auto-scroll when dragging near edges
+        if (containerRef.current) {
+          const scrollSpeed = 10;
+          const scrollThreshold = 100;
+          const containerRect = containerRef.current.getBoundingClientRect();
+          const mouseX = e.clientX;
+
+          if (mouseX < containerRect.left + scrollThreshold) {
+            containerRef.current.scrollLeft -= scrollSpeed;
+          } else if (mouseX > containerRect.right - scrollThreshold) {
+            containerRef.current.scrollLeft += scrollSpeed;
+            expandTimeline();
+          }
+        }
+      } else if (isResizing) {
+        const deltaX = e.clientX - dragStateRef.current.startX;
+
+        if (resizeMode === "left") {
+          let newLeft = dragStateRef.current.startLeft + deltaX;
+          let newWidth = dragStateRef.current.startWidth - deltaX;
+
+          if (scrubber.width === MINIMUM_WIDTH && deltaX > 0) {
+            return;
           }
 
-          const newScrubber = { ...scrubber, left: newLeft, y: newTrack };
+          newLeft = Math.max(0, newLeft);
+          newWidth = Math.max(MINIMUM_WIDTH, newWidth);
 
-          // Use track-aware collision detection
+          // Apply snapping to left edge
+          newLeft = findSnapPoint(newLeft, scrubber.id);
+          newWidth =
+            dragStateRef.current.startLeft +
+            dragStateRef.current.startWidth -
+            newLeft;
+
+          if (newLeft === 0) {
+            newWidth =
+              dragStateRef.current.startLeft +
+              dragStateRef.current.startWidth;
+          }
+
+          if (newLeft + newWidth > timelineWidth) {
+            newWidth = timelineWidth - newLeft;
+          }
+
+          const newScrubber = { ...scrubber, left: newLeft, width: newWidth };
+
           if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
             onUpdate(newScrubber);
           }
+        } else if (resizeMode === "right") {
+          let newWidth = dragStateRef.current.startWidth + deltaX;
 
-          // Auto-scroll when dragging near edges
-          if (containerRef.current) {
-            const scrollSpeed = 10;
-            const scrollThreshold = 100;
-            const containerRect = containerRef.current.getBoundingClientRect();
-            const mouseX = e.clientX;
+          newWidth = Math.max(MINIMUM_WIDTH, newWidth);
 
-            if (mouseX < containerRect.left + scrollThreshold) {
-              containerRef.current.scrollLeft -= scrollSpeed;
-            } else if (mouseX > containerRect.right - scrollThreshold) {
-              containerRef.current.scrollLeft += scrollSpeed;
-              expandTimeline();
+          // Apply snapping to right edge
+          const rightEdge = dragStateRef.current.startLeft + newWidth;
+          const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
+          newWidth = snappedRightEdge - dragStateRef.current.startLeft;
+
+          if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
+            if (expandTimeline()) {
+              // Recalculate after expansion
+              const rightEdge =
+                dragStateRef.current.startLeft +
+                dragStateRef.current.startWidth +
+                deltaX;
+              const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
+              newWidth = snappedRightEdge - dragStateRef.current.startLeft;
+            } else {
+              newWidth = timelineWidth - dragStateRef.current.startLeft;
             }
           }
-        } else if (isResizing) {
-          const deltaX = e.clientX - dragStateRef.current.startX;
 
-          if (resizeMode === "left") {
-            let newLeft = dragStateRef.current.startLeft + deltaX;
-            let newWidth = dragStateRef.current.startWidth - deltaX;
+          const newScrubber = { ...scrubber, width: newWidth };
 
-            if (scrubber.width === MINIMUM_WIDTH && deltaX > 0) {
-              return;
-            }
-
-            newLeft = Math.max(0, newLeft);
-            newWidth = Math.max(MINIMUM_WIDTH, newWidth);
-
-            // Apply snapping to left edge
-            newLeft = findSnapPoint(newLeft, scrubber.id);
-            newWidth =
-              dragStateRef.current.startLeft +
-              dragStateRef.current.startWidth -
-              newLeft;
-
-            if (newLeft === 0) {
-              newWidth =
-                dragStateRef.current.startLeft +
-                dragStateRef.current.startWidth;
-            }
-
-            if (newLeft + newWidth > timelineWidth) {
-              newWidth = timelineWidth - newLeft;
-            }
-
-            const newScrubber = { ...scrubber, left: newLeft, width: newWidth };
-
-            if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
-              onUpdate(newScrubber);
-            }
-          } else if (resizeMode === "right") {
-            let newWidth = dragStateRef.current.startWidth + deltaX;
-
-            newWidth = Math.max(MINIMUM_WIDTH, newWidth);
-
-            // Apply snapping to right edge
-            const rightEdge = dragStateRef.current.startLeft + newWidth;
-            const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
-            newWidth = snappedRightEdge - dragStateRef.current.startLeft;
-
-            if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
-              if (expandTimeline()) {
-                // Recalculate after expansion
-                const rightEdge =
-                  dragStateRef.current.startLeft +
-                  dragStateRef.current.startWidth +
-                  deltaX;
-                const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
-                newWidth = snappedRightEdge - dragStateRef.current.startLeft;
-              } else {
-                newWidth = timelineWidth - dragStateRef.current.startLeft;
-              }
-            }
-
-            const newScrubber = { ...scrubber, width: newWidth };
-
-            if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
-              onUpdate(newScrubber);
-            }
+          if (!checkCollisionWithTrack(newScrubber, scrubber.id)) {
+            onUpdate(newScrubber);
           }
         }
-      });
+      }
     },
     [
       isDragging,
@@ -301,6 +343,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       containerRef,
       findSnapPoint,
       trackCount,
+      otherScrubbers,
     ]
   );
 
@@ -308,12 +351,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     setIsDragging(false);
     setIsResizing(false);
     setResizeMode(null);
-
-    // Cancel any pending animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
   }, []);
 
   useEffect(() => {
@@ -323,12 +360,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
-
-      // Cancel any pending animation frame on cleanup
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
     };
   }, [handleMouseMove, handleMouseUp]);
 
