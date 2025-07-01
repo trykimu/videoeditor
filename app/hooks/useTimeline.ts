@@ -187,7 +187,6 @@ export const useTimeline = () => {
 
   const handleDeleteTrack = useCallback((trackId: string) => {
     setTimeline((prev) => ({
-      ...prev,
       tracks: prev.tracks.filter((t) => t.id !== trackId),
     }));
   }, []);

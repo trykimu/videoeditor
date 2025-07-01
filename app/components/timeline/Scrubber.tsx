@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState } from "./types";
+import { Trash2 } from "lucide-react";
 
 // something something for the css not gonna bother with it for now
 export interface SnapConfig {
@@ -47,6 +48,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   });
   const lastUpdateTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({ visible: false, x: 0, y: 0 });
 
   const MINIMUM_WIDTH = 20;
   const UPDATE_THROTTLE = 16; // ~60fps
@@ -377,82 +383,155 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     return colorSet[scrubber.mediaType] || colorSet.default;
   };
 
+  // Handle right-click context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Select the scrubber when right-clicked
+    if (onSelect) {
+      onSelect(scrubber.id);
+    }
+    
+    // Get the position relative to the viewport
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }, [onSelect, scrubber.id]);
+
+  // Close context menu when clicking outside
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (contextMenu.visible) {
+      setContextMenu({ visible: false, x: 0, y: 0 });
+    }
+  }, [contextMenu.visible]);
+
+  // Handle context menu delete action
+  const handleContextMenuDelete = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onDelete) {
+      onDelete(scrubber.id);
+    }
+    
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [onDelete, scrubber.id]);
+
+  // Add click outside listener for context menu
+  useEffect(() => {
+    if (contextMenu.visible) {
+      document.addEventListener("click", handleClickOutside);
+      document.addEventListener("contextmenu", handleClickOutside);
+      
+      return () => {
+        document.removeEventListener("click", handleClickOutside);
+        document.removeEventListener("contextmenu", handleClickOutside);
+      };
+    }
+  }, [contextMenu.visible, handleClickOutside]);
+
   return (
-    <div
-      className={`group absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-all ${getScrubberColor()} select-none`}
-      style={{
-        left: `${scrubber.left}px`,
-        width: `${scrubber.width}px`,
-        top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px`,
-        height: `${DEFAULT_TRACK_HEIGHT - 4}px`,
-        minWidth: "20px",
-        zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
-      }}
-      onMouseDown={(e) => handleMouseDown(e, "drag")}
-    >
-      {/* Media type indicator - positioned after left resize handle */}
-      <div className="absolute top-0.5 left-3 text-xs font-medium opacity-80 pointer-events-none">
-        {scrubber.mediaType === "video" && "V"}
-        {scrubber.mediaType === "image" && "I"}
-        {scrubber.mediaType === "text" && "T"}
-        {scrubber.mediaType === "audio" && "A"}
+    <>
+      <div
+        className={`group absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-all ${getScrubberColor()} select-none`}
+        style={{
+          left: `${scrubber.left}px`,
+          width: `${scrubber.width}px`,
+          top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px`,
+          height: `${DEFAULT_TRACK_HEIGHT - 4}px`,
+          minWidth: "20px",
+          zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
+        }}
+        onMouseDown={(e) => handleMouseDown(e, "drag")}
+        onContextMenu={handleContextMenu}
+      >
+        {/* Media type indicator - positioned after left resize handle */}
+        <div className="absolute top-0.5 left-3 text-xs font-medium opacity-80 pointer-events-none">
+          {scrubber.mediaType === "video" && "V"}
+          {scrubber.mediaType === "image" && "I"}
+          {scrubber.mediaType === "text" && "T"}
+          {scrubber.mediaType === "audio" && "A"}
+        </div>
+
+        {/* Media name */}
+        <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90 pointer-events-none">
+          {scrubber.name}
+        </div>
+
+        {/* Left resize handle - more visible */}
+        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
+          <div
+            className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
+            onMouseDown={(e) => handleMouseDown(e, "resize-left")}
+            title="Resize left edge"
+          />
+        )}
+
+        {/* Right resize handle - more visible */}
+        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
+          <div
+            className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
+            onMouseDown={(e) => handleMouseDown(e, "resize-right")}
+            title="Resize right edge"
+          />
+        )}
+
+        {/* Selection indicator - theme-appropriate glow effect */}
+        {isSelected && (
+          <div className="absolute -inset-0.5 rounded-sm pointer-events-none shadow-md shadow-primary/30 ring-1 ring-primary/60" />
+        )}
+
+        {/* Name and position tooltip when dragging - positioned above or below based on track */}
+        {isDragging && (
+          <div
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+            }`}
+          >
+            {scrubber.name} • {(scrubber.left / pixelsPerSecond).toFixed(2)}s -{" "}
+            {((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s
+          </div>
+        )}
+
+        {/* Resize tooltips when resizing - showing precise timestamps with dynamic positioning */}
+        {isResizing && (
+          <div
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+            }`}
+          >
+            {resizeMode === "left"
+              ? `Start: ${(scrubber.left / pixelsPerSecond).toFixed(2)}s`
+              : `End: ${(
+                  (scrubber.left + scrubber.width) /
+                  pixelsPerSecond
+                ).toFixed(2)}s`}
+          </div>
+        )}
       </div>
 
-      {/* Media name */}
-      <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90 pointer-events-none">
-        {scrubber.name}
-      </div>
-
-      {/* Left resize handle - more visible */}
-      {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
+      {/* Context Menu */}
+      {contextMenu.visible && (
         <div
-          className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
-          onMouseDown={(e) => handleMouseDown(e, "resize-left")}
-          title="Resize left edge"
-        />
-      )}
-
-      {/* Right resize handle - more visible */}
-      {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
-        <div
-          className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
-          onMouseDown={(e) => handleMouseDown(e, "resize-right")}
-          title="Resize right edge"
-        />
-      )}
-
-      {/* Selection indicator - theme-appropriate glow effect */}
-      {isSelected && (
-        <div className="absolute -inset-0.5 rounded-sm pointer-events-none shadow-md shadow-primary/30 ring-1 ring-primary/60" />
-      )}
-
-      {/* Name and position tooltip when dragging - positioned above or below based on track */}
-      {isDragging && (
-        <div
-          className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
-            (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-          }`}
+          className="fixed bg-popover text-popover-foreground border border-border rounded-md shadow-lg py-1 z-[9999]"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
         >
-          {scrubber.name} • {(scrubber.left / pixelsPerSecond).toFixed(2)}s -{" "}
-          {((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s
+          <button
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            onClick={handleContextMenuDelete}
+          >
+            <Trash2 className="h-3 w-3" />
+            Delete Scrubber
+          </button>
         </div>
       )}
-
-      {/* Resize tooltips when resizing - showing precise timestamps with dynamic positioning */}
-      {isResizing && (
-        <div
-          className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
-            (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-          }`}
-        >
-          {resizeMode === "left"
-            ? `Start: ${(scrubber.left / pixelsPerSecond).toFixed(2)}s`
-            : `End: ${(
-                (scrubber.left + scrubber.width) /
-                pixelsPerSecond
-              ).toFixed(2)}s`}
-        </div>
-      )}
-    </div>
+    </>
   );
 };
