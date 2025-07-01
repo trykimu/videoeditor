@@ -139,8 +139,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         onSelect(scrubber.id);
       }
 
-      // Prevent resizing for video media
-      if ((mode === "resize-left" || mode === "resize-right") && scrubber.mediaType === "video") {
+      // Prevent resizing for video and audio media
+      if ((mode === "resize-left" || mode === "resize-right") && (scrubber.mediaType === "video" || scrubber.mediaType === "audio")) {
         return;
       }
 
@@ -358,6 +358,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       image: "bg-green-600 border-green-500 text-white",
       text: "bg-purple-600 border-purple-500 text-white",
       default: "bg-primary border-primary/60 text-primary-foreground",
+      audio: "bg-blue-600 border-blue-400 text-white",
     };
 
     const selectedColors = {
@@ -366,6 +367,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       image:
         "bg-green-600 border-green-400 text-white ring-2 ring-green-400/50",
       text: "bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400/50",
+      audio:
+        "bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50",
       default:
         "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
     };
@@ -392,6 +395,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {scrubber.mediaType === "video" && "V"}
         {scrubber.mediaType === "image" && "I"}
         {scrubber.mediaType === "text" && "T"}
+        {scrubber.mediaType === "audio" && "A"}
       </div>
 
       {/* Media name */}
@@ -400,7 +404,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       </div>
 
       {/* Left resize handle - more visible */}
-      {scrubber.mediaType !== "video" && (
+      {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
         <div
           className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
           onMouseDown={(e) => handleMouseDown(e, "resize-left")}
@@ -409,7 +413,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       )}
 
       {/* Right resize handle - more visible */}
-      {scrubber.mediaType !== "video" && (
+      {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
         <div
           className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
           onMouseDown={(e) => handleMouseDown(e, "resize-right")}

@@ -197,15 +197,48 @@ export const useTimeline = () => {
   }, [timeline]);
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
-    setTimeline((prev) => ({
-      ...prev,
-      tracks: prev.tracks.map((track) => ({
-        ...track,
-        scrubbers: track.scrubbers.map((scrubber) =>
-          scrubber.id === updatedScrubber.id ? updatedScrubber : scrubber
-        ),
-      })),
-    }));
+    setTimeline((prev) => {
+      // Find current track index of the scrubber
+      const currentTrackIndex = prev.tracks.findIndex(track =>
+        track.scrubbers.some(scrubber => scrubber.id === updatedScrubber.id)
+      );
+
+      const newTrackIndex = updatedScrubber.y || 0;
+
+      // If track hasn't changed, just update in place
+      if (currentTrackIndex === newTrackIndex) {
+        return {
+          ...prev,
+          tracks: prev.tracks.map((track) => ({
+            ...track,
+            scrubbers: track.scrubbers.map((scrubber) =>
+              scrubber.id === updatedScrubber.id ? updatedScrubber : scrubber
+            ),
+          })),
+        };
+      }
+
+      // Track changed - remove from old track and add to new track
+      return {
+        ...prev,
+        tracks: prev.tracks.map((track, index) => {
+          if (index === currentTrackIndex) {
+            // Remove from current track
+            return {
+              ...track,
+              scrubbers: track.scrubbers.filter(scrubber => scrubber.id !== updatedScrubber.id)
+            };
+          } else if (index === newTrackIndex) {
+            // Add to new track
+            return {
+              ...track,
+              scrubbers: [...track.scrubbers, updatedScrubber]
+            };
+          }
+          return track;
+        }),
+      };
+    });
   }, []);
 
   const handleDeleteScrubber = useCallback((scrubberId: string) => {
@@ -222,6 +255,7 @@ export const useTimeline = () => {
 
   const handleAddScrubberToTrack = useCallback(
     (trackId: string, newScrubber: ScrubberState) => {
+      console.log("Adding scrubber to track", trackId, newScrubber);
       setTimeline((prev) => ({
         ...prev,
         tracks: prev.tracks.map((track) =>
@@ -264,11 +298,11 @@ export const useTimeline = () => {
       const playerWidth =
         item.mediaType === "text" && item.media_width === 0
           ? Math.max(
-              200,
-              (item.text?.textContent?.length || 10) *
-                (item.text?.fontSize || 48) *
-                0.6
-            )
+            200,
+            (item.text?.textContent?.length || 10) *
+            (item.text?.fontSize || 48) *
+            0.6
+          )
           : item.media_width;
       const playerHeight =
         item.mediaType === "text" && item.media_height === 0
@@ -314,21 +348,21 @@ export const useTimeline = () => {
     if (!selectedScrubberId) {
       return 0; // No scrubber selected
     }
-    
+
     const pixelsPerSecond = getPixelsPerSecond();
     const splitTimeInSeconds = rulerPositionPx / pixelsPerSecond;
-    
+
     // Find the selected scrubber
     const allScrubbers = timeline.tracks.flatMap(track => track.scrubbers);
     const selectedScrubber = allScrubbers.find(scrubber => scrubber.id === selectedScrubberId);
-    
+
     if (!selectedScrubber) {
       return 0; // Selected scrubber not found
     }
-    
+
     const startTime = selectedScrubber.left / pixelsPerSecond;
     const endTime = (selectedScrubber.left + selectedScrubber.width) / pixelsPerSecond;
-    
+
     // Check if split time is within the selected scrubber (excluding edges)
     if (splitTimeInSeconds <= startTime || splitTimeInSeconds >= endTime) {
       return 0; // Split time is not within the selected scrubber
@@ -336,22 +370,22 @@ export const useTimeline = () => {
 
     const scrubberDuration = endTime - startTime;
     const splitOffsetTime = splitTimeInSeconds - startTime;
-    
+
     // Calculate current trim values
     const currentTrimBefore = selectedScrubber.trimBefore || 0;
     const currentTrimAfter = selectedScrubber.trimAfter || 0;
-    
+
     // Calculate split point in original media frames
     const splitFrameOffset = Math.round(splitOffsetTime * FPS);
     const splitFrameInOriginal = currentTrimBefore + splitFrameOffset;
-    
+
     // Calculate the original media duration in frames
     // If we have durationInSeconds, use it; otherwise estimate from current trim + displayed duration
     const displayedDurationFrames = Math.round(scrubberDuration * FPS);
-    const originalDurationFrames = selectedScrubber.durationInSeconds 
+    const originalDurationFrames = selectedScrubber.durationInSeconds
       ? Math.round(selectedScrubber.durationInSeconds * FPS)
       : currentTrimBefore + displayedDurationFrames + currentTrimAfter;
-    
+
     // Create first scrubber (from start to split point)
     const firstScrubber: ScrubberState = {
       ...selectedScrubber,
@@ -360,7 +394,7 @@ export const useTimeline = () => {
       trimBefore: currentTrimBefore,
       trimAfter: originalDurationFrames - splitFrameInOriginal,
     };
-    
+
     // Create second scrubber (from split point to end)  
     const secondScrubber: ScrubberState = {
       ...selectedScrubber,
@@ -370,7 +404,7 @@ export const useTimeline = () => {
       trimBefore: splitFrameInOriginal,
       trimAfter: currentTrimAfter,
     };
-    
+
     // Apply the replacement in a single state update
     setTimeline(prev => ({
       ...prev,
@@ -384,7 +418,7 @@ export const useTimeline = () => {
         })
       }))
     }));
-    
+
     return 1; // One scrubber was split
   }, [timeline, getPixelsPerSecond]);
 
