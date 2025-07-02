@@ -357,9 +357,7 @@ export default function TimelineEditor() {
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-medium tracking-tight">VideoEditor</h1>
-          <Badge variant="secondary" className="text-xs h-5 px-2 font-mono">
-            {timeline.tracks.length}
-          </Badge>
+         
         </div>
 
         <div className="flex items-center gap-1">
