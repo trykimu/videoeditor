@@ -79,6 +79,9 @@ export default function TimelineEditor() {
   // Scrubber selection state
   const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
 
+  // video player media selection state
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+
   // Custom hooks
   const {
     timeline,
@@ -134,15 +137,30 @@ export default function TimelineEditor() {
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        try {
-          await handleAddMediaToBin(file);
-          toast.success(`Added ${file.name} to media bin`);
-          e.target.value = "";
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Unknown error");
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        const fileArray = Array.from(files);
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Process files sequentially to avoid overwhelming the system
+        for (const file of fileArray) {
+          try {
+            await handleAddMediaToBin(file);
+            successCount++;
+          } catch (error) {
+            errorCount++;
+            console.error(`Failed to add ${file.name}:`, error);
+          }
         }
+
+        if (successCount > 0 && errorCount > 0) {
+          toast.warning(`Imported ${successCount} file${successCount > 1 ? 's' : ''}, ${errorCount} failed`);
+        } else if (errorCount > 0) {
+          toast.error(`Failed to import ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+        }
+
+        e.target.value = "";
       }
     },
     [handleAddMediaToBin]
@@ -208,13 +226,13 @@ export default function TimelineEditor() {
       toast.error("Please select a scrubber to split first!");
       return;
     }
-    
+
     if (timelineData.length === 0 ||
-        timelineData.every((item) => item.scrubbers.length === 0)) {
+      timelineData.every((item) => item.scrubbers.length === 0)) {
       toast.error("No scrubbers to split. Add some media first!");
       return;
     }
-    
+
     const splitCount = handleSplitScrubberAtRuler(rulerPositionPx, selectedScrubberId);
     if (splitCount === 0) {
       toast.info("Cannot split: ruler is not positioned within the selected scrubber");
@@ -352,12 +370,17 @@ export default function TimelineEditor() {
   }, [handleZoomIn, handleZoomOut]);
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
+    <div className="h-screen flex flex-col bg-background text-foreground" onPointerDown={(e: React.PointerEvent) => {
+      if (e.button !== 0) {
+        return;
+      }
+      setSelectedItem(null);
+    }}>
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-medium tracking-tight">VideoEditor</h1>
-         
+
         </div>
 
         <div className="flex items-center gap-1">
@@ -485,11 +508,11 @@ export default function TimelineEditor() {
 
                 {/* Video Preview */}
                 <div
-                  className={`flex-1 ${
-                    theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                  } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                  className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
+                    } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
                 >
-                  <div className="flex-1 flex items-center justify-center w-full">
+                  <div
+                    className="flex-1 flex items-center justify-center w-full">
                     <VideoPlayer
                       timelineData={timelineData}
                       durationInFrames={durationInFrames}
@@ -498,6 +521,8 @@ export default function TimelineEditor() {
                       compositionHeight={isAutoSize ? null : height}
                       timeline={timeline}
                       handleUpdateScrubber={handleUpdateScrubber}
+                      selectedItem={selectedItem}
+                      setSelectedItem={setSelectedItem}
                     />
                   </div>
 
@@ -673,6 +698,7 @@ export default function TimelineEditor() {
         ref={fileInputRef}
         type="file"
         accept="video/*,image/*,audio/*"
+        multiple
         className="hidden"
         onChange={handleFileInputChange}
       />
