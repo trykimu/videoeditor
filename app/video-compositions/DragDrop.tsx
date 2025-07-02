@@ -29,7 +29,6 @@ export const ResizeHandle: React.FC<{
       backgroundColor: "white",
       border: `${borderSize}px solid rgb(59, 130, 246)`, // Use consistent blue
       borderRadius: "2px",
-      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
     };
   }, [borderSize, size]);
 
