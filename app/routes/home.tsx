@@ -134,15 +134,30 @@ export default function TimelineEditor() {
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        try {
-          await handleAddMediaToBin(file);
-          toast.success(`Added ${file.name} to media bin`);
-          e.target.value = "";
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Unknown error");
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        const fileArray = Array.from(files);
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Process files sequentially to avoid overwhelming the system
+        for (const file of fileArray) {
+          try {
+            await handleAddMediaToBin(file);
+            successCount++;
+          } catch (error) {
+            errorCount++;
+            console.error(`Failed to add ${file.name}:`, error);
+          }
         }
+        
+        if (successCount > 0 && errorCount > 0) {
+          toast.warning(`Imported ${successCount} file${successCount > 1 ? 's' : ''}, ${errorCount} failed`);
+        } else if (errorCount > 0) {
+          toast.error(`Failed to import ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+        }
+        
+        e.target.value = "";
       }
     },
     [handleAddMediaToBin]
@@ -673,6 +688,7 @@ export default function TimelineEditor() {
         ref={fileInputRef}
         type="file"
         accept="video/*,image/*,audio/*"
+        multiple
         className="hidden"
         onChange={handleFileInputChange}
       />
