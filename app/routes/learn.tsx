@@ -1,19 +1,20 @@
-import { Player } from "@remotion/player";
-import { AbsoluteFill, Video, Sequence } from "remotion";
-
+import {Thumbnail} from '@remotion/player';
+import { OffthreadVideo, Img } from 'remotion'; 
 
 export default function Learn() {
   return (
-    <Player
+    <Thumbnail
       component={() => (
-        <AbsoluteFill>
-          <Video src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
-        </AbsoluteFill>
+        <div>
+          {/* <Img src="https://archive.org/download/placeholder-image//placeholder-image.jpg" /> */}
+          <OffthreadVideo src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" />
+        </div>
       )}
-      durationInFrames={100}
+      compositionWidth={600}
+      compositionHeight={600}
+      frameToDisplay={30}
+      durationInFrames={120}
       fps={30}
-      compositionWidth={1920}
-      compositionHeight={1080}
     />
   );
-}
+};
