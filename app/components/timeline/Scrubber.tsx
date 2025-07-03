@@ -559,7 +559,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             onClick={handleContextMenuDelete}
           >
             <Trash2 className="h-3 w-3" />
-            Delete Scrubber
+            Delete
           </button>
         </div>
       )}
