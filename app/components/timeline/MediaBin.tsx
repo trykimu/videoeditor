@@ -1,7 +1,8 @@
 import { useOutletContext } from "react-router";
+import { useMemo, memo } from "react";
 import { FileVideo, FileImage, Type, Clock, Upload, Music } from "lucide-react";
 import { Thumbnail } from '@remotion/player';
-import { OffthreadVideo, Img } from 'remotion';
+import { OffthreadVideo, Img, Video } from 'remotion';
 import { type MediaBinItem } from "./types";
 import { Badge } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
@@ -18,6 +19,35 @@ interface MediaBinProps {
     fontWeight: "normal" | "bold"
   ) => void;
 }
+
+// Memoized component for video thumbnails to prevent flickering
+const VideoThumbnail = memo(({ 
+  mediaUrl, 
+  width, 
+  height 
+}: { 
+  mediaUrl: string; 
+  width: number; 
+  height: number; 
+}) => {
+  const VideoComponent = useMemo(() => {
+    return () => <Video src={mediaUrl} />;
+  }, [mediaUrl]);
+
+  return (
+    <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
+      <Thumbnail
+        component={VideoComponent}
+        compositionWidth={width}
+        compositionHeight={height}
+        frameToDisplay={30}
+        durationInFrames={1}
+        fps={30}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      />
+    </div>
+  );
+});
 
 // This is required for the data router
 export function loader() {
@@ -56,19 +86,11 @@ export default function MediaBin() {
       case "video":
         if (mediaUrl) {
           return (
-            <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
-              <Thumbnail
-                component={() => (
-                  <OffthreadVideo src={mediaUrl} />
-                )}
-                compositionWidth={item.media_width || 1920}
-                compositionHeight={item.media_height || 1080}
-                frameToDisplay={30}
-                durationInFrames={Math.max(60, item.durationInSeconds * 30)}
-                fps={30}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
+            <VideoThumbnail
+              mediaUrl={mediaUrl}
+              width={item.media_width || 1920}
+              height={item.media_height || 1080}
+            />
           );
         }
         return <FileVideo className="h-8 w-8 text-muted-foreground" />;
