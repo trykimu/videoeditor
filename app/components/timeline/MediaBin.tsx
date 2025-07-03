@@ -1,5 +1,7 @@
 import { useOutletContext } from "react-router";
 import { FileVideo, FileImage, Type, Clock, Upload, Music } from "lucide-react";
+import { Thumbnail } from '@remotion/player';
+import { OffthreadVideo, Img } from 'remotion';
 import { type MediaBinItem } from "./types";
 import { Badge } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
@@ -41,6 +43,74 @@ export default function MediaBin() {
     }
   };
 
+  const renderThumbnail = (item: MediaBinItem) => {
+    const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
+    
+    // Show icon for uploading items
+    if (item.isUploading) {
+      return <Upload className="h-8 w-8 animate-pulse text-muted-foreground" />;
+    }
+
+    // Show thumbnails for different media types
+    switch (item.mediaType) {
+      case "video":
+        if (mediaUrl) {
+          return (
+            <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
+              <Thumbnail
+                component={() => (
+                  <OffthreadVideo src={mediaUrl} />
+                )}
+                compositionWidth={item.media_width || 1920}
+                compositionHeight={item.media_height || 1080}
+                frameToDisplay={30}
+                durationInFrames={Math.max(60, item.durationInSeconds * 30)}
+                fps={30}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          );
+        }
+        return <FileVideo className="h-8 w-8 text-muted-foreground" />;
+      
+      case "image":
+        if (mediaUrl) {
+          return (
+            <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
+              <img 
+                src={mediaUrl} 
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <FileImage className="h-8 w-8 text-muted-foreground hidden" />
+            </div>
+          );
+        }
+        return <FileImage className="h-8 w-8 text-muted-foreground" />;
+      
+      case "text":
+        return (
+          <div className="w-12 h-8 rounded border border-border/50 bg-card flex items-center justify-center">
+            <Type className="h-4 w-4 text-muted-foreground" />
+          </div>
+        );
+      
+      case "audio":
+        return (
+          <div className="w-12 h-8 rounded border border-border/50 bg-card flex items-center justify-center">
+            <Music className="h-4 w-4 text-muted-foreground" />
+          </div>
+        );
+      
+      default:
+        return <FileImage className="h-8 w-8 text-muted-foreground" />;
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Compact Header */}
@@ -72,16 +142,8 @@ export default function MediaBin() {
             }}
           >
             <div className="flex items-start gap-2">
-              <div className={`flex-shrink-0 transition-colors ${
-                item.isUploading 
-                  ? "text-muted-foreground" 
-                  : "text-muted-foreground group-hover:text-foreground"
-              }`}>
-                {item.isUploading ? (
-                  <Upload className="h-4 w-4 animate-pulse" />
-                ) : (
-                  getMediaIcon(item.mediaType)
-                )}
+              <div className="flex-shrink-0">
+                {renderThumbnail(item)}
               </div>
 
               <div className="flex-1 min-w-0">
@@ -123,12 +185,6 @@ export default function MediaBin() {
                     </div>
                   )}
                 </div>
-
-                {item.mediaType === "text" && item.text && !item.isUploading && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    "{item.text.textContent}"
-                  </p>
-                )}
               </div>
             </div>
           </div>
