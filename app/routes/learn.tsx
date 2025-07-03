@@ -1,20 +1,24 @@
-import {Thumbnail} from '@remotion/player';
-import { OffthreadVideo, Img } from 'remotion'; 
+import { Player } from '@remotion/player';
+import {AbsoluteFill, Audio} from 'remotion';
+ 
+export const MyComposition = () => {
+  return (
+    <AbsoluteFill>
+      <Audio src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" />
+    </AbsoluteFill>
+  );
+};
+
 
 export default function Learn() {
   return (
-    <Thumbnail
-      component={() => (
-        <div>
-          {/* <Img src="https://archive.org/download/placeholder-image//placeholder-image.jpg" /> */}
-          <OffthreadVideo src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" />
-        </div>
-      )}
+    <Player
+      component={MyComposition}
+      durationInFrames={12000}
+      fps={30}
       compositionWidth={600}
       compositionHeight={600}
-      frameToDisplay={30}
-      durationInFrames={120}
-      fps={30}
+      controls
     />
-  );
-};
+  )
+}
