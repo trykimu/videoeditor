@@ -15,7 +15,7 @@ export const ResizeHandle: React.FC<{
   setItem: (updatedScrubber: ScrubberState) => void;
   ScrubberState: ScrubberState;
 }> = ({ type, setItem, ScrubberState }) => {
-  console.log("ResizeHandle", JSON.stringify(ScrubberState, null, 2));
+  // console.log("ResizeHandle", JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const size = Math.round(HANDLE_SIZE / scale);
   const borderSize = 1 / scale;
@@ -29,7 +29,6 @@ export const ResizeHandle: React.FC<{
       backgroundColor: "white",
       border: `${borderSize}px solid rgb(59, 130, 246)`, // Use consistent blue
       borderRadius: "2px",
-      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
     };
   }, [borderSize, size]);
 
@@ -154,7 +153,7 @@ export const SelectionOutline: React.FC<{
   selectedItem,
   isDragging,
 }) => {
-  console.log("SelectionOutline", JSON.stringify(ScrubberState, null, 2));
+  // console.log("SelectionOutline", JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const scaledBorder = Math.ceil(2 / scale);
   const newScrubberStateRef = React.useRef<ScrubberState>(ScrubberState);
@@ -170,7 +169,7 @@ export const SelectionOutline: React.FC<{
   }, []);
 
   const isSelected = ScrubberState.id === selectedItem;
-  console.log("isSelected", isSelected);
+  // console.log("isSelected", isSelected);
   const style: React.CSSProperties = useMemo(() => {
     return {
       width: ScrubberState.width_player,
@@ -205,10 +204,10 @@ export const SelectionOutline: React.FC<{
       };
 
       const onPointerUp = () => {
-        console.log(
-          "onPointerUp is called",
-          JSON.stringify(ScrubberState, null, 2)
-        );
+        // console.log(
+        //   "onPointerUp is called",
+        //   JSON.stringify(ScrubberState, null, 2)
+        // );
         changeItem({
           ...newScrubberStateRef.current,
           is_dragging: false,
@@ -232,6 +231,7 @@ export const SelectionOutline: React.FC<{
         return;
       }
 
+      console.log("onPointerDown is called", ScrubberState.id);
       setSelectedItem(ScrubberState.id);
       startDragging(e);
     },

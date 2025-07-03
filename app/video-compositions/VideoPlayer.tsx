@@ -27,6 +27,8 @@ export type VideoPlayerProps = {
   compositionHeight: number | null; // if null, the player height = max(height)
   timeline: TimelineState;
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
+  selectedItem: string | null;
+  setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 export function TimelineComposition({
@@ -38,16 +40,6 @@ export function TimelineComposition({
   handleUpdateScrubber,
 }: TimelineCompositionProps) {
   const FPS = 30; // Must match the Player fps setting
-
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button !== 0) {
-        return;
-      }
-      setSelectedItem(null);
-    },
-    [setSelectedItem]
-  );
 
   // Temporary array to store items with trackIndex for sorting
   const tempItems: { content: React.ReactNode; trackIndex: number }[] = [];
@@ -172,7 +164,7 @@ export function TimelineComposition({
     );
   } else {
     return (
-      <AbsoluteFill style={outer} onPointerDown={onPointerDown}>
+      <AbsoluteFill style={outer}>
         <AbsoluteFill style={layerContainer}>{items}</AbsoluteFill>
         <SortedOutlines
           handleUpdateScrubber={handleUpdateScrubber}
@@ -193,10 +185,9 @@ export function VideoPlayer({
   compositionHeight,
   timeline,
   handleUpdateScrubber,
+  selectedItem,
+  setSelectedItem,
 }: VideoPlayerProps) {
-  // console.log('timelineData from videoplayer', JSON.stringify(timelineData, null, 2))
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
-
   // Calculate composition width if not provided
   if (compositionWidth === null) {
     let maxWidth = 0;
