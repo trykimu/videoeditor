@@ -300,7 +300,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           <div
             className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border-2 border-background shadow-lg"
             style={{
-              left: `${rulerPositionPx - 6}px`,
+              left: `${rulerPositionPx - 5}px`,
               top: "1px",
               width: "12px",
               height: "10px",
