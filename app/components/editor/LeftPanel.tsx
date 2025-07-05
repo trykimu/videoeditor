@@ -15,12 +15,26 @@ interface LeftPanelProps {
     textAlign: "left" | "center" | "right",
     fontWeight: "normal" | "bold"
   ) => void;
+  contextMenu: {
+    x: number;
+    y: number;
+    item: MediaBinItem;
+  } | null;
+  handleContextMenu: (e: React.MouseEvent, item: MediaBinItem) => void;
+  handleDeleteFromContext: () => Promise<void>;
+  handleSplitAudioFromContext: () => Promise<void>;
+  handleCloseContextMenu: () => void;
 }
 
 export default function LeftPanel({
   mediaBinItems,
   onAddMedia,
   onAddText,
+  contextMenu,
+  handleContextMenu,
+  handleDeleteFromContext,
+  handleSplitAudioFromContext,
+  handleCloseContextMenu,
 }: LeftPanelProps) {
   const location = useLocation();
 
@@ -70,6 +84,11 @@ export default function LeftPanel({
               mediaBinItems,
               onAddMedia,
               onAddText,
+              contextMenu,
+              handleContextMenu,
+              handleDeleteFromContext,
+              handleSplitAudioFromContext,
+              handleCloseContextMenu,
             }}
           />
         </div>

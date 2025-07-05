@@ -95,6 +95,7 @@ export default function TimelineEditor() {
     getAllScrubbers,
     handleUpdateScrubber,
     handleDeleteScrubber,
+    handleDeleteScrubbersByMediaUrls,
     handleDropOnTrack,
     handleSplitScrubberAtRuler,
     handleZoomIn,
@@ -102,8 +103,16 @@ export default function TimelineEditor() {
     handleZoomReset,
   } = useTimeline();
 
-  const { mediaBinItems, handleAddMediaToBin, handleAddTextToBin } =
-    useMediaBin();
+  const { 
+    mediaBinItems, 
+    handleAddMediaToBin, 
+    handleAddTextToBin, 
+    contextMenu, 
+    handleContextMenu, 
+    handleDeleteFromContext, 
+    handleSplitAudioFromContext, 
+    handleCloseContextMenu 
+  } = useMediaBin(handleDeleteScrubbersByMediaUrls);
 
   const {
     rulerPositionPx,
@@ -432,6 +441,11 @@ export default function TimelineEditor() {
               mediaBinItems={mediaBinItems}
               onAddMedia={handleAddMediaToBin}
               onAddText={handleAddTextToBin}
+              contextMenu={contextMenu}
+              handleContextMenu={handleContextMenu}
+              handleDeleteFromContext={handleDeleteFromContext}
+              handleSplitAudioFromContext={handleSplitAudioFromContext}
+              handleCloseContextMenu={handleCloseContextMenu}
             />
           </div>
         </ResizablePanel>

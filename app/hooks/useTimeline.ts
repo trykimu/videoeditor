@@ -252,6 +252,31 @@ export const useTimeline = () => {
     }));
   }, []);
 
+  const handleDeleteScrubbersByMediaUrls = useCallback((mediaItem: MediaBinItem) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.filter(
+          (scrubber) => {
+            // Remove scrubbers that match the media URLs of the deleted item
+            const matchesLocal = mediaItem.mediaUrlLocal && 
+              scrubber.mediaUrlLocal === mediaItem.mediaUrlLocal;
+            const matchesRemote = mediaItem.mediaUrlRemote && 
+              scrubber.mediaUrlRemote === mediaItem.mediaUrlRemote;
+            
+            // For text items, also check if the text content matches
+            const matchesText = mediaItem.mediaType === "text" && 
+              scrubber.mediaType === "text" &&
+              mediaItem.text?.textContent === scrubber.text?.textContent;
+            
+            return !(matchesLocal || matchesRemote || matchesText);
+          }
+        ),
+      })),
+    }));
+  }, []);
+
   const handleAddScrubberToTrack = useCallback(
     (trackId: string, newScrubber: ScrubberState) => {
       console.log("Adding scrubber to track", trackId, newScrubber);
@@ -433,6 +458,7 @@ export const useTimeline = () => {
     getAllScrubbers,
     handleUpdateScrubber,
     handleDeleteScrubber,
+    handleDeleteScrubbersByMediaUrls,
     handleAddScrubberToTrack,
     handleDropOnTrack,
     handleSplitScrubberAtRuler,
