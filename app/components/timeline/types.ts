@@ -33,6 +33,7 @@ export interface ScrubberState extends MediaBinItem {
   left: number; // in pixels (for the scrubber in the timeline)
   y: number; // track position (0-based index)
   width: number; // width is a css property for the scrubber width
+  sourceMediaBinId: string; // ID of the media bin item this scrubber was created from
 
   // the following are the properties of the scrubber in <Player>
   left_player: number;

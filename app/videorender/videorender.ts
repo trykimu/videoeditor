@@ -30,21 +30,8 @@ app.use(cors());
 
 // Static file serving for the out/ directory
 app.use('/media', express.static(path.resolve('out'), {
-  // Enable directory browsing (optional)
   dotfiles: 'deny',
-  index: false,
-  // Set appropriate headers for media files
-  setHeaders: (res, path) => {
-    if (path.endsWith('.mp4')) {
-      res.set('Content-Type', 'video/mp4');
-    } else if (path.endsWith('.webm')) {
-      res.set('Content-Type', 'video/webm');
-    } else if (path.endsWith('.mov')) {
-      res.set('Content-Type', 'video/quicktime');
-    } else if (path.endsWith('.avi')) {
-      res.set('Content-Type', 'video/x-msvideo');
-    }
-  }
+  index: false
 }));
 
 // Configure multer for file uploads

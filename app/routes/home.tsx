@@ -95,7 +95,7 @@ export default function TimelineEditor() {
     getAllScrubbers,
     handleUpdateScrubber,
     handleDeleteScrubber,
-    handleDeleteScrubbersByMediaUrls,
+    handleDeleteScrubbersByMediaBinId,
     handleDropOnTrack,
     handleSplitScrubberAtRuler,
     handleZoomIn,
@@ -112,7 +112,7 @@ export default function TimelineEditor() {
     handleDeleteFromContext, 
     handleSplitAudioFromContext, 
     handleCloseContextMenu 
-  } = useMediaBin(handleDeleteScrubbersByMediaUrls);
+  } = useMediaBin(handleDeleteScrubbersByMediaBinId);
 
   const {
     rulerPositionPx,

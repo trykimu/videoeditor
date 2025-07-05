@@ -135,7 +135,7 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): P
   });
 };
 
-export const useMediaBin = (handleDeleteScrubbersByMediaUrls: (mediaItem: MediaBinItem) => void) => {
+export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void) => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -289,8 +289,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaUrls: (mediaItem: MediaB
         // Remove from media bin state
         setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
         // Also remove any scrubbers from the timeline that use this media
-        if (handleDeleteScrubbersByMediaUrls) {
-          handleDeleteScrubbersByMediaUrls(item);
+        if (handleDeleteScrubbersByMediaBinId) {
+          handleDeleteScrubbersByMediaBinId(item.id);
         }
       } else {
         console.error('Failed to delete media:', result.error);
@@ -298,7 +298,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaUrls: (mediaItem: MediaB
     } catch (error) {
       console.error('Error deleting media:', error);
     }
-  }, [handleDeleteScrubbersByMediaUrls]);
+  }, [handleDeleteScrubbersByMediaBinId]);
 
   const handleSplitAudio = useCallback(async (videoItem: MediaBinItem) => {
     if (videoItem.mediaType !== 'video') {
@@ -332,7 +332,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaUrls: (mediaItem: MediaB
         id: generateUUID(),
         name: `${videoItem.name} (Audio)`,
         mediaType: "audio",
-        mediaUrlLocal: null, // No local URL for server-created files
+        mediaUrlLocal: videoItem.mediaUrlLocal, // Reuse the original video's blob URL
         mediaUrlRemote: cloneResult.fullUrl!, // Use the new cloned file URL
         durationInSeconds: videoItem.durationInSeconds,
         media_width: 0, // Audio doesn't have visual dimensions
