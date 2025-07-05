@@ -10,7 +10,7 @@
 <br />
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b03f51be-b7d9-4abf-a9e7-6a4d1e79d0b8" alt="React Video Editor Screenshot">
+  <img src="public/screenshot-app.png" alt="React Video Editor Screenshot">
 </p>
 <p align="center">An open-source alternative to Capcut, Canva, and RVE.</p>
 </samp>
