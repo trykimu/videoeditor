@@ -252,6 +252,18 @@ export const useTimeline = () => {
     }));
   }, []);
 
+  const handleDeleteScrubbersByMediaBinId = useCallback((mediaBinId: string) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.filter(
+          (scrubber) => scrubber.sourceMediaBinId !== mediaBinId
+        ),
+      })),
+    }));
+  }, []);
+
   const handleAddScrubberToTrack = useCallback(
     (trackId: string, newScrubber: ScrubberState) => {
       console.log("Adding scrubber to track", trackId, newScrubber);
@@ -321,6 +333,7 @@ export const useTimeline = () => {
         media_width: item.media_width,
         media_height: item.media_height,
         text: item.text,
+        sourceMediaBinId: item.id,
 
         // the following are the properties of the scrubber in <Player>
         left_player: 100, // default values TODO: maybe move it to the center of the <Player> initially
@@ -433,6 +446,7 @@ export const useTimeline = () => {
     getAllScrubbers,
     handleUpdateScrubber,
     handleDeleteScrubber,
+    handleDeleteScrubbersByMediaBinId,
     handleAddScrubberToTrack,
     handleDropOnTrack,
     handleSplitScrubberAtRuler,

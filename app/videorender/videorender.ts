@@ -30,21 +30,8 @@ app.use(cors());
 
 // Static file serving for the out/ directory
 app.use('/media', express.static(path.resolve('out'), {
-  // Enable directory browsing (optional)
   dotfiles: 'deny',
-  index: false,
-  // Set appropriate headers for media files
-  setHeaders: (res, path) => {
-    if (path.endsWith('.mp4')) {
-      res.set('Content-Type', 'video/mp4');
-    } else if (path.endsWith('.webm')) {
-      res.set('Content-Type', 'video/webm');
-    } else if (path.endsWith('.mov')) {
-      res.set('Content-Type', 'video/quicktime');
-    } else if (path.endsWith('.avi')) {
-      res.set('Content-Type', 'video/x-msvideo');
-    }
-  }
+  index: false
 }));
 
 // Configure multer for file uploads
@@ -168,6 +155,91 @@ app.post('/upload-multiple', upload.array('media', 10), (req: Request, res: Resp
   }
 });
 
+// Clone/copy media file endpoint
+app.post('/clone-media', (req: Request, res: Response): void => {
+  try {
+    const { filename, originalName, suffix } = req.body;
+    
+    if (!filename) {
+      res.status(400).json({ error: 'Filename is required' });
+      return;
+    }
+    
+    const decodedFilename = decodeURIComponent(filename);
+    const sourcePath = path.resolve('out', decodedFilename);
+    
+    // Security check - ensure source file is in the out directory
+    if (!sourcePath.startsWith(path.resolve('out'))) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+    
+    if (!fs.existsSync(sourcePath)) {
+      res.status(404).json({ error: 'Source file not found' });
+      return;
+    }
+    
+    // Generate new filename with timestamp and suffix
+    const timestamp = Date.now();
+    const sourceExtension = path.extname(decodedFilename);
+    const sourceNameWithoutExt = path.basename(decodedFilename, sourceExtension);
+    const newFilename = `${sourceNameWithoutExt}_${suffix}_${timestamp}${sourceExtension}`;
+    const destPath = path.resolve('out', newFilename);
+    
+    // Copy the file
+    fs.copyFileSync(sourcePath, destPath);
+    
+    const fileStats = fs.statSync(destPath);
+    const fileUrl = `/media/${encodeURIComponent(newFilename)}`;
+    const fullUrl = `http://localhost:${port}${fileUrl}`;
+    
+    console.log(`📋 File cloned: ${decodedFilename} -> ${newFilename}`);
+    
+    res.json({
+      success: true,
+      filename: newFilename,
+      originalName: originalName || decodedFilename,
+      url: fileUrl,
+      fullUrl: fullUrl,
+      size: fileStats.size,
+      path: destPath
+    });
+  } catch (error) {
+    console.error('Clone error:', error);
+    res.status(500).json({ error: 'Failed to clone file' });
+  }
+});
+
+// Delete file endpoint
+app.delete('/media/:filename', (req: Request, res: Response): void => {
+  try {
+    const filename = decodeURIComponent(req.params.filename);
+    const filePath = path.resolve('out', filename);
+    
+    // Security check - ensure file is in the out directory
+    if (!filePath.startsWith(path.resolve('out'))) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+    
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ error: 'File not found' });
+      return;
+    }
+    
+    fs.unlinkSync(filePath);
+    console.log(`🗑️ File deleted: ${filename}`);
+    
+    res.json({ 
+      success: true, 
+      message: `File ${filename} deleted successfully` 
+    });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
 // Health check endpoint to monitor system resources
 app.get('/health', (req, res) => {
   const used = process.memoryUsage();
@@ -267,6 +339,8 @@ app.listen(port, () => {
   console.log(`📁 Media files: http://localhost:${port}/media/`);
   console.log(`📤 Upload file: POST http://localhost:${port}/upload`);
   console.log(`📤 Upload multiple: POST http://localhost:${port}/upload-multiple`);
+  console.log(`📋 Clone media: POST http://localhost:${port}/clone-media`);
+  console.log(`🗑️ Delete file: DELETE http://localhost:${port}/media/:filename`);
   console.log(`🖥️ Optimized for 4vCPU, 8GB RAM server:`);
   console.log(`   - Multi-threaded processing (3 cores)`);
   console.log(`   - Balanced quality/speed encoding`);

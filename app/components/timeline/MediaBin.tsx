@@ -1,6 +1,6 @@
 import { useOutletContext } from "react-router";
 import { useMemo, memo } from "react";
-import { FileVideo, FileImage, Type, Clock, Upload, Music } from "lucide-react";
+import { FileVideo, FileImage, Type, Clock, Upload, Music, Trash2, SplitSquareHorizontal } from "lucide-react";
 import { Thumbnail } from '@remotion/player';
 import { OffthreadVideo, Img, Video } from 'remotion';
 import { type MediaBinItem } from "./types";
@@ -18,6 +18,15 @@ interface MediaBinProps {
     textAlign: "left" | "center" | "right",
     fontWeight: "normal" | "bold"
   ) => void;
+  contextMenu: {
+    x: number;
+    y: number;
+    item: MediaBinItem;
+  } | null;
+  handleContextMenu: (e: React.MouseEvent, item: MediaBinItem) => void;
+  handleDeleteFromContext: () => Promise<void>;
+  handleSplitAudioFromContext: () => Promise<void>;
+  handleCloseContextMenu: () => void;
 }
 
 // Memoized component for video thumbnails to prevent flickering
@@ -55,8 +64,16 @@ export function loader() {
 }
 
 export default function MediaBin() {
-  const { mediaBinItems, onAddMedia, onAddText } =
-    useOutletContext<MediaBinProps>();
+  const { 
+    mediaBinItems, 
+    onAddMedia, 
+    onAddText, 
+    contextMenu, 
+    handleContextMenu, 
+    handleDeleteFromContext, 
+    handleSplitAudioFromContext, 
+    handleCloseContextMenu 
+  } = useOutletContext<MediaBinProps>();
 
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType) {
@@ -134,7 +151,7 @@ export default function MediaBin() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background" onClick={handleCloseContextMenu}>
       {/* Compact Header */}
       <div className="p-2 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -162,6 +179,7 @@ export default function MediaBin() {
                 console.log("Dragging item:", item.name);
               }
             }}
+            onContextMenu={(e) => handleContextMenu(e, item)}
           >
             <div className="flex items-start gap-2">
               <div className="flex-shrink-0">
@@ -222,6 +240,35 @@ export default function MediaBin() {
           </div>
         )}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-popover border border-border rounded-md shadow-lg z-50 py-1 min-w-32"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+            onClick={handleDeleteFromContext}
+          >
+            <Trash2 className="h-3 w-3" />
+            Delete Media
+          </button>
+          {contextMenu.item.mediaType === 'video' && (
+            <button
+              className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+              onClick={handleSplitAudioFromContext}
+            >
+              <SplitSquareHorizontal className="h-3 w-3" />
+              Split Audio
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
