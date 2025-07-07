@@ -43,71 +43,17 @@ export const useTimeline = () => {
     return PIXELS_PER_SECOND * zoomLevel;
   }, [zoomLevel]);
 
-  // Zoom functions that update scrubber positions and widths accordingly
+  // Zoom functions - scrubber positions remain unchanged as they represent time positions
   const handleZoomIn = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = Math.min(MAX_ZOOM, prev * 1.5);
-      const zoomRatio = newZoom / prev;
-
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
-        })),
-      }));
-
-      return newZoom;
-    });
+    setZoomLevel((prev) => Math.min(MAX_ZOOM, prev * 1.5));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = Math.max(MIN_ZOOM, prev / 1.5);
-      const zoomRatio = newZoom / prev;
-
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
-        })),
-      }));
-
-      return newZoom;
-    });
+    setZoomLevel((prev) => Math.max(MIN_ZOOM, prev / 1.5));
   }, []);
 
   const handleZoomReset = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = DEFAULT_ZOOM;
-      const zoomRatio = newZoom / prev;
-
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
-        })),
-      }));
-
-      return newZoom;
-    });
+    setZoomLevel(DEFAULT_ZOOM);
   }, []);
 
   // TODO: remove this after testing
