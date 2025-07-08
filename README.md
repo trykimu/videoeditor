@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="right">
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=en">English</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=zh-CN">简体中文</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=zh-TW">繁體中文</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=ja">日本語</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=ko">한국어</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=hi">हिन्दी</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=th">ไทย</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=fr">Français</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=de">Deutsch</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=es">Español</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=it">Itapano</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=ru">Русский</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=pt">Português</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=nl">Nederlands</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=pl">Polski</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=ar">العربية</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=fa">فارسی</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=tr">Türkçe</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=vi">Tiếng Việt</a></p>
+        <p><a href="https://openaitx.github.io/view.html?user=robinroy03&project=videoeditor&lang=id">Bahasa Indonesia</a></p>
+      </div>
+    </div>
+  </details>
+</div>
+
 <samp>
   
 <h1>Open-Source Video Editor</h1>
