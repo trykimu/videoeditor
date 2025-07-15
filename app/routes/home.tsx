@@ -55,6 +55,32 @@ interface Message {
   timestamp: Date;
 }
 
+export function ThemeToggleButton() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="h-7 w-7 p-0 hover:bg-muted"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-3.5 w-3.5" />
+      ) : (
+        <Moon className="h-3.5 w-3.5" />
+      )}
+    </Button>
+  );
+}
+
 export default function TimelineEditor() {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +104,12 @@ export default function TimelineEditor() {
 
   // Scrubber selection state
   const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
+
+
+  const [mounted, setMounted] = useState(false);
+useEffect(() => {
+  setMounted(true);
+}, []);
 
   // Custom hooks
   const {
@@ -364,18 +396,7 @@ export default function TimelineEditor() {
 
         <div className="flex items-center gap-1">
           {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="h-7 w-7 p-0 hover:bg-muted"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-3.5 w-3.5" />
-            ) : (
-              <Moon className="h-3.5 w-3.5" />
-            )}
-          </Button>
+        <ThemeToggleButton />
 
           <Separator orientation="vertical" className="h-4 mx-1" />
 
@@ -487,10 +508,14 @@ export default function TimelineEditor() {
 
                 {/* Video Preview */}
                 <div
-                  className={`flex-1 ${
-                    theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                  } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
-                >
+  className={`flex-1 ${
+    mounted
+      ? theme === "dark"
+        ? "bg-zinc-900"
+        : "bg-zinc-200/70"
+      : "" // No theme-dependent class until mounted
+  } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+>
                   <div className="flex-1 flex items-center justify-center w-full">
                     <VideoPlayer
                       timelineData={timelineData}
