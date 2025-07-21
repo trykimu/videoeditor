@@ -107,12 +107,12 @@ export default function TimelineEditor() {
     mediaBinItems, 
     handleAddMediaToBin, 
     handleAddTextToBin, 
-    contextMenu, 
-    handleContextMenu, 
-    handleDeleteFromContext, 
-    handleSplitAudioFromContext, 
-    handleCloseContextMenu 
-  } = useMediaBin(handleDeleteScrubbersByMediaBinId);
+    // contextMenu, 
+    // handleContextMenu, 
+    // handleDeleteFromContext, 
+    // handleSplitAudioFromContext, 
+    // handleCloseContextMenu 
+  } = useMediaBin(handleDeleteScrubbersByMediaBinId, handleDropOnTrack, handleAddTrack, timeline);
 
   const {
     rulerPositionPx,
@@ -436,7 +436,7 @@ export default function TimelineEditor() {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left Panel - Media Bin & Tools */}
         <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-          <div className="h-full border-r border-border">
+          {/* <div className="h-full border-r border-border">
             <LeftPanel
               mediaBinItems={mediaBinItems}
               onAddMedia={handleAddMediaToBin}
@@ -447,7 +447,7 @@ export default function TimelineEditor() {
               handleSplitAudioFromContext={handleSplitAudioFromContext}
               handleCloseContextMenu={handleCloseContextMenu}
             />
-          </div>
+          </div> */}
         </ResizablePanel>
 
         <ResizableHandle withHandle />

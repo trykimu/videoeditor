@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react"
 import axios from "axios"
-import { type MediaBinItem } from "~/components/timeline/types"
-import { generateUUID } from "~/utils/uuid"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
+import { type MediaBinItem, type TimelineState } from "~/components/timeline/types"
 import { apiUrl } from "~/utils/api"
+import { generateUUID } from "~/utils/uuid"
 
 // Delete media file from server
 export const deleteMediaFile = async (filename: string): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -135,13 +136,48 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): P
   });
 };
 
-export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void) => {
+export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void, handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void,
+  handleAddTrack: () => void,
+  timeline: TimelineState,) => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    item: MediaBinItem;
-  } | null>(null)
+  const [pendingDrops, setPendingDrops] = useState<Array<{ item: MediaBinItem, trackId: string }>>([])
+
+  // Helper function to find the first empty track or create a new one
+  const findOrCreateEmptyTrack = useCallback(() => {
+    // Find the first track that has no scrubbers
+    const emptyTrackIndex = timeline.tracks.findIndex(track => track.scrubbers.length === 0);
+
+    if (emptyTrackIndex !== -1) {
+      // Found an empty track, return its ID
+      return timeline.tracks[emptyTrackIndex].id;
+    } else {
+      // No empty tracks found, create a new one
+      handleAddTrack();
+      // Return the ID of the newly created track (it will be the last one)
+      return timeline.tracks[timeline.tracks.length]?.id || null;
+    }
+  }, [timeline.tracks, handleAddTrack]);
+
+  // Helper function to drop media on a track
+  const dropMediaOnTrack = useCallback((item: MediaBinItem, trackId: string) => {
+    handleDropOnTrack(item, trackId, 0); // Drop at position 0 (beginning of timeline)
+  }, [handleDropOnTrack]);
+
+  // Process pending drops when timeline changes
+  useEffect(() => {
+    if (pendingDrops.length > 0) {
+      // Find the first empty track
+      const emptyTrackIndex = timeline.tracks.findIndex(track => track.scrubbers.length === 0);
+      if (emptyTrackIndex !== -1) {
+        const emptyTrackId = timeline.tracks[emptyTrackIndex].id;
+        // Process all pending drops
+        pendingDrops.forEach(({ item }) => {
+          dropMediaOnTrack(item, emptyTrackId);
+        });
+        setPendingDrops([]); // Clear pending drops
+      }
+    }
+  }, [timeline.tracks, pendingDrops, dropMediaOnTrack]);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
@@ -172,24 +208,25 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         mediaUrlLocal,
         mediaUrlRemote: null, // Will be set after successful upload
         durationInSeconds: metadata.durationInSeconds ?? 0,
-        media_width: metadata.width,
-        media_height: metadata.height,
+        media_width: metadata.width > 400 ? 400 : metadata.width,
+        media_height: metadata.height > 411 ? 411 : metadata.height,
         text: null,
         isUploading: true,
         uploadProgress: 0,
       };
       setMediaBinItems(prev => [...prev, newItem]);
+      console.log("Media bin items:", newItem);
 
       const formData = new FormData();
       formData.append('media', file);
 
       console.log("Uploading file to server...");
+      const uploadToastId = toast.loading(`Importing ${name}...`, { duration: Infinity });
       const uploadResponse = await axios.post(apiUrl('/upload'), formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload progress: ${percentCompleted}%`);
-
+            toast.message(`Importing ${name}: ${percentCompleted}%`, { id: uploadToastId });
             // Update upload progress in the media bin
             setMediaBinItems(prev =>
               prev.map(item =>
@@ -206,20 +243,34 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       console.log("Upload successful:", uploadResult);
 
       // Update item with successful upload result and remove progress tracking
+      console.log("Updating media bin items");
+      const updatedItem = {
+        ...newItem,
+        mediaUrlRemote: uploadResult.fullUrl,
+        isUploading: false,
+        uploadProgress: null
+      };
+
       setMediaBinItems(prev =>
         prev.map(item =>
-          item.id === id
-            ? {
-              ...item,
-              mediaUrlRemote: uploadResult.fullUrl,
-              isUploading: false,
-              uploadProgress: null
-            }
-            : item
+          item.id === id ? updatedItem : item
         )
       );
+      console.log("Media bin items:", updatedItem);
+
+      // Find or create an empty track and drop the media
+      const targetTrackId = findOrCreateEmptyTrack();
+      if (targetTrackId) {
+        dropMediaOnTrack(updatedItem, targetTrackId);
+      } else {
+        // If no track ID returned (new track was created), add to pending drops
+        setPendingDrops(prev => [...prev, { item: updatedItem, trackId: '' }]);
+      }
+
+      toast.success(`Imported ${name} successfully!`, { id: uploadToastId });
 
     } catch (error) {
+      toast.error(`Failed to import ${name}`, { duration: 4000 });
       console.error("Error adding media to bin:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -228,7 +279,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
       throw new Error(`Failed to add media: ${errorMessage}`);
     }
-  }, []);
+  }, [timeline.tracks, handleDropOnTrack, findOrCreateEmptyTrack, dropMediaOnTrack]);
 
   const handleAddTextToBin = useCallback((
     textContent: string,
@@ -259,137 +310,35 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       uploadProgress: null,
     };
     setMediaBinItems(prev => [...prev, newItem]);
-  }, []);
 
-  const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
-    try {
-      // Extract filename from mediaUrlRemote URL
-      if (!item.mediaUrlRemote) {
-        console.error('No remote URL found for media item');
-        return;
-      }
-
-      // Parse the URL and extract filename from the path
-      const url = new URL(item.mediaUrlRemote);
-      const pathSegments = url.pathname.split('/');
-      const encodedFilename = pathSegments[pathSegments.length - 1]; // Get the last segment after /media/
-      
-      if (!encodedFilename) {
-        console.error('Could not extract filename from URL:', item.mediaUrlRemote);
-        return;
-      }
-
-      // Decode the filename
-      const filename = decodeURIComponent(encodedFilename);
-      console.log('Extracted filename:', filename);
-
-      const result = await deleteMediaFile(filename);
-      if (result.success) {
-        console.log(`Media deleted: ${item.name}`);
-        // Remove from media bin state
-        setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
-        // Also remove any scrubbers from the timeline that use this media
-        if (handleDeleteScrubbersByMediaBinId) {
-          handleDeleteScrubbersByMediaBinId(item.id);
-        }
-      } else {
-        console.error('Failed to delete media:', result.error);
-      }
-    } catch (error) {
-      console.error('Error deleting media:', error);
+    // Find or create an empty track and drop the text
+    const targetTrackId = findOrCreateEmptyTrack();
+    if (targetTrackId) {
+      dropMediaOnTrack(newItem, targetTrackId);
+    } else {
+      // If no track ID returned (new track was created), add to pending drops
+      setPendingDrops(prev => [...prev, { item: newItem, trackId: '' }]);
     }
-  }, [handleDeleteScrubbersByMediaBinId]);
+  }, [timeline.tracks, handleDropOnTrack, findOrCreateEmptyTrack, dropMediaOnTrack]);
 
-  const handleSplitAudio = useCallback(async (videoItem: MediaBinItem) => {
-    if (videoItem.mediaType !== 'video') {
-      throw new Error('Can only split audio from video files');
-    }
-
-    try {
-      // Extract filename from mediaUrlRemote URL
-      if (!videoItem.mediaUrlRemote) {
-        throw new Error('No remote URL found for video item');
-      }
-
-      // Parse the URL and extract filename from the path
-      const url = new URL(videoItem.mediaUrlRemote);
-      const pathSegments = url.pathname.split('/');
-      const encodedFilename = pathSegments[pathSegments.length - 1];
-      
-      if (!encodedFilename) {
-        throw new Error('Could not extract filename from URL');
-      }
-
-      // Clone the file on the server
-      const cloneResult = await cloneMediaFile(encodedFilename, videoItem.name, '(Audio)');
-      
-      if (!cloneResult.success) {
-        throw new Error(cloneResult.error || 'Failed to clone media file');
-      }
-
-      // Create a new audio media item with the cloned file info
-      const audioItem: MediaBinItem = {
-        id: generateUUID(),
-        name: `${videoItem.name} (Audio)`,
-        mediaType: "audio",
-        mediaUrlLocal: videoItem.mediaUrlLocal, // Reuse the original video's blob URL
-        mediaUrlRemote: cloneResult.fullUrl!, // Use the new cloned file URL
-        durationInSeconds: videoItem.durationInSeconds,
-        media_width: 0, // Audio doesn't have visual dimensions
-        media_height: 0,
-        text: null,
-        isUploading: false,
-        uploadProgress: null,
-      };
-
-      // Add the audio item to the media bin
-      setMediaBinItems(prev => [...prev, audioItem]);
-      setContextMenu(null); // Close context menu after action
-      
-      console.log(`Audio split successful: ${videoItem.name} -> ${audioItem.name}`);
-    } catch (error) {
-      console.error('Error splitting audio:', error);
-      throw error;
-    }
-  }, []);
-
-  // Handle right-click to show context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent, item: MediaBinItem) => {
-    e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      item,
-    });
-  }, []);
-
-  // Handle context menu actions
-  const handleDeleteFromContext = useCallback(async () => {
-    if (!contextMenu) return;
-    await handleDeleteMedia(contextMenu.item);
-    setContextMenu(null);
-  }, [contextMenu, handleDeleteMedia]);
-
-  const handleSplitAudioFromContext = useCallback(async () => {
-    if (!contextMenu) return;
-    await handleSplitAudio(contextMenu.item);
-  }, [contextMenu, handleSplitAudio]);
-
-  // Close context menu when clicking outside
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
+  const handleUpdateTextInBin = useCallback((id: string, textContent: string) => {
+    setMediaBinItems(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, text: { ...item.text!, textContent } } : item
+      )
+    );
   }, []);
 
   return {
     mediaBinItems,
     handleAddMediaToBin,
     handleAddTextToBin,
-    handleDeleteMedia,
-    handleSplitAudio,
-    contextMenu,
-    handleContextMenu,
-    handleDeleteFromContext,
-    handleSplitAudioFromContext,
-    handleCloseContextMenu,
+    // handleDeleteMedia,
+    // handleSplitAudio,
+    // contextMenu,
+    // handleContextMenu,
+    // handleDeleteFromContext,
+    // handleSplitAudioFromContext,
+    // handleCloseContextMenu,
   }
 } 
