@@ -49,7 +49,7 @@ export default function TextEditor() {
         textAlign,
         fontWeight
       );
-      navigate("/media-bin");
+      navigate("media-bin"); // use relative path
     }
   };
 
