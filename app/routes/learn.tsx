@@ -59,7 +59,7 @@ const MyComp = () => {
           </TransitionSeries.Sequence>
 
           <TransitionSeries.Transition
-            presentation={iris({width: 1000, height: 1000})}
+            presentation={iris({ width: 1000, height: 1000 })}
             timing={linearTiming({ durationInFrames: 10 })}
           />
 
