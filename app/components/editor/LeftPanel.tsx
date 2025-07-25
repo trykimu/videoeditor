@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 interface LeftPanelProps {
   mediaBinItems: MediaBinItem[];
-  onAddMedia: (file: File) => Promise<void>;
+  onAddMedia: (file: File) => void;
   onAddText: (
     textContent: string,
     fontSize: number,
@@ -15,14 +15,19 @@ interface LeftPanelProps {
     textAlign: "left" | "center" | "right",
     fontWeight: "normal" | "bold"
   ) => void;
+  onAddTransition: (
+    presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris" | "none",
+    timing: "spring" | "linear",
+    durationInFrames: number
+  ) => void;
   contextMenu: {
     x: number;
     y: number;
     item: MediaBinItem;
   } | null;
   handleContextMenu: (e: React.MouseEvent, item: MediaBinItem) => void;
-  handleDeleteFromContext: () => Promise<void>;
-  handleSplitAudioFromContext: () => Promise<void>;
+  handleDeleteFromContext: () => void;
+  handleSplitAudioFromContext: () => void;
   handleCloseContextMenu: () => void;
 }
 
@@ -30,6 +35,7 @@ export default function LeftPanel({
   mediaBinItems,
   onAddMedia,
   onAddText,
+  onAddTransition,
   contextMenu,
   handleContextMenu,
   handleDeleteFromContext,
@@ -42,6 +48,7 @@ export default function LeftPanel({
   const getActiveTab = () => {
     if (location.pathname.includes("/media-bin")) return "media-bin";
     if (location.pathname.includes("/text-editor")) return "text-editor";
+    if (location.pathname.includes("/transitions")) return "transitions";
     return "media-bin"; // default
   };
 
@@ -52,7 +59,7 @@ export default function LeftPanel({
       <Tabs value={activeTab} className="h-full flex flex-col">
         {/* Tab Headers */}
         <div className="border-b border-border bg-muted/30">
-          <TabsList className="grid w-full grid-cols-2 h-9 bg-transparent p-0">
+          <TabsList className="grid w-full grid-cols-3 h-9 bg-transparent p-0">
             <TabsTrigger
               value="media-bin"
               asChild
@@ -73,6 +80,16 @@ export default function LeftPanel({
                 Text
               </Link>
             </TabsTrigger>
+            <TabsTrigger
+              value="transitions"
+              asChild
+              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <Link to="/transitions" className="flex items-center gap-1.5">
+                <Type className="h-3 w-3" />
+                Transitions
+              </Link>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -84,6 +101,7 @@ export default function LeftPanel({
               mediaBinItems,
               onAddMedia,
               onAddText,
+              onAddTransition,
               contextMenu,
               handleContextMenu,
               handleDeleteFromContext,

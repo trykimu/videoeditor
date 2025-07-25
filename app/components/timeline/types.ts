@@ -21,7 +21,7 @@ export interface Transition {
   durationInFrames: number;
   leftScrubberId: string | null;  // ID of the scrubber this transition starts from. null for the first scrubber in a track
   rightScrubberId: string | null; // ID of the scrubber this transition goes to. null for the last scrubber in a track
-  trackId: string;         // Track where this transition exists
+  // trackId: string;         // Track where this transition exists
 }
 
 export interface TextProperties {
