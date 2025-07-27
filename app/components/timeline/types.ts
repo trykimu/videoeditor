@@ -16,7 +16,7 @@ export interface BaseScrubber {
 
 export interface Transition {
   id: string;
-  presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris" | "none";
+  presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris";
   timing: "spring" | "linear";
   durationInFrames: number;
   leftScrubberId: string | null;  // ID of the scrubber this transition starts from. null for the first scrubber in a track

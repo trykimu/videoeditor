@@ -20,14 +20,17 @@ export const useTimeline = () => {
       {
         id: "track-1",
         scrubbers: [],
+        transitions: [],
       },
       {
         id: "track-2",
         scrubbers: [],
+        transitions: [],
       },
       {
         id: "track-3",
         scrubbers: [],
+        transitions: [],
       },
     ],
   });
@@ -146,8 +149,19 @@ export const useTimeline = () => {
             // for video scrubbers (and audio in the future)
             trimBefore: scrubber.trimBefore,
             trimAfter: scrubber.trimAfter,
+
+            left_transition_id: scrubber.left_transition_id,
+            right_transition_id: scrubber.right_transition_id,
           }))
         ),
+        transitions: timeline.tracks.flatMap((track) => track.transitions.map((transition) => ({
+          id: transition.id,
+          presentation: transition.presentation,
+          timing: transition.timing,
+          durationInFrames: transition.durationInFrames,
+          leftScrubberId: transition.leftScrubberId,
+          rightScrubberId: transition.rightScrubberId,
+        }))),
       },
     ];
 
@@ -178,6 +192,7 @@ export const useTimeline = () => {
     const newTrack: TrackState = {
       id: generateUUID(),
       scrubbers: [],
+      transitions: [],
     };
     setTimeline((prev) => ({
       ...prev,
@@ -349,6 +364,9 @@ export const useTimeline = () => {
         // for video scrubbers (and audio in the future)
         trimBefore: null,
         trimAfter: null,
+
+        left_transition_id: null,
+        right_transition_id: null,
       };
 
       handleAddScrubberToTrack(trackId, newScrubber);
