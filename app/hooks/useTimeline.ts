@@ -9,6 +9,7 @@ import {
   type ScrubberState,
   type MediaBinItem,
   type TimelineDataItem,
+  type Transition,
   FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
@@ -120,48 +121,61 @@ export const useTimeline = () => {
 
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const pixelsPerSecond = getPixelsPerSecond();
-    const timelineData = [
-      {
-        // id: timeline.id,
-        // totalDuration: timelineWidth / pixelsPerSecond,
-        scrubbers: timeline.tracks.flatMap((track) =>
-          track.scrubbers.map((scrubber) => ({
-            id: scrubber.id,
-            mediaType: scrubber.mediaType,
-            mediaUrlLocal: scrubber.mediaUrlLocal,
-            mediaUrlRemote: scrubber.mediaUrlRemote,
-            width: scrubber.width,
-            startTime: scrubber.left / pixelsPerSecond,
-            endTime: (scrubber.left + scrubber.width) / pixelsPerSecond,
-            duration: scrubber.width / pixelsPerSecond,
-            trackId: track.id,
-            trackIndex: scrubber.y || 0,
-            media_width: scrubber.media_width,
-            media_height: scrubber.media_height,
-            text: scrubber.text,
 
-            // the following are the properties of the scrubber in <Player>
-            left_player: scrubber.left_player,
-            top_player: scrubber.top_player,
-            width_player: scrubber.width_player,
-            height_player: scrubber.height_player,
+    const scrubbers = [];
+    for (const track of timeline.tracks) {
+      for (const scrubber of track.scrubbers) {
+        scrubbers.push({
+          id: scrubber.id,
+          mediaType: scrubber.mediaType,
+          mediaUrlLocal: scrubber.mediaUrlLocal,
+          mediaUrlRemote: scrubber.mediaUrlRemote,
+          width: scrubber.width,
+          startTime: scrubber.left / pixelsPerSecond,
+          endTime: (scrubber.left + scrubber.width) / pixelsPerSecond,
+          duration: scrubber.width / pixelsPerSecond,
+          trackId: track.id,
+          trackIndex: scrubber.y || 0,
+          media_width: scrubber.media_width,
+          media_height: scrubber.media_height,
+          text: scrubber.text,
 
-            // for video scrubbers (and audio in the future)
-            trimBefore: scrubber.trimBefore,
-            trimAfter: scrubber.trimAfter,
+          // the following are the properties of the scrubber in <Player>
+          left_player: scrubber.left_player,
+          top_player: scrubber.top_player,
+          width_player: scrubber.width_player,
+          height_player: scrubber.height_player,
 
-            left_transition_id: scrubber.left_transition_id,
-            right_transition_id: scrubber.right_transition_id,
-          }))
-        ),
-        transitions: timeline.tracks.flatMap((track) => track.transitions.map((transition) => ({
+          // for video scrubbers (and audio in the future)
+          trimBefore: scrubber.trimBefore,
+          trimAfter: scrubber.trimAfter,
+
+          left_transition_id: scrubber.left_transition_id,
+          right_transition_id: scrubber.right_transition_id,
+        });
+      }
+    }
+
+    const transitions: { [id: string]: Transition } = {};
+    for (const track of timeline.tracks) {
+      for (const transition of track.transitions) {
+        transitions[transition.id] = {
           id: transition.id,
           presentation: transition.presentation,
           timing: transition.timing,
           durationInFrames: transition.durationInFrames,
           leftScrubberId: transition.leftScrubberId,
           rightScrubberId: transition.rightScrubberId,
-        }))),
+        };
+      }
+    }
+
+    const timelineData = [
+      {
+        // id: timeline.id,
+        // totalDuration: timelineWidth / pixelsPerSecond,
+        scrubbers: scrubbers,
+        transitions: transitions,
       },
     ];
 

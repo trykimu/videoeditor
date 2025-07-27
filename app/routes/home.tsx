@@ -509,6 +509,7 @@ export default function TimelineEditor() {
               handleDeleteFromContext={handleDeleteFromContext}
               handleSplitAudioFromContext={handleSplitAudioFromContext}
               handleCloseContextMenu={handleCloseContextMenu}
+              // onAddTransition={handleAddTransition}
             />
           </div>
         </ResizablePanel>

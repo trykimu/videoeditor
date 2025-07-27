@@ -92,7 +92,7 @@ export interface TimelineDataItem {
     trimBefore: number | null; // in frames
     trimAfter: number | null; // in frames
   })[];
-  transitions: Transition[];
+  transitions: { [id: string]: Transition };
 }
 
 // Constants

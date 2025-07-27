@@ -45,7 +45,7 @@ export default function RenderComposition() {
                                 right_transition_id: null
                             },
                         ],
-                        transitions: [],
+                        transitions: {},
                     }
                 ],
                 isRendering: false,
