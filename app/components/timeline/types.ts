@@ -45,6 +45,10 @@ export interface ScrubberState extends MediaBinItem {
   // for video scrubbers (and audio in the future)
   trimBefore: number | null; // in frames
   trimAfter: number | null; // in frames
+  
+  // Audio controls
+  muted: boolean; // Whether the audio is muted
+  volume: number; // Volume level (0-1, default 1)
 }
 
 // state of the track in the timeline
@@ -75,6 +79,10 @@ export interface TimelineDataItem {
     // for video scrubbers (and audio in the future)
     trimBefore: number | null; // in frames
     trimAfter: number | null; // in frames
+    
+    // Audio controls
+    muted: boolean; // Whether the audio is muted
+    volume: number; // Volume level (0-1, default 1)
   })[];
 }
 

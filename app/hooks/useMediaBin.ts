@@ -263,10 +263,22 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
     try {
-      // Extract filename from mediaUrlRemote URL
+      // For text items, just remove from UI without server deletion
+      if (item.mediaType === "text") {
+        console.log(`Removing text item from media bin: ${item.name}`);
+        // Remove from media bin state
+        setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
+        // Also remove any scrubbers from the timeline that use this media
+        if (handleDeleteScrubbersByMediaBinId) {
+          handleDeleteScrubbersByMediaBinId(item.id);
+        }
+        return;
+      }
+
+      // For media files (video/image/audio), they should have a remote URL
       if (!item.mediaUrlRemote) {
         console.error('No remote URL found for media item');
-        return;
+        throw new Error('Cannot delete media file: No remote URL found. The file may not have been uploaded properly.');
       }
 
       // Parse the URL and extract filename from the path
@@ -276,7 +288,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       
       if (!encodedFilename) {
         console.error('Could not extract filename from URL:', item.mediaUrlRemote);
-        return;
+        throw new Error('Could not extract filename from URL');
       }
 
       // Decode the filename
@@ -294,9 +306,12 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         }
       } else {
         console.error('Failed to delete media:', result.error);
+        throw new Error(`Failed to delete media: ${result.error}`);
       }
     } catch (error) {
       console.error('Error deleting media:', error);
+      // Re-throw the error so the caller can handle it appropriately
+      throw error;
     }
   }, [handleDeleteScrubbersByMediaBinId]);
 

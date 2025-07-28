@@ -260,22 +260,22 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {/* Scrubbers */}
               {getAllScrubbers().map((scrubber) => (
                 <Scrubber
-                  key={scrubber.id}
-                  scrubber={scrubber}
-                  timelineWidth={timelineWidth}
-                  otherScrubbers={getAllScrubbers().filter(
-                    (s) => s.id !== scrubber.id
-                  )}
-                  onUpdate={onUpdateScrubber}
-                  onDelete={onDeleteScrubber}
-                  isSelected={selectedScrubberId === scrubber.id}
-                  onSelect={onSelectScrubber}
-                  containerRef={containerRef}
-                  expandTimeline={expandTimeline}
-                  snapConfig={{ enabled: true, distance: 10 }}
-                  trackCount={timeline.tracks.length}
-                  pixelsPerSecond={pixelsPerSecond}
-                />
+                    key={scrubber.id}
+                    scrubber={scrubber}
+                    timelineWidth={timelineWidth}
+                    otherScrubbers={getAllScrubbers().filter(
+                      (s) => s.id !== scrubber.id
+                    )}
+                    onUpdate={onUpdateScrubber}
+                    onDelete={onDeleteScrubber}
+                    isSelected={selectedScrubberId === scrubber.id}
+                    onSelect={onSelectScrubber}
+                    containerRef={containerRef}
+                    expandTimeline={expandTimeline}
+                    snapConfig={{ enabled: true, distance: 10 }}
+                    trackCount={timeline.tracks.length}
+                    pixelsPerSecond={pixelsPerSecond}
+                  />
               ))}
             </div>
           </>

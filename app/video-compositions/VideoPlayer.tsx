@@ -117,7 +117,13 @@ export function TimelineComposition({
                 height: scrubber.height_player,
               }}
             >
-              <Video src={videoUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />
+              <Video 
+                src={videoUrl!} 
+                trimBefore={scrubber.trimBefore || undefined} 
+                trimAfter={scrubber.trimAfter || undefined}
+                muted={scrubber.muted || false}
+                volume={() => scrubber.muted ? 0 : (scrubber.volume || 1)}
+              />
             </AbsoluteFill>
           );
           break;
@@ -126,7 +132,15 @@ export function TimelineComposition({
           const audioUrl = isRendering
             ? scrubber.mediaUrlRemote
             : scrubber.mediaUrlLocal;
-          content = <Audio src={audioUrl!} />;
+          content = (
+            <Audio 
+              src={audioUrl!} 
+              trimBefore={scrubber.trimBefore || undefined} 
+              trimAfter={scrubber.trimAfter || undefined}
+              muted={scrubber.muted || false}
+              volume={() => scrubber.muted ? 0 : (scrubber.volume || 1)}
+            />
+          );
           break;
         }
         default:

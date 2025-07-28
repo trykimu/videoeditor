@@ -146,6 +146,10 @@ export const useTimeline = () => {
             // for video scrubbers (and audio in the future)
             trimBefore: scrubber.trimBefore,
             trimAfter: scrubber.trimAfter,
+            
+            // Audio controls
+            muted: scrubber.muted,
+            volume: scrubber.volume,
           }))
         ),
       },
@@ -349,6 +353,10 @@ export const useTimeline = () => {
         // for video scrubbers (and audio in the future)
         trimBefore: null,
         trimAfter: null,
+        
+        // Audio controls - initialize with defaults
+        muted: false,
+        volume: 1,
       };
 
       handleAddScrubberToTrack(trackId, newScrubber);
