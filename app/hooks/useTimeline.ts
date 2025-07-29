@@ -677,6 +677,20 @@ export const useTimeline = () => {
         const pixelsPerSecond = getPixelsPerSecond();
         const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
 
+        // Find the right scrubber and calculate its movement
+        const rightScrubber = track.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId);
+        const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
+        
+        let movementDistance = 0;
+        let rightScrubberNewLeft = 0;
+        
+        if (rightScrubber && leftScrubber) {
+          // Calculate where the right scrubber should be positioned (no overlap)
+          rightScrubberNewLeft = leftScrubber.left + leftScrubber.width;
+          // Calculate how much we're moving the right scrubber
+          movementDistance = rightScrubberNewLeft - rightScrubber.left;
+        }
+
         return {
           ...track,
           transitions: track.transitions.filter(t => t.id !== transitionId),
@@ -690,11 +704,18 @@ export const useTimeline = () => {
 
             // If this scrubber was the right scrubber in the deleted transition, move it back
             if (scrubber.id === transitionToDelete.rightScrubberId) {
-              // Find the left scrubber to calculate the new position
-              const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
-              if (leftScrubber) {
-                // Position the right scrubber right after the left scrubber (no overlap)
-                return { ...baseScrubber, left: leftScrubber.left + leftScrubber.width };
+              return { ...baseScrubber, left: rightScrubberNewLeft };
+            }
+
+            // If this scrubber comes after where the right scrubber originally ended, move it by the same distance
+            if (rightScrubber && scrubber.id !== rightScrubber.id && movementDistance > 0) {
+              // Check if this scrubber is on the same track as the transition
+              if (scrubber.y === rightScrubber.y) {
+                // Check if this scrubber starts at or after where the right scrubber originally ended
+                const rightScrubberOriginalEnd = rightScrubber.left + rightScrubber.width;
+                if (scrubber.left >= rightScrubberOriginalEnd) {
+                  return { ...baseScrubber, left: scrubber.left + movementDistance };
+                }
               }
             }
 
