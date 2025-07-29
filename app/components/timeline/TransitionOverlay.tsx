@@ -19,7 +19,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
   onDelete,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  console.log("transition hovered", isHovered);
+  // console.log("transition hovered", isHovered);
 
 
   // Calculate position and size
