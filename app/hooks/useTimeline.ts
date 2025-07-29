@@ -630,7 +630,11 @@ export const useTimeline = () => {
       return;
     }
 
-    // Add transition to track and update scrubber references
+    // Calculate the overlap distance needed for the transition
+    const pixelsPerSecond = getPixelsPerSecond();
+    const transitionWidthPx = (updatedTransition.durationInFrames / 30) * pixelsPerSecond;
+
+    // Add transition to track and update scrubber references with overlap positioning
     setTimeline(prev => ({
       ...prev,
       tracks: prev.tracks.map(track => {
@@ -644,7 +648,14 @@ export const useTimeline = () => {
               return { ...scrubber, right_transition_id: updatedTransition.id };
             }
             if (scrubber.id === rightScrubber?.id) {
-              return { ...scrubber, left_transition_id: updatedTransition.id };
+              // Move the right scrubber to create overlap
+              // The right scrubber should start at (leftScrubber.end - transitionWidth)
+              const newLeft = leftScrubber ? (leftScrubber.left + leftScrubber.width - transitionWidthPx) : scrubber.left;
+              return { 
+                ...scrubber, 
+                left: newLeft,
+                left_transition_id: updatedTransition.id 
+              };
             }
             return scrubber;
           })
@@ -653,24 +664,53 @@ export const useTimeline = () => {
     }));
 
     toast.success("Transition added successfully");
-  }, [timeline, validateTransitionPlacement]);
+  }, [getPixelsPerSecond, timeline.tracks, validateTransitionPlacement]);
 
   const handleDeleteTransition = useCallback((transitionId: string) => {
-    setTimeline(prev => ({
-      ...prev,
-      tracks: prev.tracks.map(track => ({
-        ...track,
-        transitions: track.transitions.filter(t => t.id !== transitionId),
-        scrubbers: track.scrubbers.map(scrubber => ({
-          ...scrubber,
-          left_transition_id: scrubber.left_transition_id === transitionId ? null : scrubber.left_transition_id,
-          right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
-        }))
-      }))
-    }));
+    setTimeline(prev => {
+      const updatedTracks = prev.tracks.map(track => {
+        // Find the transition being deleted
+        const transitionToDelete = track.transitions.find(t => t.id === transitionId);
+        if (!transitionToDelete) return track;
+
+        // Calculate the overlap distance to restore
+        const pixelsPerSecond = getPixelsPerSecond();
+        const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
+
+        return {
+          ...track,
+          transitions: track.transitions.filter(t => t.id !== transitionId),
+          scrubbers: track.scrubbers.map(scrubber => {
+            // Reset transition references
+            const baseScrubber = {
+              ...scrubber,
+              left_transition_id: scrubber.left_transition_id === transitionId ? null : scrubber.left_transition_id,
+              right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
+            };
+
+            // If this scrubber was the right scrubber in the deleted transition, move it back
+            if (scrubber.id === transitionToDelete.rightScrubberId) {
+              // Find the left scrubber to calculate the new position
+              const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
+              if (leftScrubber) {
+                // Position the right scrubber right after the left scrubber (no overlap)
+                return { ...baseScrubber, left: leftScrubber.left + leftScrubber.width };
+              }
+            }
+
+            return baseScrubber;
+          })
+        };
+      });
+
+      return {
+        ...prev,
+        tracks: updatedTracks
+      };
+    });
 
     toast.success("Transition deleted");
-  }, []);
+  }, [getPixelsPerSecond]);
 
   const handleUpdateScrubberWithLocking = useCallback((updatedScrubber: ScrubberState) => {
     const connectedElements = getConnectedElements(updatedScrubber.id);

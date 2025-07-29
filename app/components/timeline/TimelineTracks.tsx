@@ -266,25 +266,34 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               ))}
 
               {/* Scrubbers */}
-              {getAllScrubbers().map((scrubber) => (
-                <Scrubber
-                  key={scrubber.id}
-                  scrubber={scrubber}
-                  timelineWidth={timelineWidth}
-                  otherScrubbers={getAllScrubbers().filter(
-                    (s) => s.id !== scrubber.id
-                  )}
-                  onUpdate={onUpdateScrubber}
-                  onDelete={onDeleteScrubber}
-                  isSelected={selectedScrubberId === scrubber.id}
-                  onSelect={onSelectScrubber}
-                  containerRef={containerRef}
-                  expandTimeline={expandTimeline}
-                  snapConfig={{ enabled: true, distance: 10 }}
-                  trackCount={timeline.tracks.length}
-                  pixelsPerSecond={pixelsPerSecond}
-                />
-              ))}
+              {getAllScrubbers().map((scrubber) => {
+                // Get all transitions for the track containing this scrubber
+                const scrubberTrack = timeline.tracks.find(track => 
+                  track.scrubbers.some(s => s.id === scrubber.id)
+                );
+                const trackTransitions = scrubberTrack?.transitions || [];
+
+                return (
+                  <Scrubber
+                    key={scrubber.id}
+                    scrubber={scrubber}
+                    timelineWidth={timelineWidth}
+                    otherScrubbers={getAllScrubbers().filter(
+                      (s) => s.id !== scrubber.id
+                    )}
+                    onUpdate={onUpdateScrubber}
+                    onDelete={onDeleteScrubber}
+                    isSelected={selectedScrubberId === scrubber.id}
+                    onSelect={onSelectScrubber}
+                    containerRef={containerRef}
+                    expandTimeline={expandTimeline}
+                    snapConfig={{ enabled: true, distance: 10 }}
+                    trackCount={timeline.tracks.length}
+                    pixelsPerSecond={pixelsPerSecond}
+                    transitions={trackTransitions}
+                  />
+                );
+              })}
 
               {/* Transitions */}
               {(() => {

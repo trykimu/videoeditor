@@ -158,11 +158,16 @@ export default function TimelineEditor() {
   const timelineData = getTimelineData();
   const durationInFrames = (() => {
     let maxEndTime = 0;
+
+    // Calculate the maximum end time from all scrubbers
+    // Since overlapping scrubbers are already positioned correctly, 
+    // we just need the maximum end time
     timelineData.forEach((timelineItem) => {
       timelineItem.scrubbers.forEach((scrubber) => {
         if (scrubber.endTime > maxEndTime) maxEndTime = scrubber.endTime;
       });
     });
+
     return Math.ceil(maxEndTime * FPS);
   })();
 

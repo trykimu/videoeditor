@@ -22,22 +22,24 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
   // console.log("transition hovered", isHovered);
 
 
-  // Calculate position and size
+  // Calculate position and size for overlap area
   const getTransitionStyle = () => {
     let left = 0;
     const width = (transition.durationInFrames / 30) * pixelsPerSecond; // Convert frames to pixels
     let top = 0;
 
     if (leftScrubber && rightScrubber) {
-      // Transition between two scrubbers
-      left = leftScrubber.left + leftScrubber.width - width / 2;
+      // Position transition on the overlap area
+      // The overlap starts at the rightScrubber.left and has width equal to transition duration
+      const overlapStart = rightScrubber.left;
+      left = overlapStart;
       top = leftScrubber.y * DEFAULT_TRACK_HEIGHT;
     } else if (leftScrubber) {
-      // Transition after a scrubber (outro)
+      // Transition after a scrubber (outro) - position at the end of left scrubber
       left = leftScrubber.left + leftScrubber.width - width;
       top = leftScrubber.y * DEFAULT_TRACK_HEIGHT;
     } else if (rightScrubber) {
-      // Transition before a scrubber (intro)
+      // Transition before a scrubber (intro) - position at the start of right scrubber
       left = rightScrubber.left;
       top = rightScrubber.y * DEFAULT_TRACK_HEIGHT;
     }
