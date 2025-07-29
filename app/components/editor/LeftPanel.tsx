@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { FileImage, Type } from "lucide-react";
+import { FileImage, Type, BetweenVerticalEnd } from "lucide-react";
 import { type MediaBinItem } from "~/components/timeline/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
@@ -61,7 +61,6 @@ export default function LeftPanel({
             >
               <Link to="/media-bin" className="flex items-center gap-1.5">
                 <FileImage className="h-3 w-3" />
-                Media
               </Link>
             </TabsTrigger>
             <TabsTrigger
@@ -71,7 +70,6 @@ export default function LeftPanel({
             >
               <Link to="/text-editor" className="flex items-center gap-1.5">
                 <Type className="h-3 w-3" />
-                Text
               </Link>
             </TabsTrigger>
             <TabsTrigger
@@ -80,8 +78,7 @@ export default function LeftPanel({
               className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               <Link to="/transitions" className="flex items-center gap-1.5">
-                <Type className="h-3 w-3" />
-                Transitions
+                <BetweenVerticalEnd className="h-3 w-3" />
               </Link>
             </TabsTrigger>
           </TabsList>
