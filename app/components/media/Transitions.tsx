@@ -48,15 +48,17 @@ const TransitionThumbnail = ({ transition, isSelected, onClick }: {
     onClick: () => void;
 }) => {
     const handleDragStart = (e: React.DragEvent) => {
-        e.dataTransfer.setData("application/json", JSON.stringify({
+        const transitionData = {
             id: generateUUID(),
             type: "transition",
-            transitionType: transition.type,
+            presentation: transition.type,
             timing: "linear",
-            durationInFrames: 4 * FPS
-        }));
+            durationInFrames: 4 * FPS,
+            leftScrubberId: null,
+            rightScrubberId: null,
+        };
+        e.dataTransfer.setData("application/json", JSON.stringify(transitionData));
         e.dataTransfer.effectAllowed = "copy";
-        console.log(JSON.stringify(transition, null, 2));
     };
 
     const renderTransitionEffect = () => {

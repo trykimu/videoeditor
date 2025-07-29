@@ -3,12 +3,14 @@ import { Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Scrubber } from "./Scrubber";
+import { TransitionOverlay } from "./TransitionOverlay";
 import {
   DEFAULT_TRACK_HEIGHT,
   PIXELS_PER_SECOND,
   type ScrubberState,
   type MediaBinItem,
   type TimelineState,
+  type Transition,
 } from "./types";
 
 interface TimelineTracksProps {
@@ -25,6 +27,12 @@ interface TimelineTracksProps {
     trackId: string,
     dropLeftPx: number
   ) => void;
+  onDropTransitionOnTrack: (
+    transition: Transition,
+    trackId: string,
+    dropLeftPx: number
+  ) => void;
+  onDeleteTransition: (transitionId: string) => void;
   getAllScrubbers: () => ScrubberState[];
   expandTimeline: () => boolean;
   onRulerMouseDown: (e: React.MouseEvent) => void;
@@ -43,6 +51,8 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onUpdateScrubber,
   onDeleteScrubber,
   onDropOnTrack,
+  onDropTransitionOnTrack,
+  onDeleteTransition,
   getAllScrubbers,
   expandTimeline,
   onRulerMouseDown,
@@ -158,10 +168,11 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                const itemString = e.dataTransfer.getData("text/plain");
-                if (!itemString) return;
+                
+                const jsonString = e.dataTransfer.getData("application/json");
+                if (!jsonString) return;
 
-                const item: MediaBinItem = JSON.parse(itemString);
+                const data = JSON.parse(jsonString);
                 const timelineBounds = e.currentTarget.getBoundingClientRect();
                 const tracksScrollContainer = e.currentTarget.parentElement;
 
@@ -182,22 +193,19 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                   Math.min(timeline.tracks.length - 1, trackIndex)
                 );
 
-                if (timeline.tracks[trackIndex]) {
-                  onDropOnTrack(
-                    item,
-                    timeline.tracks[trackIndex].id,
-                    dropXInTimeline
-                  );
-                } else if (timeline.tracks.length > 0) {
-                  onDropOnTrack(
-                    item,
-                    timeline.tracks[timeline.tracks.length - 1].id,
-                    dropXInTimeline
-                  );
+                const trackId = timeline.tracks[trackIndex]?.id;
+                
+                if (!trackId) {
+                  console.warn("No tracks to drop on, or track detection failed.");
+                  return;
+                }
+
+                // Handle transition drop
+                if (data.type === "transition") {
+                  onDropTransitionOnTrack(data, trackId, dropXInTimeline);
                 } else {
-                  console.warn(
-                    "No tracks to drop on, or track detection failed."
-                  );
+                  // Handle media item drop
+                  onDropOnTrack(data as MediaBinItem, trackId, dropXInTimeline);
                 }
               }}
             >
@@ -277,6 +285,31 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                   pixelsPerSecond={pixelsPerSecond}
                 />
               ))}
+
+              {/* Transitions */}
+              {(() => {
+                const transitionComponents = [];
+                for (const track of timeline.tracks) {
+                  for (const transition of track.transitions) {
+                    const leftScrubber = transition.leftScrubberId ? 
+                      track.scrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
+                    const rightScrubber = transition.rightScrubberId ? 
+                      track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+                    
+                    transitionComponents.push(
+                      <TransitionOverlay
+                        key={transition.id}
+                        transition={transition}
+                        leftScrubber={leftScrubber}
+                        rightScrubber={rightScrubber}
+                        pixelsPerSecond={pixelsPerSecond}
+                        onDelete={onDeleteTransition}
+                      />
+                    );
+                  }
+                }
+                return transitionComponents;
+              })()}
             </div>
           </>
         )}

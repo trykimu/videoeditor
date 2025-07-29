@@ -13,6 +13,7 @@ import {
   FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
+import { toast } from "sonner";
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -466,6 +467,247 @@ export const useTimeline = () => {
     return 1; // One scrubber was split
   }, [timeline, getPixelsPerSecond]);
 
+  // Transition management functions
+  const validateTransitionPlacement = useCallback((
+    leftScrubberId: string | null,
+    rightScrubberId: string | null,
+    transition: Transition,
+    trackId: string
+  ): { valid: boolean; error?: string } => {
+    const track = timeline.tracks.find(t => t.id === trackId);
+    if (!track) return { valid: false, error: "Track not found" };
+
+    // Get scrubbers
+    const leftScrubber = leftScrubberId ? track.scrubbers.find(s => s.id === leftScrubberId) : null;
+    const rightScrubber = rightScrubberId ? track.scrubbers.find(s => s.id === rightScrubberId) : null;
+
+    // Rule 1: Transition can't be longer than adjacent sequences
+    if (leftScrubber) {
+      const leftDuration = (leftScrubber.width / getPixelsPerSecond()) * FPS;
+      if (transition.durationInFrames > leftDuration) {
+        return { valid: false, error: "Transition is longer than the previous sequence" };
+      }
+    }
+
+    if (rightScrubber) {
+      const rightDuration = (rightScrubber.width / getPixelsPerSecond()) * FPS;
+      if (transition.durationInFrames > rightDuration) {
+        return { valid: false, error: "Transition is longer than the next sequence" };
+      }
+    }
+
+    // Rule 2: No two transitions next to each other
+    if (leftScrubber?.right_transition_id && rightScrubber?.left_transition_id) {
+      return { valid: false, error: "Cannot place transitions next to each other" };
+    }
+
+    // Rule 3: Must have at least one sequence before or after
+    if (!leftScrubber && !rightScrubber) {
+      return { valid: false, error: "Must have at least one sequence before or after a transition" };
+    }
+
+    return { valid: true };
+  }, [timeline, getPixelsPerSecond]);
+
+  const getConnectedElements = useCallback((elementId: string): string[] => {
+    const connected = new Set<string>();
+    const toProcess = [elementId];
+    
+    while (toProcess.length > 0) {
+      const currentId = toProcess.pop()!;
+      if (connected.has(currentId)) continue;
+      connected.add(currentId);
+
+      // Find all scrubbers and transitions connected to this element
+      for (const track of timeline.tracks) {
+        // Check scrubbers
+        for (const scrubber of track.scrubbers) {
+          if (scrubber.id === currentId) {
+            if (scrubber.left_transition_id && !connected.has(scrubber.left_transition_id)) {
+              toProcess.push(scrubber.left_transition_id);
+            }
+            if (scrubber.right_transition_id && !connected.has(scrubber.right_transition_id)) {
+              toProcess.push(scrubber.right_transition_id);
+            }
+          }
+        }
+
+        // Check transitions
+        for (const transition of track.transitions) {
+          if (transition.id === currentId) {
+            if (transition.leftScrubberId && !connected.has(transition.leftScrubberId)) {
+              toProcess.push(transition.leftScrubberId);
+            }
+            if (transition.rightScrubberId && !connected.has(transition.rightScrubberId)) {
+              toProcess.push(transition.rightScrubberId);
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(connected);
+  }, [timeline]);
+
+  const handleAddTransitionToTrack = useCallback((
+    trackId: string,
+    transition: Transition,
+    dropPosition: number
+  ) => {
+    const track = timeline.tracks.find(t => t.id === trackId);
+    if (!track) {
+      toast.error("Track not found");
+      return;
+    }
+
+    // Find scrubbers at or near the drop position
+    const scrubbers = track.scrubbers
+      .filter(s => s.y === timeline.tracks.findIndex(t => t.id === trackId))
+      .sort((a, b) => a.left - b.left);
+
+    let leftScrubber: ScrubberState | null = null;
+    let rightScrubber: ScrubberState | null = null;
+
+    // Find the scrubbers that the transition should be between
+    for (let i = 0; i < scrubbers.length; i++) {
+      const scrubber = scrubbers[i];
+      const scrubberEnd = scrubber.left + scrubber.width;
+
+      if (dropPosition >= scrubber.left && dropPosition <= scrubberEnd) {
+        // Dropped on a scrubber
+        if (dropPosition <= scrubber.left + scrubber.width / 2) {
+          // Closer to left edge
+          leftScrubber = scrubbers[i - 1] || null;
+          rightScrubber = scrubber;
+        } else {
+          // Closer to right edge
+          leftScrubber = scrubber;
+          rightScrubber = scrubbers[i + 1] || null;
+        }
+        break;
+      } else if (i === 0 && dropPosition < scrubber.left) {
+        // Before first scrubber
+        rightScrubber = scrubber;
+        break;
+      } else if (i === scrubbers.length - 1 && dropPosition > scrubberEnd) {
+        // After last scrubber
+        leftScrubber = scrubber;
+        break;
+      } else if (i < scrubbers.length - 1) {
+        const nextScrubber = scrubbers[i + 1];
+        if (dropPosition > scrubberEnd && dropPosition < nextScrubber.left) {
+          // Between two scrubbers
+          leftScrubber = scrubber;
+          rightScrubber = nextScrubber;
+          break;
+        }
+      }
+    }
+
+    // Validate audio scrubbers
+    if (leftScrubber?.mediaType === "audio" || rightScrubber?.mediaType === "audio") {
+      toast.error("Audio scrubbers cannot have transitions");
+      return;
+    }
+
+    // Update transition with scrubber IDs
+    const updatedTransition: Transition = {
+      ...transition,
+      leftScrubberId: leftScrubber?.id || null,
+      rightScrubberId: rightScrubber?.id || null,
+    };
+
+    // Validate placement
+    const validation = validateTransitionPlacement(
+      leftScrubber?.id || null,
+      rightScrubber?.id || null,
+      updatedTransition,
+      trackId
+    );
+
+    if (!validation.valid) {
+      toast.error(validation.error || "Invalid transition placement");
+      return;
+    }
+
+    // Add transition to track and update scrubber references
+    setTimeline(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(track => {
+        if (track.id !== trackId) return track;
+
+        return {
+          ...track,
+          transitions: [...track.transitions, updatedTransition],
+          scrubbers: track.scrubbers.map(scrubber => {
+            if (scrubber.id === leftScrubber?.id) {
+              return { ...scrubber, right_transition_id: updatedTransition.id };
+            }
+            if (scrubber.id === rightScrubber?.id) {
+              return { ...scrubber, left_transition_id: updatedTransition.id };
+            }
+            return scrubber;
+          })
+        };
+      })
+    }));
+
+    toast.success("Transition added successfully");
+  }, [timeline, validateTransitionPlacement]);
+
+  const handleDeleteTransition = useCallback((transitionId: string) => {
+    setTimeline(prev => ({
+      ...prev,
+      tracks: prev.tracks.map(track => ({
+        ...track,
+        transitions: track.transitions.filter(t => t.id !== transitionId),
+        scrubbers: track.scrubbers.map(scrubber => ({
+          ...scrubber,
+          left_transition_id: scrubber.left_transition_id === transitionId ? null : scrubber.left_transition_id,
+          right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
+        }))
+      }))
+    }));
+
+    toast.success("Transition deleted");
+  }, []);
+
+  const handleUpdateScrubberWithLocking = useCallback((updatedScrubber: ScrubberState) => {
+    const connectedElements = getConnectedElements(updatedScrubber.id);
+    const scrubberConnected = connectedElements.filter(id => 
+      timeline.tracks.some(track => track.scrubbers.some(s => s.id === id))
+    );
+
+    if (scrubberConnected.length > 1) {
+      // Calculate offset
+      const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
+      if (!originalScrubber) return;
+
+      const offsetX = updatedScrubber.left - originalScrubber.left;
+      const offsetY = updatedScrubber.y - originalScrubber.y;
+
+      // Update all connected scrubbers with the same offset
+      setTimeline(prev => ({
+        ...prev,
+        tracks: prev.tracks.map(track => ({
+          ...track,
+          scrubbers: track.scrubbers.map(scrubber => {
+            if (scrubberConnected.includes(scrubber.id)) {
+              return {
+                ...scrubber,
+                left: scrubber.left + offsetX,
+                y: scrubber.y + offsetY,
+              };
+            }
+            return scrubber;
+          })
+        }))
+      }));
+    } else {
+      handleUpdateScrubber(updatedScrubber);
+    }
+  }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber]);
+
   return {
     timeline,
     timelineWidth,
@@ -485,5 +727,10 @@ export const useTimeline = () => {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    // Transition management
+    handleAddTransitionToTrack,
+    handleDeleteTransition,
+    getConnectedElements,
+    handleUpdateScrubberWithLocking,
   };
 };

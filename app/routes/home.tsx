@@ -45,7 +45,7 @@ import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
-import { FPS } from "~/components/timeline/types";
+import { FPS, type Transition } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 
@@ -118,6 +118,11 @@ export default function TimelineEditor() {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    // Transition management
+    handleAddTransitionToTrack,
+    handleDeleteTransition,
+    getConnectedElements,
+    handleUpdateScrubberWithLocking,
   } = useTimeline();
 
   const {
@@ -143,6 +148,11 @@ export default function TimelineEditor() {
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
 
   const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
+
+  // Wrapper function for transition drop handler to match expected interface
+  const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
+    handleAddTransitionToTrack(trackId, transition, dropLeftPx);
+  };
 
   // Derived values
   const timelineData = getTimelineData();
@@ -509,7 +519,6 @@ export default function TimelineEditor() {
               handleDeleteFromContext={handleDeleteFromContext}
               handleSplitAudioFromContext={handleSplitAudioFromContext}
               handleCloseContextMenu={handleCloseContextMenu}
-              // onAddTransition={handleAddTransition}
             />
           </div>
         </ResizablePanel>
@@ -733,9 +742,11 @@ export default function TimelineEditor() {
                   containerRef={containerRef}
                   onScroll={handleScrollCallback}
                   onDeleteTrack={handleDeleteTrack}
-                  onUpdateScrubber={handleUpdateScrubber}
+                  onUpdateScrubber={handleUpdateScrubberWithLocking}
                   onDeleteScrubber={handleDeleteScrubber}
                   onDropOnTrack={handleDropOnTrack}
+                  onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
+                  onDeleteTransition={handleDeleteTransition}
                   getAllScrubbers={getAllScrubbers}
                   expandTimeline={expandTimelineCallback}
                   onRulerMouseDown={handleRulerMouseDown}

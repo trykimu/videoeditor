@@ -15,11 +15,6 @@ interface LeftPanelProps {
     textAlign: "left" | "center" | "right",
     fontWeight: "normal" | "bold"
   ) => void;
-  onAddTransition: (
-    presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris" | "none",
-    timing: "spring" | "linear",
-    durationInFrames: number
-  ) => void;
   contextMenu: {
     x: number;
     y: number;
@@ -35,7 +30,6 @@ export default function LeftPanel({
   mediaBinItems,
   onAddMedia,
   onAddText,
-  onAddTransition,
   contextMenu,
   handleContextMenu,
   handleDeleteFromContext,
@@ -101,7 +95,6 @@ export default function LeftPanel({
               mediaBinItems,
               onAddMedia,
               onAddText,
-              onAddTransition,
               contextMenu,
               handleContextMenu,
               handleDeleteFromContext,

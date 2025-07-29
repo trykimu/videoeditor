@@ -175,7 +175,7 @@ export default function MediaBin() {
             draggable={!item.isUploading}
             onDragStart={(e) => {
               if (!item.isUploading) {
-                e.dataTransfer.setData("text/plain", JSON.stringify(item));
+                e.dataTransfer.setData("application/json", JSON.stringify(item));
                 console.log("Dragging item:", item.name);
               }
             }}
