@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState } from "./types";
 import { Trash2, Edit, Volume2, VolumeX, Settings } from "lucide-react";
 import { TextPropertiesEditor } from "./TextPropertiesEditor";
@@ -23,6 +24,8 @@ export interface ScrubberProps {
   pixelsPerSecond: number;
   isSelected?: boolean;
   onSelect?: (scrubberId: string) => void;
+  // Add transitions prop to check for overlapping allowance
+  transitions?: Transition[];
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -38,6 +41,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   pixelsPerSecond,
   isSelected = false,
   onSelect,
+  transitions = [],
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -99,7 +103,19 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     [snapConfig, getSnapPoints]
   );
 
-  // Check collision with track awareness
+  // Check if there's a transition between two scrubbers that allows overlap
+  const hasTransitionBetween = useCallback(
+    (scrubber1Id: string, scrubber2Id: string) => {
+      return transitions.some(
+        (transition) =>
+          (transition.leftScrubberId === scrubber1Id && transition.rightScrubberId === scrubber2Id) ||
+          (transition.leftScrubberId === scrubber2Id && transition.rightScrubberId === scrubber1Id)
+      );
+    },
+    [transitions]
+  );
+
+  // Check collision with track awareness - allow overlap if transition exists
   const checkCollisionWithTrack = useCallback(
     (newScrubber: ScrubberState, excludeId?: string) => {
       return otherScrubbers.some((other) => {
@@ -110,10 +126,17 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         const newStart = newScrubber.left;
         const newEnd = newScrubber.left + newScrubber.width;
 
-        return !(newEnd <= otherStart || newStart >= otherEnd);
+        const hasOverlap = !(newEnd <= otherStart || newStart >= otherEnd);
+        
+        // If there's overlap, check if there's a transition that allows it
+        if (hasOverlap && hasTransitionBetween(newScrubber.id, other.id)) {
+          return false; // Allow overlap due to transition
+        }
+
+        return hasOverlap;
       });
     },
-    [otherScrubbers]
+    [otherScrubbers, hasTransitionBetween]
   );
 
   const getScrubberBounds = useCallback(

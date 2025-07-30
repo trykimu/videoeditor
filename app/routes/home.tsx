@@ -45,7 +45,7 @@ import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
-import { FPS } from "~/components/timeline/types";
+import { FPS, type Transition } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 
@@ -118,6 +118,11 @@ export default function TimelineEditor() {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    // Transition management
+    handleAddTransitionToTrack,
+    handleDeleteTransition,
+    getConnectedElements,
+    handleUpdateScrubberWithLocking,
   } = useTimeline();
 
   const {
@@ -144,15 +149,25 @@ export default function TimelineEditor() {
 
   const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
 
+  // Wrapper function for transition drop handler to match expected interface
+  const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
+    handleAddTransitionToTrack(trackId, transition, dropLeftPx);
+  };
+
   // Derived values
   const timelineData = getTimelineData();
   const durationInFrames = (() => {
     let maxEndTime = 0;
+
+    // Calculate the maximum end time from all scrubbers
+    // Since overlapping scrubbers are already positioned correctly, 
+    // we just need the maximum end time
     timelineData.forEach((timelineItem) => {
       timelineItem.scrubbers.forEach((scrubber) => {
         if (scrubber.endTime > maxEndTime) maxEndTime = scrubber.endTime;
       });
     });
+
     return Math.ceil(maxEndTime * FPS);
   })();
 
@@ -571,149 +586,155 @@ export default function TimelineEditor() {
         </div>
       </header>
 
+      {/* Main content area with chat extending to bottom */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* Left Panel - Media Bin & Tools */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-          <div className="h-full border-r border-border">
-            <LeftPanel
-              mediaBinItems={mediaBinItems}
-              onAddMedia={handleAddMediaToBin}
-              onAddText={handleAddTextToBin}
-              contextMenu={contextMenu}
-              handleContextMenu={handleContextMenu}
-              handleDeleteFromContext={handleDeleteFromContext}
-              handleSplitAudioFromContext={handleSplitAudioFromContext}
-              handleCloseContextMenu={handleCloseContextMenu}
-            />
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        {/* Main Content Area */}
-        <ResizablePanel defaultSize={isChatMinimized ? 80 : 60}>
+        {/* Left section with media bin, video preview, and timeline */}
+        <ResizablePanel defaultSize={isChatMinimized ? 100 : 80}>
           <ResizablePanelGroup direction="vertical">
-            {/* Preview Area */}
+            {/* Top section with media bin and video preview */}
             <ResizablePanel defaultSize={65} minSize={40}>
-              <div className="h-full flex flex-col bg-background">
-                {/* Compact Top Bar */}
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Resolution:</span>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={width}
-                        onChange={(e) =>
-                          handleWidthChange(Number(e.target.value))
-                        }
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                      />
-                      <span>×</span>
-                      <Input
-                        type="number"
-                        value={height}
-                        onChange={(e) =>
-                          handleHeightChange(Number(e.target.value))
-                        }
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      <Switch
-                        id="auto-size"
-                        checked={isAutoSize}
-                        onCheckedChange={handleAutoSizeChange}
-                        className="scale-75"
-                      />
-                      <Label htmlFor="auto-size" className="text-xs">
-                        Auto
-                      </Label>
-                    </div>
-
-                    {/* Show chat toggle when minimized */}
-                    {isChatMinimized && (
-                      <>
-                        <Separator
-                          orientation="vertical"
-                          className="h-4 mx-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsChatMinimized(false)}
-                          className="h-6 px-2 text-xs"
-                          title="Show Chat"
-                        >
-                          <ChevronLeft className="h-3 w-3 mr-1" />
-                          Chat
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Video Preview */}
-                <div
-                  className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                    } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
-                >
-                  <div
-                    className="flex-1 flex items-center justify-center w-full">
-                    <VideoPlayer
-                      timelineData={timelineData}
-                      durationInFrames={durationInFrames}
-                      ref={playerRef}
-                      compositionWidth={isAutoSize ? null : width}
-                      compositionHeight={isAutoSize ? null : height}
-                      timeline={timeline}
-                      handleUpdateScrubber={handleUpdateScrubber}
-                      selectedItem={selectedItem}
-                      setSelectedItem={setSelectedItem}
+              <ResizablePanelGroup direction="horizontal">
+                {/* Left Panel - Media Bin & Tools */}
+                <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+                  <div className="h-full border-r border-border">
+                    <LeftPanel
+                      mediaBinItems={mediaBinItems}
+                      onAddMedia={handleAddMediaToBin}
+                      onAddText={handleAddTextToBin}
+                      contextMenu={contextMenu}
+                      handleContextMenu={handleContextMenu}
+                      handleDeleteFromContext={handleDeleteFromContext}
+                      handleSplitAudioFromContext={handleSplitAudioFromContext}
+                      handleCloseContextMenu={handleCloseContextMenu}
                     />
                   </div>
+                </ResizablePanel>
 
-                  {/* Custom Video Controls - Below Player */}
-                  <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                    {/* Left side controls */}
-                    <div className="flex items-center gap-1">
-                      <MuteButton playerRef={playerRef} />
-                    </div>
+                <ResizableHandle withHandle />
 
-                    {/* Center play/pause button */}
-                    <div className="flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={togglePlayback}
-                        className="h-6 w-6 p-0"
-                        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
-                      >
-                        {isPlaying ? (
-                          <Pause className="h-3 w-3" />
-                        ) : (
-                          <Play className="h-3 w-3" />
+                {/* Video Preview Area */}
+                <ResizablePanel defaultSize={75}>
+                  <div className="h-full flex flex-col bg-background">
+                    {/* Compact Top Bar */}
+                    <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>Resolution:</span>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            value={width}
+                            onChange={(e) =>
+                              handleWidthChange(Number(e.target.value))
+                            }
+                            disabled={isAutoSize}
+                            className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          />
+                          <span>×</span>
+                          <Input
+                            type="number"
+                            value={height}
+                            onChange={(e) =>
+                              handleHeightChange(Number(e.target.value))
+                            }
+                            disabled={isAutoSize}
+                            className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          <Switch
+                            id="auto-size"
+                            checked={isAutoSize}
+                            onCheckedChange={handleAutoSizeChange}
+                            className="scale-75"
+                          />
+                          <Label htmlFor="auto-size" className="text-xs">
+                            Auto
+                          </Label>
+                        </div>
+
+                        {/* Show chat toggle when minimized */}
+                        {isChatMinimized && (
+                          <>
+                            <Separator
+                              orientation="vertical"
+                              className="h-4 mx-1"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsChatMinimized(false)}
+                              className="h-6 px-2 text-xs"
+                              title="Show Chat"
+                            >
+                              <ChevronLeft className="h-3 w-3 mr-1" />
+                              Chat
+                            </Button>
+                          </>
                         )}
-                      </Button>
+                      </div>
                     </div>
 
-                    {/* Right side controls */}
-                    <div className="flex items-center gap-1">
-                      <FullscreenButton playerRef={playerRef} />
+                    {/* Video Preview */}
+                    <div
+                      className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
+                        } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                    >
+                      <div
+                        className="flex-1 flex items-center justify-center w-full">
+                        <VideoPlayer
+                          timelineData={timelineData}
+                          durationInFrames={durationInFrames}
+                          ref={playerRef}
+                          compositionWidth={isAutoSize ? null : width}
+                          compositionHeight={isAutoSize ? null : height}
+                          timeline={timeline}
+                          handleUpdateScrubber={handleUpdateScrubber}
+                          selectedItem={selectedItem}
+                          setSelectedItem={setSelectedItem}
+                        />
+                      </div>
+
+                      {/* Custom Video Controls - Below Player */}
+                      <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                        {/* Left side controls */}
+                        <div className="flex items-center gap-1">
+                          <MuteButton playerRef={playerRef} />
+                        </div>
+
+                        {/* Center play/pause button */}
+                        <div className="flex items-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={togglePlayback}
+                            className="h-6 w-6 p-0"
+                        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+                          >
+                            {isPlaying ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Right side controls */}
+                        <div className="flex items-center gap-1">
+                          <FullscreenButton playerRef={playerRef} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
             </ResizablePanel>
 
             <ResizableHandle withHandle />
 
-            {/* Timeline Area */}
+            {/* Timeline Area - spans width of left section */}
             <ResizablePanel defaultSize={35} minSize={25}>
               <div className="h-full flex flex-col bg-muted/20">
                 {/* Compact Timeline Header */}
@@ -808,9 +829,11 @@ export default function TimelineEditor() {
                   containerRef={containerRef}
                   onScroll={handleScrollCallback}
                   onDeleteTrack={handleDeleteTrack}
-                  onUpdateScrubber={handleUpdateScrubber}
+                  onUpdateScrubber={handleUpdateScrubberWithLocking}
                   onDeleteScrubber={handleDeleteScrubber}
                   onDropOnTrack={handleDropOnTrack}
+                  onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
+                  onDeleteTransition={handleDeleteTransition}
                   getAllScrubbers={getAllScrubbers}
                   expandTimeline={expandTimelineCallback}
                   onRulerMouseDown={handleRulerMouseDown}
@@ -823,12 +846,12 @@ export default function TimelineEditor() {
           </ResizablePanelGroup>
         </ResizablePanel>
 
-        {/* Conditionally render chat panel */}
+        {/* Conditionally render chat panel - extends full height */}
         {!isChatMinimized && (
           <>
             <ResizableHandle withHandle />
 
-            {/* Right Panel - Chat */}
+            {/* Right Panel - Chat (full height) */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
               <div className="h-full border-l border-border">
                 <ChatBox

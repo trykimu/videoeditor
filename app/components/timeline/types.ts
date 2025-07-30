@@ -7,6 +7,21 @@ export interface BaseScrubber {
   media_width: number; // width of the media in pixels
   media_height: number; // height of the media in pixels
   text: TextProperties | null;
+
+  // transitions are managed using the right transition id, as in what to add to the right. Convenient to think of. Left one is for the initial transition, first scrubber intro. we won't use it anywhere else.
+  // for a middle transition, you will only see its information in the left scrubber.
+  left_transition_id: string | null;  // only use this for the first scrubber intro
+  right_transition_id: string | null; // this is what you use everywhere
+}
+
+export interface Transition {
+  id: string;
+  presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris";
+  timing: "spring" | "linear";
+  durationInFrames: number;
+  leftScrubberId: string | null;  // ID of the scrubber this transition starts from. null for the first scrubber in a track
+  rightScrubberId: string | null; // ID of the scrubber this transition goes to. null for the last scrubber in a track
+  // trackId: string;         // Track where this transition exists
 }
 
 export interface TextProperties {
@@ -22,7 +37,7 @@ export interface TextProperties {
 export interface MediaBinItem extends BaseScrubber {
   name: string;
   durationInSeconds: number; // For media, to calculate initial width
-  
+
   // Upload tracking properties
   uploadProgress: number | null; // 0-100, null when upload complete
   isUploading: boolean; // True while upload is in progress
@@ -55,6 +70,7 @@ export interface ScrubberState extends MediaBinItem {
 export interface TrackState {
   id: string;
   scrubbers: ScrubberState[];
+  transitions: Transition[];  // Transitions between scrubbers on this track
 }
 
 // state of the timeline
@@ -84,6 +100,7 @@ export interface TimelineDataItem {
     muted: boolean; // Whether the audio is muted
     volume: number; // Volume level (0-1, default 1)
   })[];
+  transitions: { [id: string]: Transition };
 }
 
 // Constants

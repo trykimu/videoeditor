@@ -177,6 +177,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         text: null,
         isUploading: true,
         uploadProgress: 0,
+        left_transition_id: null,
+        right_transition_id: null,
       };
       setMediaBinItems(prev => [...prev, newItem]);
 
@@ -257,6 +259,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       durationInSeconds: 0,
       isUploading: false,
       uploadProgress: null,
+      left_transition_id: null,
+      right_transition_id: null,
     };
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);
@@ -355,6 +359,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         text: null,
         isUploading: false,
         uploadProgress: null,
+        left_transition_id: null,
+        right_transition_id: null,
       };
 
       // Add the audio item to the media bin

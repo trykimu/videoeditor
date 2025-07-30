@@ -175,7 +175,7 @@ export default function MediaBin() {
             draggable={!item.isUploading}
             onDragStart={(e) => {
               if (!item.isUploading) {
-                e.dataTransfer.setData("text/plain", JSON.stringify(item));
+                e.dataTransfer.setData("application/json", JSON.stringify(item));
                 console.log("Dragging item:", item.name);
               }
             }}
@@ -235,7 +235,7 @@ export default function MediaBin() {
             <FileImage className="h-8 w-8 text-muted-foreground/50 mb-3" />
             <p className="text-xs text-muted-foreground">No media files</p>
             <p className="text-xs text-muted-foreground/70 mt-0.5">
-              Import videos or images to get started
+              Import videos, images, or audio to get started
             </p>
           </div>
         )}
