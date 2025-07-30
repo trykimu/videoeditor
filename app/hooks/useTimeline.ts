@@ -215,7 +215,7 @@ export const useTimeline = () => {
     };
     setTimeline((prev) => ({
       ...prev,
-      tracks: [...prev.tracks, newTrack],
+      tracks: [newTrack, ...prev.tracks], // Prepend instead of append for bottom-to-top ordering
     }));
   }, []);
 

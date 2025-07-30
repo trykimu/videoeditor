@@ -113,7 +113,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 size="sm"
                 onClick={() => onDeleteTrack(track.id)}
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 relative z-10"
-                title={`Delete Track ${index + 1}`}
+                title={`Delete Track ${timeline.tracks.length - index}`}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -240,7 +240,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-[5]"
                     style={{ userSelect: "none" }}
                   >
-                    Track {trackIndex + 1}
+                    Track {timeline.tracks.length - trackIndex}
                   </div>
 
                   {/* Grid lines */}

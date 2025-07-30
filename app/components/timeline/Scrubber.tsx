@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { DEFAULT_TRACK_HEIGHT, type ScrubberState } from "./types";
 import { Trash2, Edit, Volume2, VolumeX, Settings } from "lucide-react";
 import { TextPropertiesEditor } from "./TextPropertiesEditor";
 import { VolumeControl } from "./VolumeControl";
