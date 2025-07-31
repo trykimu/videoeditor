@@ -127,9 +127,8 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
       {/* Scrollable Tracks Area */}
       <div
         ref={containerRef}
-        className={`relative flex-1 bg-timeline-background timeline-scrollbar ${
-          timeline.tracks.length === 0 ? "overflow-hidden" : "overflow-auto"
-        }`}
+        className={`relative flex-1 bg-timeline-background timeline-scrollbar ${timeline.tracks.length === 0 ? "overflow-hidden" : "overflow-auto"
+          }`}
         onScroll={timeline.tracks.length > 0 ? onScroll : undefined}
       >
         {timeline.tracks.length === 0 ? (
@@ -168,22 +167,23 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                
+
                 const jsonString = e.dataTransfer.getData("application/json");
                 if (!jsonString) return;
 
                 const data = JSON.parse(jsonString);
-                const timelineBounds = e.currentTarget.getBoundingClientRect();
-                const tracksScrollContainer = e.currentTarget.parentElement;
 
-                if (!timelineBounds || !tracksScrollContainer) return;
+                // Use containerRef for consistent coordinate calculation like the ruler does
+                const scrollContainer = containerRef.current;
+                if (!scrollContainer) return;
 
-                const scrollLeft = tracksScrollContainer.scrollLeft || 0;
-                const scrollTop = tracksScrollContainer.scrollTop || 0;
-                const dropXInTimeline =
-                  e.clientX - timelineBounds.left + scrollLeft;
-                const dropYInTimeline =
-                  e.clientY - timelineBounds.top + scrollTop;
+                const containerBounds = scrollContainer.getBoundingClientRect();
+                const scrollLeft = scrollContainer.scrollLeft || 0;
+                const scrollTop = scrollContainer.scrollTop || 0;
+
+                // Calculate drop position relative to the scroll container, accounting for scroll
+                const dropXInTimeline = e.clientX - containerBounds.left + scrollLeft;
+                const dropYInTimeline = e.clientY - containerBounds.top + scrollTop;
 
                 let trackIndex = Math.floor(
                   dropYInTimeline / DEFAULT_TRACK_HEIGHT
@@ -194,7 +194,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 );
 
                 const trackId = timeline.tracks[trackIndex]?.id;
-                
+
                 if (!trackId) {
                   console.warn("No tracks to drop on, or track detection failed.");
                   return;
@@ -218,11 +218,10 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 >
                   {/* Track background */}
                   <div
-                    className={`absolute w-full border-b border-border/30 transition-colors ${
-                      trackIndex % 2 === 0
-                        ? "bg-timeline-track hover:bg-timeline-track/80"
-                        : "bg-timeline-background hover:bg-muted/20"
-                    }`}
+                    className={`absolute w-full border-b border-border/30 transition-colors ${trackIndex % 2 === 0
+                      ? "bg-timeline-track hover:bg-timeline-track/80"
+                      : "bg-timeline-background hover:bg-muted/20"
+                      }`}
                     style={{
                       top: `0px`,
                       height: `${DEFAULT_TRACK_HEIGHT}px`,
@@ -256,9 +255,8 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                         top: `0px`,
                         width: "1px",
                         height: `${DEFAULT_TRACK_HEIGHT}px`,
-                        backgroundColor: `rgb(var(--border) / ${
-                          gridIndex % 5 === 0 ? 0.5 : 0.25
-                        })`,
+                        backgroundColor: `rgb(var(--border) / ${gridIndex % 5 === 0 ? 0.5 : 0.25
+                          })`,
                       }}
                     />
                   ))}
@@ -268,7 +266,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {/* Scrubbers */}
               {getAllScrubbers().map((scrubber) => {
                 // Get all transitions for the track containing this scrubber
-                const scrubberTrack = timeline.tracks.find(track => 
+                const scrubberTrack = timeline.tracks.find(track =>
                   track.scrubbers.some(s => s.id === scrubber.id)
                 );
                 const trackTransitions = scrubberTrack?.transitions || [];
@@ -300,11 +298,11 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 const transitionComponents = [];
                 for (const track of timeline.tracks) {
                   for (const transition of track.transitions) {
-                    const leftScrubber = transition.leftScrubberId ? 
+                    const leftScrubber = transition.leftScrubberId ?
                       track.scrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
-                    const rightScrubber = transition.rightScrubberId ? 
+                    const rightScrubber = transition.rightScrubberId ?
                       track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
-                    
+
                     transitionComponents.push(
                       <TransitionOverlay
                         key={transition.id}
