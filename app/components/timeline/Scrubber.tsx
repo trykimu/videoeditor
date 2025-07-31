@@ -122,7 +122,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         const newEnd = newScrubber.left + newScrubber.width;
 
         const hasOverlap = !(newEnd <= otherStart || newStart >= otherEnd);
-        
+
         // If there's overlap, check if there's a transition that allows it
         if (hasOverlap && hasTransitionBetween(newScrubber.id, other.id)) {
           return false; // Allow overlap due to transition
@@ -132,17 +132,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       });
     },
     [otherScrubbers, hasTransitionBetween]
-  );
-
-  const getScrubberBounds = useCallback(
-    (scrubber: ScrubberState) => {
-      const scrollLeft = containerRef.current?.scrollLeft || 0;
-      return {
-        left: scrubber.left + scrollLeft,
-        right: scrubber.left + scrubber.width + scrollLeft,
-      };
-    },
-    [containerRef]
   );
 
   const handleMouseDown = useCallback(
@@ -197,7 +186,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
         // Smart collision handling with push-through logic
         const rawScrubber = { ...scrubber, left: rawNewLeft, y: newTrack };
-        
+
         // Find colliding scrubbers on the same track
         const collidingScrubbers = otherScrubbers.filter(other => {
           if (other.y !== newTrack) return false;
@@ -212,7 +201,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           // No collision - try snapping to nearby edges
           const snappedLeft = findSnapPoint(rawNewLeft, scrubber.id);
           const snappedScrubber = { ...scrubber, left: snappedLeft, y: newTrack };
-          
+
           // Double-check snapped position doesn't cause collision
           if (!checkCollisionWithTrack(snappedScrubber, scrubber.id)) {
             onUpdate(snappedScrubber);
@@ -224,14 +213,14 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           const collidingScrubber = collidingScrubbers[0]; // Handle first collision
           const collidingStart = collidingScrubber.left;
           const collidingEnd = collidingScrubber.left + collidingScrubber.width;
-          
+
           // Determine which side of the colliding scrubber the mouse is closest to
           const mouseCenter = rawNewLeft + scrubber.width / 2;
           const collidingCenter = collidingStart + collidingScrubber.width / 2;
-          
+
           let snapToLeft: number;
           let snapToRight: number;
-          
+
           if (mouseCenter < collidingCenter) {
             // Mouse is on the left side - try snapping to left edge first
             snapToLeft = collidingStart - scrubber.width;
@@ -241,12 +230,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             snapToRight = collidingEnd;
             snapToLeft = collidingStart - scrubber.width;
           }
-          
+
           // Try the preferred side first
-          const preferredScrubber = mouseCenter < collidingCenter 
+          const preferredScrubber = mouseCenter < collidingCenter
             ? { ...scrubber, left: Math.max(0, snapToLeft), y: newTrack }
             : { ...scrubber, left: Math.min(snapToRight, timelineWidth - scrubber.width), y: newTrack };
-            
+
           if (!checkCollisionWithTrack(preferredScrubber, scrubber.id)) {
             onUpdate(preferredScrubber);
           } else {
@@ -254,7 +243,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             const alternateScrubber = mouseCenter < collidingCenter
               ? { ...scrubber, left: Math.min(snapToRight, timelineWidth - scrubber.width), y: newTrack }
               : { ...scrubber, left: Math.max(0, snapToLeft), y: newTrack };
-              
+
             if (!checkCollisionWithTrack(alternateScrubber, scrubber.id)) {
               onUpdate(alternateScrubber);
             }
@@ -431,12 +420,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Select the scrubber when right-clicked
     if (onSelect) {
       onSelect(scrubber.id);
     }
-    
+
     // Get the position relative to the viewport
     setContextMenu({
       visible: true,
@@ -456,11 +445,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   const handleContextMenuDelete = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (onDelete) {
       onDelete(scrubber.id);
     }
-    
+
     // Close context menu
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, [onDelete, scrubber.id]);
@@ -470,7 +459,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     if (contextMenu.visible) {
       document.addEventListener("click", handleClickOutside);
       document.addEventListener("contextmenu", handleClickOutside);
-      
+
       return () => {
         document.removeEventListener("click", handleClickOutside);
         document.removeEventListener("contextmenu", handleClickOutside);
@@ -532,9 +521,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {/* Name and position tooltip when dragging - positioned above or below based on track */}
         {isDragging && (
           <div
-            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
-              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-            }`}
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${(scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+              }`}
           >
             {scrubber.name} • {(scrubber.left / pixelsPerSecond).toFixed(2)}s -{" "}
             {((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s
@@ -544,16 +532,15 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {/* Resize tooltips when resizing - showing precise timestamps with dynamic positioning */}
         {isResizing && (
           <div
-            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
-              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-            }`}
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${(scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+              }`}
           >
             {resizeMode === "left"
               ? `Start: ${(scrubber.left / pixelsPerSecond).toFixed(2)}s`
               : `End: ${(
-                  (scrubber.left + scrubber.width) /
-                  pixelsPerSecond
-                ).toFixed(2)}s`}
+                (scrubber.left + scrubber.width) /
+                pixelsPerSecond
+              ).toFixed(2)}s`}
           </div>
         )}
       </div>
