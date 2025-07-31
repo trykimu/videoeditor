@@ -145,15 +145,6 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     [containerRef]
   );
 
-  const checkCollision = useCallback(
-    (scrubber1: ScrubberState, scrubber2: ScrubberState) => {
-      const bounds1 = getScrubberBounds(scrubber1);
-      const bounds2 = getScrubberBounds(scrubber2);
-      return !(bounds1.right <= bounds2.left || bounds1.left >= bounds2.right);
-    },
-    [getScrubberBounds]
-  );
-
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, mode: "drag" | "resize-left" | "resize-right") => {
       e.preventDefault();
