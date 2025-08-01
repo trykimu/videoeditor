@@ -665,17 +665,17 @@ export const useTimeline = () => {
     // Calculate the overlap distance needed for the transition
     const pixelsPerSecond = getPixelsPerSecond();
     const transitionWidthPx = (updatedTransition.durationInFrames / 30) * pixelsPerSecond;
-    
+
     // Define snap distance threshold (same as in TimelineTracks.tsx)
     const SNAP_DISTANCE = 10;
-    
+
     // Calculate the gap between scrubbers to determine if they should be moved together
     const shouldMoveScrubbersTogetherForOverlap = () => {
       if (!leftScrubber || !rightScrubber) return false;
-      
+
       const leftScrubberEnd = leftScrubber.left + leftScrubber.width;
       const gap = rightScrubber.left - leftScrubberEnd;
-      
+
       // Only move scrubbers together if the gap is within snap distance
       return gap <= SNAP_DISTANCE;
     };
@@ -731,7 +731,7 @@ export const useTimeline = () => {
         // Calculate the overlap distance to restore
         const pixelsPerSecond = getPixelsPerSecond();
         const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
-        
+
         // Define snap distance threshold (same as in creation logic)
         const SNAP_DISTANCE = 10;
 
@@ -748,7 +748,7 @@ export const useTimeline = () => {
           // We need to calculate what the original gap would have been before the transition was created
           const currentGap = rightScrubber.left - (leftScrubber.left + leftScrubber.width);
           const originalGap = currentGap + transitionWidthPx;
-          
+
           if (originalGap <= SNAP_DISTANCE) {
             // Scrubbers were moved together during creation, so restore them
             shouldRestorePosition = true;
@@ -845,7 +845,7 @@ export const useTimeline = () => {
   const handleCollisionDetection = useCallback((updatedScrubber: ScrubberState, originalScrubber: ScrubberState, timelineWidth: number) => {
     const allScrubbers = getAllScrubbers();
     const otherScrubbers = allScrubbers.filter(s => s.id !== updatedScrubber.id);
-    
+
     // Find colliding scrubbers on the same track
     const collidingScrubbers = otherScrubbers.filter(other => {
       if (other.y !== updatedScrubber.y) return false;
@@ -904,7 +904,7 @@ export const useTimeline = () => {
       // If both sides are blocked, return original position (scrubber stops)
       return originalScrubber;
     }
-    
+
     return updatedScrubber;
   }, [getAllScrubbers, checkCollisionWithTrack]);
 
@@ -920,7 +920,7 @@ export const useTimeline = () => {
     if (isConnectedToTransitions) {
       // IMPORTANT: THIS IS A BUG. WE STILL NEED COLLISION DETECTION FOR CONNECTED SCRUBBERS.
       // I'm ignoring it right now because I think eventually we'll remove this block of code entirely to improve performance.
-      
+
       // Skip collision detection for connected scrubbers - move them all together
       const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
       if (!originalScrubber) return;
