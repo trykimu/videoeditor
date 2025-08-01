@@ -577,12 +577,44 @@ export const useTimeline = () => {
         // Dropped on a scrubber
         if (dropPosition <= scrubber.left + scrubber.width / 2) {
           // Closer to left edge
-          leftScrubber = scrubbers[i - 1] || null;
-          rightScrubber = scrubber;
+          const prevScrubber = scrubbers[i - 1] || null;
+          if (prevScrubber) {
+            // Check gap to previous scrubber
+            const gap = scrubber.left - (prevScrubber.left + prevScrubber.width);
+            if (gap <= 10) { // Within snap distance
+              // Create transition between previous and current scrubber
+              leftScrubber = prevScrubber;
+              rightScrubber = scrubber;
+            } else {
+              // Too far - create intro transition for current scrubber
+              leftScrubber = null;
+              rightScrubber = scrubber;
+            }
+          } else {
+            // No previous scrubber - create intro transition
+            leftScrubber = null;
+            rightScrubber = scrubber;
+          }
         } else {
           // Closer to right edge
-          leftScrubber = scrubber;
-          rightScrubber = scrubbers[i + 1] || null;
+          const nextScrubber = scrubbers[i + 1] || null;
+          if (nextScrubber) {
+            // Check gap to next scrubber
+            const gap = nextScrubber.left - (scrubber.left + scrubber.width);
+            if (gap <= 10) { // Within snap distance
+              // Create transition between current and next scrubber
+              leftScrubber = scrubber;
+              rightScrubber = nextScrubber;
+            } else {
+              // Too far - create outro transition for current scrubber
+              leftScrubber = scrubber;
+              rightScrubber = null;
+            }
+          } else {
+            // No next scrubber - create outro transition
+            leftScrubber = scrubber;
+            rightScrubber = null;
+          }
         }
         break;
       } else if (i === 0 && dropPosition < scrubber.left) {
@@ -633,6 +665,20 @@ export const useTimeline = () => {
     // Calculate the overlap distance needed for the transition
     const pixelsPerSecond = getPixelsPerSecond();
     const transitionWidthPx = (updatedTransition.durationInFrames / 30) * pixelsPerSecond;
+    
+    // Define snap distance threshold (same as in TimelineTracks.tsx)
+    const SNAP_DISTANCE = 10;
+    
+    // Calculate the gap between scrubbers to determine if they should be moved together
+    const shouldMoveScrubbersTogetherForOverlap = () => {
+      if (!leftScrubber || !rightScrubber) return false;
+      
+      const leftScrubberEnd = leftScrubber.left + leftScrubber.width;
+      const gap = rightScrubber.left - leftScrubberEnd;
+      
+      // Only move scrubbers together if the gap is within snap distance
+      return gap <= SNAP_DISTANCE;
+    };
 
     // Add transition to track and update scrubber references with overlap positioning
     setTimeline(prev => ({
@@ -648,14 +694,23 @@ export const useTimeline = () => {
               return { ...scrubber, right_transition_id: updatedTransition.id };
             }
             if (scrubber.id === rightScrubber?.id) {
-              // Move the right scrubber to create overlap
-              // The right scrubber should start at (leftScrubber.end - transitionWidth)
-              const newLeft = leftScrubber ? (leftScrubber.left + leftScrubber.width - transitionWidthPx) : scrubber.left;
-              return {
-                ...scrubber,
-                left: newLeft,
-                left_transition_id: updatedTransition.id
-              };
+              // Only move the right scrubber to create overlap if scrubbers are close enough
+              if (shouldMoveScrubbersTogetherForOverlap()) {
+                // Move the right scrubber to create overlap
+                // The right scrubber should start at (leftScrubber.end - transitionWidth)
+                const newLeft = leftScrubber ? (leftScrubber.left + leftScrubber.width - transitionWidthPx) : scrubber.left;
+                return {
+                  ...scrubber,
+                  left: newLeft,
+                  left_transition_id: updatedTransition.id
+                };
+              } else {
+                // If there's a large gap, don't move the scrubber - treat it as a transition for the scrubber alone
+                return {
+                  ...scrubber,
+                  left_transition_id: updatedTransition.id
+                };
+              }
             }
             return scrubber;
           })
@@ -676,6 +731,9 @@ export const useTimeline = () => {
         // Calculate the overlap distance to restore
         const pixelsPerSecond = getPixelsPerSecond();
         const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
+        
+        // Define snap distance threshold (same as in creation logic)
+        const SNAP_DISTANCE = 10;
 
         // Find the right scrubber and calculate its movement
         const rightScrubber = track.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId);
@@ -683,12 +741,21 @@ export const useTimeline = () => {
 
         let movementDistance = 0;
         let rightScrubberNewLeft = 0;
+        let shouldRestorePosition = false;
 
         if (rightScrubber && leftScrubber) {
-          // Calculate where the right scrubber should be positioned (no overlap)
-          rightScrubberNewLeft = leftScrubber.left + leftScrubber.width;
-          // Calculate how much we're moving the right scrubber
-          movementDistance = rightScrubberNewLeft - rightScrubber.left;
+          // Check if the scrubbers were originally close enough to be moved together
+          // We need to calculate what the original gap would have been before the transition was created
+          const currentGap = rightScrubber.left - (leftScrubber.left + leftScrubber.width);
+          const originalGap = currentGap + transitionWidthPx;
+          
+          if (originalGap <= SNAP_DISTANCE) {
+            // Scrubbers were moved together during creation, so restore them
+            shouldRestorePosition = true;
+            rightScrubberNewLeft = leftScrubber.left + leftScrubber.width + originalGap;
+            movementDistance = rightScrubberNewLeft - rightScrubber.left;
+          }
+          // If originalGap > SNAP_DISTANCE, the right scrubber was never moved, so don't move it back
         }
 
         return {
@@ -702,19 +769,22 @@ export const useTimeline = () => {
               right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
             };
 
-            // If this scrubber was the right scrubber in the deleted transition, move it back
-            if (scrubber.id === transitionToDelete.rightScrubberId) {
-              return { ...baseScrubber, left: rightScrubberNewLeft };
-            }
+            // Only move scrubbers if they were originally moved during transition creation
+            if (shouldRestorePosition) {
+              // If this scrubber was the right scrubber in the deleted transition, move it back
+              if (scrubber.id === transitionToDelete.rightScrubberId) {
+                return { ...baseScrubber, left: rightScrubberNewLeft };
+              }
 
-            // If this scrubber comes after where the right scrubber originally ended, move it by the same distance
-            if (rightScrubber && scrubber.id !== rightScrubber.id && movementDistance > 0) {
-              // Check if this scrubber is on the same track as the transition
-              if (scrubber.y === rightScrubber.y) {
-                // Check if this scrubber starts at or after where the right scrubber originally ended
-                const rightScrubberOriginalEnd = rightScrubber.left + rightScrubber.width;
-                if (scrubber.left >= rightScrubberOriginalEnd) {
-                  return { ...baseScrubber, left: scrubber.left + movementDistance };
+              // If this scrubber comes after where the right scrubber originally ended, move it by the same distance
+              if (rightScrubber && scrubber.id !== rightScrubber.id && movementDistance > 0) {
+                // Check if this scrubber is on the same track as the transition
+                if (scrubber.y === rightScrubber.y) {
+                  // Check if this scrubber starts at or after where the right scrubber originally ended
+                  const rightScrubberOriginalEnd = rightScrubber.left + rightScrubber.width;
+                  if (scrubber.left >= rightScrubberOriginalEnd) {
+                    return { ...baseScrubber, left: scrubber.left + movementDistance };
+                  }
                 }
               }
             }
@@ -848,6 +918,9 @@ export const useTimeline = () => {
     const isConnectedToTransitions = scrubberConnected.length > 1;
 
     if (isConnectedToTransitions) {
+      // IMPORTANT: THIS IS A BUG. WE STILL NEED COLLISION DETECTION FOR CONNECTED SCRUBBERS.
+      // I'm ignoring it right now because I think eventually we'll remove this block of code entirely to improve performance.
+      
       // Skip collision detection for connected scrubbers - move them all together
       const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
       if (!originalScrubber) return;
