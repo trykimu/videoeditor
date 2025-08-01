@@ -918,33 +918,66 @@ export const useTimeline = () => {
     const isConnectedToTransitions = scrubberConnected.length > 1;
 
     if (isConnectedToTransitions) {
-      // IMPORTANT: THIS IS A BUG. WE STILL NEED COLLISION DETECTION FOR CONNECTED SCRUBBERS.
-      // I'm ignoring it right now because I think eventually we'll remove this block of code entirely to improve performance.
-
-      // Skip collision detection for connected scrubbers - move them all together
+      // Handle collision detection for connected scrubbers as a group
       const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
       if (!originalScrubber) return;
 
       const offsetX = updatedScrubber.left - originalScrubber.left;
       const offsetY = updatedScrubber.y - originalScrubber.y;
 
-      // Update all connected scrubbers with the same offset
-      setTimeline(prev => ({
-        ...prev,
-        tracks: prev.tracks.map(track => ({
-          ...track,
-          scrubbers: track.scrubbers.map(scrubber => {
-            if (scrubberConnected.includes(scrubber.id)) {
-              return {
-                ...scrubber,
-                left: scrubber.left + offsetX,
-                y: scrubber.y + offsetY,
-              };
-            }
-            return scrubber;
-          })
-        }))
+      // Calculate new positions for all connected scrubbers
+      const allScrubbers = getAllScrubbers();
+      const connectedScrubbers = allScrubbers.filter(s => scrubberConnected.includes(s.id));
+      const updatedConnectedScrubbers = connectedScrubbers.map(scrubber => ({
+        ...scrubber,
+        left: scrubber.left + offsetX,
+        y: scrubber.y + offsetY,
       }));
+
+      // Check if any of the connected scrubbers would collide with non-connected scrubbers
+      const hasCollision = updatedConnectedScrubbers.some(updatedConnectedScrubber => {
+        return allScrubbers.some(other => {
+          // Skip if other scrubber is also in the connected group
+          if (scrubberConnected.includes(other.id)) return false;
+          // Skip if on different tracks
+          if (other.y !== updatedConnectedScrubber.y) return false;
+
+          const otherStart = other.left;
+          const otherEnd = other.left + other.width;
+          const newStart = updatedConnectedScrubber.left;
+          const newEnd = updatedConnectedScrubber.left + updatedConnectedScrubber.width;
+
+          const hasOverlap = !(newEnd <= otherStart || newStart >= otherEnd);
+
+          // If there's overlap, check if there's a transition that allows it
+          if (hasOverlap && hasTransitionBetween(updatedConnectedScrubber.id, other.id)) {
+            return false; // Allow overlap due to transition
+          }
+
+          return hasOverlap;
+        });
+      });
+
+      // Only update if there's no collision
+      if (!hasCollision) {
+        setTimeline(prev => ({
+          ...prev,
+          tracks: prev.tracks.map(track => ({
+            ...track,
+            scrubbers: track.scrubbers.map(scrubber => {
+              if (scrubberConnected.includes(scrubber.id)) {
+                return {
+                  ...scrubber,
+                  left: scrubber.left + offsetX,
+                  y: scrubber.y + offsetY,
+                };
+              }
+              return scrubber;
+            })
+          }))
+        }));
+      }
+      // If there is a collision, don't move the connected scrubbers (they stay in place)
     } else {
       // Run collision detection for standalone scrubbers
       const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
@@ -953,7 +986,7 @@ export const useTimeline = () => {
       const finalScrubber = handleCollisionDetection(updatedScrubber, originalScrubber, timelineWidth);
       handleUpdateScrubber(finalScrubber);
     }
-  }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber, handleCollisionDetection, timelineWidth]);
+  }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber, handleCollisionDetection, timelineWidth, hasTransitionBetween]);
 
   return {
     timeline,

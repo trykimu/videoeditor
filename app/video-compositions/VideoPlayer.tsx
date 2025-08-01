@@ -223,7 +223,7 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Sequence
             key={`gap-start-${trackIndex}`}
-            durationInFrames={Math.round(scrubber.startTime * FPS)}
+            durationInFrames={Math.max(Math.round(scrubber.startTime * FPS), 1)}
           >
             <AbsoluteFill style={{ backgroundColor: "transparent" }} />
           </TransitionSeries.Sequence>
@@ -249,7 +249,7 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Sequence
             key={`scrubber-${scrubber.id}`}
-            durationInFrames={Math.round(scrubber.duration * FPS)}
+            durationInFrames={Math.max(Math.round(scrubber.duration * FPS), 1)}
           >
             {mediaContent}
           </TransitionSeries.Sequence>
@@ -280,7 +280,7 @@ export function TimelineComposition({
           transitionSeriesElements.push(
             <TransitionSeries.Sequence
               key={`gap-${trackIndex}-${i}`}
-              durationInFrames={Math.round(gapDuration * FPS)}
+              durationInFrames={Math.max(Math.round(gapDuration * FPS), 1)}
             >
               <AbsoluteFill style={{ backgroundColor: "transparent" }} />
             </TransitionSeries.Sequence>
