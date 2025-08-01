@@ -269,7 +269,6 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 const scrubberTrack = timeline.tracks.find(track =>
                   track.scrubbers.some(s => s.id === scrubber.id)
                 );
-                const trackTransitions = scrubberTrack?.transitions || [];
 
                 return (
                   <Scrubber
@@ -288,7 +287,6 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     snapConfig={{ enabled: true, distance: 10 }}
                     trackCount={timeline.tracks.length}
                     pixelsPerSecond={pixelsPerSecond}
-                    transitions={trackTransitions}
                   />
                 );
               })}

@@ -512,7 +512,7 @@ export const useTimeline = () => {
   const getConnectedElements = useCallback((elementId: string): string[] => {
     const connected = new Set<string>();
     const toProcess = [elementId];
-    
+
     while (toProcess.length > 0) {
       const currentId = toProcess.pop()!;
       if (connected.has(currentId)) continue;
@@ -651,10 +651,10 @@ export const useTimeline = () => {
               // Move the right scrubber to create overlap
               // The right scrubber should start at (leftScrubber.end - transitionWidth)
               const newLeft = leftScrubber ? (leftScrubber.left + leftScrubber.width - transitionWidthPx) : scrubber.left;
-              return { 
-                ...scrubber, 
+              return {
+                ...scrubber,
                 left: newLeft,
-                left_transition_id: updatedTransition.id 
+                left_transition_id: updatedTransition.id
               };
             }
             return scrubber;
@@ -680,10 +680,10 @@ export const useTimeline = () => {
         // Find the right scrubber and calculate its movement
         const rightScrubber = track.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId);
         const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
-        
+
         let movementDistance = 0;
         let rightScrubberNewLeft = 0;
-        
+
         if (rightScrubber && leftScrubber) {
           // Calculate where the right scrubber should be positioned (no overlap)
           rightScrubberNewLeft = leftScrubber.left + leftScrubber.width;
@@ -733,14 +733,122 @@ export const useTimeline = () => {
     toast.success("Transition deleted");
   }, [getPixelsPerSecond]);
 
+  // Check if there's a transition between two scrubbers that allows overlap
+  const hasTransitionBetween = useCallback(
+    (scrubber1Id: string, scrubber2Id: string) => {
+      const allTransitions = timeline.tracks.flatMap(track => track.transitions);
+      return allTransitions.some(
+        (transition) =>
+          (transition.leftScrubberId === scrubber1Id && transition.rightScrubberId === scrubber2Id) ||
+          (transition.leftScrubberId === scrubber2Id && transition.rightScrubberId === scrubber1Id)
+      );
+    },
+    [timeline]
+  );
+
+  // Check collision with track awareness - allow overlap if transition exists
+  const checkCollisionWithTrack = useCallback(
+    (newScrubber: ScrubberState, excludeId?: string) => {
+      const allScrubbers = getAllScrubbers();
+      return allScrubbers.some((other) => {
+        if (other.id === excludeId || other.y !== newScrubber.y) return false;
+
+        const otherStart = other.left;
+        const otherEnd = other.left + other.width;
+        const newStart = newScrubber.left;
+        const newEnd = newScrubber.left + newScrubber.width;
+
+        const hasOverlap = !(newEnd <= otherStart || newStart >= otherEnd);
+
+        // If there's overlap, check if there's a transition that allows it
+        if (hasOverlap && hasTransitionBetween(newScrubber.id, other.id)) {
+          return false; // Allow overlap due to transition
+        }
+
+        return hasOverlap;
+      });
+    },
+    [getAllScrubbers, hasTransitionBetween]
+  );
+
+  // Handle collision detection and smart positioning
+  const handleCollisionDetection = useCallback((updatedScrubber: ScrubberState, originalScrubber: ScrubberState, timelineWidth: number) => {
+    const allScrubbers = getAllScrubbers();
+    const otherScrubbers = allScrubbers.filter(s => s.id !== updatedScrubber.id);
+    
+    // Find colliding scrubbers on the same track
+    const collidingScrubbers = otherScrubbers.filter(other => {
+      if (other.y !== updatedScrubber.y) return false;
+      const otherStart = other.left;
+      const otherEnd = other.left + other.width;
+      const newStart = updatedScrubber.left;
+      const newEnd = updatedScrubber.left + updatedScrubber.width;
+      return !(newEnd <= otherStart || newStart >= otherEnd);
+    });
+
+    if (collidingScrubbers.length === 0) {
+      // No collision - use the updated position
+      if (!checkCollisionWithTrack(updatedScrubber, updatedScrubber.id)) {
+        return updatedScrubber;
+      }
+    } else {
+      // Collision detected - try smart positioning
+      const collidingScrubber = collidingScrubbers[0]; // Handle first collision
+      const collidingStart = collidingScrubber.left;
+      const collidingEnd = collidingScrubber.left + collidingScrubber.width;
+
+      // Determine which side of the colliding scrubber the mouse is closest to
+      const mouseCenter = updatedScrubber.left + updatedScrubber.width / 2;
+      const collidingCenter = collidingStart + collidingScrubber.width / 2;
+
+      let snapToLeft: number;
+      let snapToRight: number;
+
+      if (mouseCenter < collidingCenter) {
+        // Mouse is on the left side - try snapping to left edge first
+        snapToLeft = collidingStart - updatedScrubber.width;
+        snapToRight = collidingEnd;
+      } else {
+        // Mouse is on the right side - try snapping to right edge first
+        snapToRight = collidingEnd;
+        snapToLeft = collidingStart - updatedScrubber.width;
+      }
+
+      // Try the preferred side first
+      const preferredScrubber = mouseCenter < collidingCenter
+        ? { ...updatedScrubber, left: Math.max(0, snapToLeft) }
+        : { ...updatedScrubber, left: Math.min(snapToRight, timelineWidth - updatedScrubber.width) };
+
+      if (!checkCollisionWithTrack(preferredScrubber, updatedScrubber.id)) {
+        return preferredScrubber;
+      } else {
+        // Try the other side
+        const alternateScrubber = mouseCenter < collidingCenter
+          ? { ...updatedScrubber, left: Math.min(snapToRight, timelineWidth - updatedScrubber.width) }
+          : { ...updatedScrubber, left: Math.max(0, snapToLeft) };
+
+        if (!checkCollisionWithTrack(alternateScrubber, updatedScrubber.id)) {
+          return alternateScrubber;
+        }
+      }
+      // If both sides are blocked, return original position (scrubber stops)
+      return originalScrubber;
+    }
+    
+    return updatedScrubber;
+  }, [getAllScrubbers, checkCollisionWithTrack]);
+
   const handleUpdateScrubberWithLocking = useCallback((updatedScrubber: ScrubberState) => {
     const connectedElements = getConnectedElements(updatedScrubber.id);
-    const scrubberConnected = connectedElements.filter(id => 
+    const scrubberConnected = connectedElements.filter(id =>
       timeline.tracks.some(track => track.scrubbers.some(s => s.id === id))
     );
 
-    if (scrubberConnected.length > 1) {
-      // Calculate offset
+    // Check if this scrubber is connected to transitions (more than just itself)
+    const isConnectedToTransitions = scrubberConnected.length > 1;
+
+    if (isConnectedToTransitions) {
+      // Skip collision detection for connected scrubbers - move them all together
       const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
       if (!originalScrubber) return;
 
@@ -765,9 +873,14 @@ export const useTimeline = () => {
         }))
       }));
     } else {
-      handleUpdateScrubber(updatedScrubber);
+      // Run collision detection for standalone scrubbers
+      const originalScrubber = getAllScrubbers().find(s => s.id === updatedScrubber.id);
+      if (!originalScrubber) return;
+
+      const finalScrubber = handleCollisionDetection(updatedScrubber, originalScrubber, timelineWidth);
+      handleUpdateScrubber(finalScrubber);
     }
-  }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber]);
+  }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber, handleCollisionDetection, timelineWidth]);
 
   return {
     timeline,
