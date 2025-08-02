@@ -271,28 +271,110 @@ export const useTimeline = () => {
   }, []);
 
   const handleDeleteScrubber = useCallback((scrubberId: string) => {
+    // Find all transitions connected to the scrubber being deleted
+    const connectedTransitionIds: string[] = [];
+
+    timeline.tracks.forEach(track => {
+      track.transitions.forEach(transition => {
+        if (transition.leftScrubberId === scrubberId || transition.rightScrubberId === scrubberId) {
+          connectedTransitionIds.push(transition.id);
+        }
+      });
+    });
+
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
+        // Remove the scrubber
         scrubbers: track.scrubbers.filter(
           (scrubber) => scrubber.id !== scrubberId
         ),
-      })),
+        // Remove connected transitions
+        transitions: track.transitions.filter(
+          (transition) => !connectedTransitionIds.includes(transition.id)
+        )
+      })).map(track => ({
+        ...track,
+        // Clean up transition references in remaining scrubbers
+        scrubbers: track.scrubbers.map(scrubber => ({
+          ...scrubber,
+          left_transition_id: connectedTransitionIds.includes(scrubber.left_transition_id || '')
+            ? null
+            : scrubber.left_transition_id,
+          right_transition_id: connectedTransitionIds.includes(scrubber.right_transition_id || '')
+            ? null
+            : scrubber.right_transition_id,
+        }))
+      }))
     }));
-  }, []);
+
+    // Show feedback message
+    if (connectedTransitionIds.length > 0) {
+      toast.success(`Scrubber and ${connectedTransitionIds.length} connected transition${connectedTransitionIds.length > 1 ? 's' : ''} deleted`);
+    } else {
+      toast.success("Scrubber deleted");
+    }
+  }, [timeline]);
 
   const handleDeleteScrubbersByMediaBinId = useCallback((mediaBinId: string) => {
+    // Find all scrubbers that will be deleted
+    const scrubbersToDelete: string[] = [];
+    timeline.tracks.forEach(track => {
+      track.scrubbers.forEach(scrubber => {
+        if (scrubber.sourceMediaBinId === mediaBinId) {
+          scrubbersToDelete.push(scrubber.id);
+        }
+      });
+    });
+
+    // Find all transitions connected to any of the scrubbers being deleted
+    const connectedTransitionIds: string[] = [];
+    timeline.tracks.forEach(track => {
+      track.transitions.forEach(transition => {
+        if (scrubbersToDelete.includes(transition.leftScrubberId || '') ||
+          scrubbersToDelete.includes(transition.rightScrubberId || '')) {
+          connectedTransitionIds.push(transition.id);
+        }
+      });
+    });
+
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) => ({
         ...track,
+        // Remove scrubbers with matching media bin ID
         scrubbers: track.scrubbers.filter(
           (scrubber) => scrubber.sourceMediaBinId !== mediaBinId
         ),
-      })),
+        // Remove connected transitions
+        transitions: track.transitions.filter(
+          (transition) => !connectedTransitionIds.includes(transition.id)
+        )
+      })).map(track => ({
+        ...track,
+        // Clean up transition references in remaining scrubbers
+        scrubbers: track.scrubbers.map(scrubber => ({
+          ...scrubber,
+          left_transition_id: connectedTransitionIds.includes(scrubber.left_transition_id || '')
+            ? null
+            : scrubber.left_transition_id,
+          right_transition_id: connectedTransitionIds.includes(scrubber.right_transition_id || '')
+            ? null
+            : scrubber.right_transition_id,
+        }))
+      }))
     }));
-  }, []);
+
+    // Show feedback message
+    if (scrubbersToDelete.length > 0) {
+      if (connectedTransitionIds.length > 0) {
+        toast.success(`${scrubbersToDelete.length} scrubber${scrubbersToDelete.length > 1 ? 's' : ''} and ${connectedTransitionIds.length} connected transition${connectedTransitionIds.length > 1 ? 's' : ''} deleted`);
+      } else {
+        toast.success(`${scrubbersToDelete.length} scrubber${scrubbersToDelete.length > 1 ? 's' : ''} deleted`);
+      }
+    }
+  }, [timeline]);
 
   const handleAddScrubberToTrack = useCallback(
     (trackId: string, newScrubber: ScrubberState) => {
