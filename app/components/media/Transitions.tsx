@@ -53,7 +53,7 @@ const TransitionThumbnail = ({ transition, isSelected, onClick }: {
             type: "transition",
             presentation: transition.type,
             timing: "linear",
-            durationInFrames: 4 * FPS,
+            durationInFrames: 1 * FPS,
             leftScrubberId: null,
             rightScrubberId: null,
         };

@@ -90,7 +90,7 @@ export default function TimelineEditor() {
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
   const [isAutoSize, setIsAutoSize] = useState<boolean>(false);
-  const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
+  const [isChatMinimized, setIsChatMinimized] = useState<boolean>(true);
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
