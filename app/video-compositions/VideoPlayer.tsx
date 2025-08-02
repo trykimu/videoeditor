@@ -230,18 +230,18 @@ export function TimelineComposition({
         );
       }
 
-      // Add left transition if exists (only for first scrubber)
-      if (isFirstScrubber && scrubber.left_transition_id && allTransitions[scrubber.left_transition_id]) {
-        const transition = allTransitions[scrubber.left_transition_id];
-        transitionSeriesElements.push(
-          <TransitionSeries.Transition
-            key={`left-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
-            presentation={getTransitionPresentation(transition)}
-            timing={getTransitionTiming(transition)}
-          />
-        );
-      }
+      // // Add left transition if exists (only for first scrubber)
+      // if (isFirstScrubber && scrubber.left_transition_id && allTransitions[scrubber.left_transition_id]) {
+      //   const transition = allTransitions[scrubber.left_transition_id];
+      //   transitionSeriesElements.push(
+      //     <TransitionSeries.Transition
+      //       key={`left-transition-${scrubber.id}`}
+      //       // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+      //       presentation={getTransitionPresentation(transition)}
+      //       timing={getTransitionTiming(transition)}
+      //     />
+      //   );
+      // }
 
       // Add the scrubber content
       const mediaContent = createMediaContent(scrubber);
@@ -256,18 +256,18 @@ export function TimelineComposition({
         );
       }
 
-      // Add right transition if exists
-      if (scrubber.right_transition_id && allTransitions[scrubber.right_transition_id]) {
-        const transition = allTransitions[scrubber.right_transition_id];
-        transitionSeriesElements.push(
-          <TransitionSeries.Transition
-            key={`right-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
-            presentation={getTransitionPresentation(transition)}
-            timing={getTransitionTiming(transition)}
-          />
-        );
-      }
+      // // Add right transition if exists
+      // if (scrubber.right_transition_id && allTransitions[scrubber.right_transition_id]) {
+      //   const transition = allTransitions[scrubber.right_transition_id];
+      //   transitionSeriesElements.push(
+      //     <TransitionSeries.Transition
+      //       key={`right-transition-${scrubber.id}`}
+      //       // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+      //       presentation={getTransitionPresentation(transition)}
+      //       timing={getTransitionTiming(transition)}
+      //     />
+      //   );
+      // }
 
       // Add gap between scrubbers if there's a gap
       if (!isLastScrubber) {

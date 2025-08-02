@@ -501,9 +501,9 @@ export const useTimeline = () => {
       return { valid: false, error: "Cannot place transitions next to each other" };
     }
 
-    // Rule 3: Must have at least one sequence before or after
-    if (!leftScrubber && !rightScrubber) {
-      return { valid: false, error: "Must have at least one sequence before or after a transition" };
+    // Rule 3: Must have both left and right scrubbers for a transition
+    if (!leftScrubber || !rightScrubber) {
+      return { valid: false, error: "You need 2 scrubbers for a transition" };
     }
 
     return { valid: true };
