@@ -670,7 +670,6 @@ export default function TimelineEditor() {
                       className="text-xs h-4 px-1.5 font-mono"
                     >
                       {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
-                      {" " + durationInFrames + " " + FPS}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1">
