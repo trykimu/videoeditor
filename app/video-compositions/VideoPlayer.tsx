@@ -156,7 +156,7 @@ export function TimelineComposition({
         const audioUrl = isRendering
           ? scrubber.mediaUrlRemote
           : scrubber.mediaUrlLocal;
-        content = <Audio src={audioUrl!} />;
+        content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined}/>;
         break;
       }
       default:
