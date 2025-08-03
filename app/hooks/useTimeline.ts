@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   PIXELS_PER_SECOND,
   MIN_ZOOM,
@@ -39,6 +39,7 @@ export const useTimeline = () => {
 
   const [timelineWidth, setTimelineWidth] = useState(2000);
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM);
+  const zoomLevelRef = useRef(DEFAULT_ZOOM);
 
   const EXPANSION_THRESHOLD = 200;
   const EXPANSION_AMOUNT = 1000;
@@ -50,69 +51,66 @@ export const useTimeline = () => {
 
   // Zoom functions that update scrubber positions and widths accordingly
   const handleZoomIn = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = Math.min(MAX_ZOOM, prev * 1.5);
-      const zoomRatio = newZoom / prev;
+    const currentZoom = zoomLevelRef.current;
+    const newZoom = Math.min(MAX_ZOOM, currentZoom * 1.5);
+    const zoomRatio = newZoom / currentZoom;
 
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
+    zoomLevelRef.current = newZoom;
+    setZoomLevel(newZoom);
+
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => ({
+          ...scrubber,
+          left: scrubber.left * zoomRatio,
+          width: scrubber.width * zoomRatio,
         })),
-      }));
-
-      return newZoom;
-    });
+      })),
+    }));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = Math.max(MIN_ZOOM, prev / 1.5);
-      const zoomRatio = newZoom / prev;
+    const currentZoom = zoomLevelRef.current;
+    const newZoom = Math.max(MIN_ZOOM, currentZoom / 1.5);
+    const zoomRatio = newZoom / currentZoom;
 
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
+    zoomLevelRef.current = newZoom;
+    setZoomLevel(newZoom);
+
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => ({
+          ...scrubber,
+          left: scrubber.left * zoomRatio,
+          width: scrubber.width * zoomRatio,
         })),
-      }));
-
-      return newZoom;
-    });
+      })),
+    }));
   }, []);
 
   const handleZoomReset = useCallback(() => {
-    setZoomLevel((prev) => {
-      const newZoom = DEFAULT_ZOOM;
-      const zoomRatio = newZoom / prev;
+    const currentZoom = zoomLevelRef.current;
+    const newZoom = DEFAULT_ZOOM;
+    const zoomRatio = newZoom / currentZoom;
 
-      // Update all scrubbers to maintain their time positions
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
+    zoomLevelRef.current = newZoom;
+    setZoomLevel(newZoom);
+
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => ({
+          ...scrubber,
+          left: scrubber.left * zoomRatio,
+          width: scrubber.width * zoomRatio,
         })),
-      }));
-
-      return newZoom;
-    });
+      })),
+    }));
   }, []);
 
   // TODO: remove this after testing
