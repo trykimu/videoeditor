@@ -10,12 +10,12 @@ export const deleteMediaFile = async (filename: string): Promise<{ success: bool
     const response = await fetch(apiUrl(`/media/${encodeURIComponent(filename)}`), {
       method: 'DELETE',
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to delete file');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Delete API error:', error);
@@ -40,12 +40,12 @@ export const cloneMediaFile = async (filename: string, originalName: string, suf
         suffix
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to clone file');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Clone API error:', error);
@@ -267,6 +267,16 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
     try {
+      if (item.mediaType === "text") {
+        setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
+
+        // Also remove any scrubbers from the timeline that use this media
+        if (handleDeleteScrubbersByMediaBinId) {
+          handleDeleteScrubbersByMediaBinId(item.id);
+        }
+        return;
+      }
+
       // Extract filename from mediaUrlRemote URL
       if (!item.mediaUrlRemote) {
         console.error('No remote URL found for media item');
@@ -277,7 +287,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       const url = new URL(item.mediaUrlRemote);
       const pathSegments = url.pathname.split('/');
       const encodedFilename = pathSegments[pathSegments.length - 1]; // Get the last segment after /media/
-      
+
       if (!encodedFilename) {
         console.error('Could not extract filename from URL:', item.mediaUrlRemote);
         return;
@@ -319,14 +329,14 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       const url = new URL(videoItem.mediaUrlRemote);
       const pathSegments = url.pathname.split('/');
       const encodedFilename = pathSegments[pathSegments.length - 1];
-      
+
       if (!encodedFilename) {
         throw new Error('Could not extract filename from URL');
       }
 
       // Clone the file on the server
       const cloneResult = await cloneMediaFile(encodedFilename, videoItem.name, '(Audio)');
-      
+
       if (!cloneResult.success) {
         throw new Error(cloneResult.error || 'Failed to clone media file');
       }
@@ -351,7 +361,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       // Add the audio item to the media bin
       setMediaBinItems(prev => [...prev, audioItem]);
       setContextMenu(null); // Close context menu after action
-      
+
       console.log(`Audio split successful: ${videoItem.name} -> ${audioItem.name}`);
     } catch (error) {
       console.error('Error splitting audio:', error);
