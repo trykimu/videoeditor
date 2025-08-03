@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useOutletContext, useNavigate } from "react-router";
+import React, { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -12,55 +11,91 @@ import {
   AlignRight,
   Bold,
   Type,
-  Plus,
+  X,
+  Check,
 } from "lucide-react";
+import type { TextProperties } from "./types";
 
-interface TextEditorProps {
-  onAddText: (
-    textContent: string,
-    fontSize: number,
-    fontFamily: string,
-    color: string,
-    textAlign: "left" | "center" | "right",
-    fontWeight: "normal" | "bold"
-  ) => void;
+interface TextPropertiesEditorProps {
+  textProperties: TextProperties;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updatedProperties: TextProperties) => void;
+  scrubberId: string;
 }
 
-export default function TextEditor() {
-  const { onAddText } = useOutletContext<TextEditorProps>();
-  const navigate = useNavigate();
-
-  const [textContent, setTextContent] = useState("Hello World");
-  const [fontSize, setFontSize] = useState(48);
-  const [fontFamily, setFontFamily] = useState("Arial");
-  const [color, setColor] = useState("#ffffff");
+export const TextPropertiesEditor: React.FC<TextPropertiesEditorProps> = ({
+  textProperties,
+  isOpen,
+  onClose,
+  onSave,
+  scrubberId,
+}) => {
+  const [textContent, setTextContent] = useState(textProperties.textContent);
+  const [fontSize, setFontSize] = useState(textProperties.fontSize);
+  const [fontFamily, setFontFamily] = useState(textProperties.fontFamily);
+  const [color, setColor] = useState(textProperties.color);
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
-    "center"
+    textProperties.textAlign
   );
-  const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
+  const [fontWeight, setFontWeight] = useState<"normal" | "bold">(
+    textProperties.fontWeight
+  );
 
-  const handleAddText = () => {
-    if (textContent.trim()) {
-      onAddText(
-        textContent,
-        fontSize,
-        fontFamily,
-        color,
-        textAlign,
-        fontWeight
-      );
-      navigate("/media-bin");
-    }
+  // Reset form when properties change
+  useEffect(() => {
+    setTextContent(textProperties.textContent);
+    setFontSize(textProperties.fontSize);
+    setFontFamily(textProperties.fontFamily);
+    setColor(textProperties.color);
+    setTextAlign(textProperties.textAlign);
+    setFontWeight(textProperties.fontWeight);
+  }, [textProperties]);
+
+  const handleSave = () => {
+    const updatedProperties: TextProperties = {
+      textContent,
+      fontSize,
+      fontFamily,
+      color,
+      textAlign,
+      fontWeight,
+    };
+    onSave(updatedProperties);
+    onClose();
   };
 
+  const handleCancel = () => {
+    // Reset to original values
+    setTextContent(textProperties.textContent);
+    setFontSize(textProperties.fontSize);
+    setFontFamily(textProperties.fontFamily);
+    setColor(textProperties.color);
+    setTextAlign(textProperties.textAlign);
+    setFontWeight(textProperties.fontWeight);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="flex-1 overflow-y-auto p-3">
-        <Card className="border-border/50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+      <div className="bg-background border border-border rounded-lg shadow-lg w-96 max-h-[80vh] overflow-y-auto">
+        <Card className="border-0 shadow-none">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Type className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm">Text Properties</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Type className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm">Edit Text Properties</CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -201,19 +236,29 @@ export default function TextEditor() {
               </div>
             </div>
 
-            {/* Add Button */}
-            <Button
-              onClick={handleAddText}
-              disabled={!textContent.trim()}
-              className="w-full h-9"
-              size="sm"
-            >
-              <Plus className="h-3.5 w-3.5 mr-2" />
-              Add Text to Timeline
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                className="flex-1 h-9"
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={!textContent.trim()}
+                className="flex-1 h-9"
+                size="sm"
+              >
+                <Check className="h-3.5 w-3.5 mr-2" />
+                Save Changes
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
-}
+};

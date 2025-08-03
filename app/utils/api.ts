@@ -1,9 +1,9 @@
 // Set to true for production, false for development
-const isProduction = true;
+const isProduction = false;
 
 export const getApiBaseUrl = (fastapi: boolean = false): string => {
   if (!isProduction) {
-    return fastapi ? "http://127.0.0.1:3000" : "http://localhost:8000";
+    return fastapi ? "http://127.0.0.1:8000" : "http://localhost:3000";
   }
 
   if (typeof window !== "undefined" && !fastapi) {

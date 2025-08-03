@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit, Volume2, VolumeX, Settings } from "lucide-react";
+import { TextPropertiesEditor } from "./TextPropertiesEditor";
+import { VolumeControl } from "./VolumeControl";
 
 // something something for the css not gonna bother with it for now
 export interface SnapConfig {
@@ -51,6 +53,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     x: number;
     y: number;
   }>({ visible: false, x: 0, y: 0 });
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [isEditingVolume, setIsEditingVolume] = useState(false);
 
   const MINIMUM_WIDTH = 20;
 
@@ -233,7 +237,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       isDragging,
       isResizing,
       resizeMode,
-      scrubber,
+      scrubber, // Make sure scrubber is in dependencies to get fresh reference
       timelineWidth,
       onUpdate,
       expandTimeline,
@@ -262,7 +266,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   // Handle deletion with Delete/Backspace keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isSelected && (e.key === "Delete" || e.key === "Backspace")) {
+      if (isSelected) {
         // Prevent default behavior and check if we're not in an input field
         const target = e.target as HTMLElement;
         const isInputElement =
@@ -271,9 +275,21 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           target.contentEditable === "true" ||
           target.isContentEditable;
 
-        if (!isInputElement && onDelete) {
-          e.preventDefault();
-          onDelete(scrubber.id);
+        if (!isInputElement) {
+          if ((e.key === "Delete" || e.key === "Backspace") && onDelete) {
+            e.preventDefault();
+            onDelete(scrubber.id);
+          } else if (e.key === "m" || e.key === "M") {
+            // Toggle mute for audio/video scrubbers with 'M' key
+            if (scrubber.mediaType === "video" || scrubber.mediaType === "audio") {
+              e.preventDefault();
+              const updatedScrubber: ScrubberState = {
+                ...scrubber,
+                muted: !scrubber.muted,
+              };
+              onUpdate(updatedScrubber);
+            }
+          }
         }
       }
     };
@@ -282,7 +298,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isSelected, onDelete, scrubber.id]);
+  }, [isSelected, onDelete, scrubber, onUpdate]);
 
   // Professional scrubber colors based on media type
   const getScrubberColor = () => {
@@ -348,6 +364,48 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, [onDelete, scrubber.id]);
 
+  // Handle context menu edit text action
+  const handleContextMenuEditText = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsEditingText(true);
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, []);
+
+  // Handle context menu mute toggle action
+  const handleContextMenuMuteToggle = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const updatedScrubber: ScrubberState = {
+      ...scrubber,
+      muted: !scrubber.muted,
+    };
+    onUpdate(updatedScrubber);
+    
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [scrubber, onUpdate]);
+
+  // Handle context menu volume settings action
+  const handleContextMenuVolumeSettings = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsEditingVolume(true);
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, []);
+
+  // Handle text properties save
+  const handleTextPropertiesSave = useCallback((updatedTextProperties: import("./types").TextProperties) => {
+    const updatedScrubber: ScrubberState = {
+      ...scrubber,
+      text: updatedTextProperties,
+    };
+    onUpdate(updatedScrubber);
+  }, [scrubber, onUpdate]);
+
   // Add click outside listener for context menu
   useEffect(() => {
     if (contextMenu.visible) {
@@ -371,7 +429,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px`,
           height: `${DEFAULT_TRACK_HEIGHT - 4}px`,
           minWidth: "20px",
-          zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
+          zIndex: isDragging || isResizing ? 1000 : isSelected ? 100 : 50,
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
         onContextMenu={handleContextMenu}
@@ -388,6 +446,13 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90 pointer-events-none">
           {scrubber.name}
         </div>
+
+        {/* Mute indicator for audio/video */}
+        {(scrubber.mediaType === "video" || scrubber.mediaType === "audio") && scrubber.muted && (
+          <div className="absolute top-0.5 right-2 text-xs opacity-80 pointer-events-none">
+            <VolumeX className="h-3 w-3" />
+          </div>
+        )}
 
         {/* Left resize handle - more visible */}
         {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
@@ -448,6 +513,47 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             top: `${contextMenu.y}px`,
           }}
         >
+          {/* Show Edit Text option only for text scrubbers */}
+          {scrubber.mediaType === "text" && scrubber.text && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuEditText}
+            >
+              <Edit className="h-3 w-3" />
+              Edit Text
+            </button>
+          )}
+          
+          {/* Show Mute/Unmute option for video and audio scrubbers */}
+          {(scrubber.mediaType === "video" || scrubber.mediaType === "audio") && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuMuteToggle}
+            >
+              {scrubber.muted ? (
+                <>
+                  <Volume2 className="h-3 w-3" />
+                  Unmute
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-3 w-3" />
+                  Mute
+                </>
+              )}
+            </button>
+          )}
+          
+          {/* Show Volume Settings option for video and audio scrubbers */}
+          {(scrubber.mediaType === "video" || scrubber.mediaType === "audio") && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuVolumeSettings}
+            >
+              <Settings className="h-3 w-3" />
+              Volume Settings
+            </button>
+          )}
           <button
             className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
             onClick={handleContextMenuDelete}
@@ -456,6 +562,28 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             Delete
           </button>
         </div>
+      )}
+
+      {/* Text Properties Editor Modal */}
+      {isEditingText && scrubber.mediaType === "text" && scrubber.text && (
+        <TextPropertiesEditor
+          textProperties={scrubber.text}
+          isOpen={isEditingText}
+          onClose={() => setIsEditingText(false)}
+          onSave={handleTextPropertiesSave}
+          scrubberId={scrubber.id}
+        />
+      )}
+
+      {/* Volume Control Modal */}
+      {isEditingVolume && (scrubber.mediaType === "video" || scrubber.mediaType === "audio") && (
+        <VolumeControl
+          scrubber={scrubber}
+          isOpen={isEditingVolume}
+          onClose={() => setIsEditingVolume(false)}
+          onSave={onUpdate}
+          scrubberId={scrubber.id}
+        />
       )}
     </>
   );

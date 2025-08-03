@@ -333,20 +333,21 @@ export default function TimelineEditor() {
   // Global spacebar play/pause functionality - like original
   useEffect(() => {
     const handleGlobalKeyPress = (event: KeyboardEvent) => {
-      // Only handle spacebar when not focused on input elements
+      // Only handle shortcuts when not focused on input elements
+      const target = event.target as HTMLElement;
+      const isInputElement =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.contentEditable === "true" ||
+        target.isContentEditable;
+
+      // If user is typing in an input field, don't interfere
+      if (isInputElement) {
+        return;
+      }
+
+      // Handle different key shortcuts
       if (event.code === "Space") {
-        const target = event.target as HTMLElement;
-        const isInputElement =
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.contentEditable === "true" ||
-          target.isContentEditable;
-
-        // If user is typing in an input field, don't interfere
-        if (isInputElement) {
-          return;
-        }
-
         // Prevent spacebar from scrolling the page
         event.preventDefault();
 
@@ -358,6 +359,80 @@ export default function TimelineEditor() {
             player.play();
           }
         }
+      } else if (event.key === "s" || event.key === "S") {
+        // Handle split shortcut
+        event.preventDefault();
+        handleSplitClick();
+      } else if (event.key === "r" || event.key === "R") {
+        // Reset ALL stuck interaction states with 'R' key
+        event.preventDefault();
+        console.log('Resetting all interaction states...');
+        
+        let resetCount = 0;
+        const resetActions: string[] = [];
+        
+        // 1. Reset all stuck dragging states
+        const allScrubbers = getAllScrubbers();
+        const draggingItems = allScrubbers.filter(scrubber => scrubber.is_dragging);
+        
+        if (draggingItems.length > 0) {
+          console.log('Found stuck dragging items:', draggingItems.map(item => item.id));
+          draggingItems.forEach((item) => {
+            handleUpdateScrubber({
+              ...item,
+              is_dragging: false,
+            });
+          });
+          resetCount += draggingItems.length;
+          resetActions.push(`${draggingItems.length} dragging state${draggingItems.length > 1 ? 's' : ''}`);
+        }
+        
+        // 2. Clear any stuck selection state
+        if (selectedItem) {
+          console.log('Clearing stuck selection:', selectedItem);
+          setSelectedItem(null);
+          resetCount++;
+          resetActions.push('selection');
+        }
+        
+        // 3. Clear preview selection state
+        if (selectedScrubberId) {
+          console.log('Clearing stuck scrubber selection:', selectedScrubberId);
+          setSelectedScrubberId(null);
+          resetCount++;
+          resetActions.push('scrubber selection');
+        }
+        
+        // 4. Force clear any stuck pointer capture by dispatching pointer events
+        try {
+          // Create and dispatch a synthetic pointerup event to clear any stuck captures
+          const pointerUpEvent = new PointerEvent('pointerup', {
+            bubbles: true,
+            cancelable: true,
+            pointerId: 1,
+            button: 0
+          });
+          document.dispatchEvent(pointerUpEvent);
+          
+          // Also dispatch mouseup as fallback
+          const mouseUpEvent = new MouseEvent('mouseup', {
+            bubbles: true,
+            cancelable: true,
+            button: 0
+          });
+          document.dispatchEvent(mouseUpEvent);
+          
+          resetActions.push('pointer events');
+          resetCount++;
+        } catch (error) {
+          console.warn('Failed to dispatch cleanup events:', error);
+        }
+        
+        if (resetCount > 0) {
+          toast.success(`Reset: ${resetActions.join(', ')}`);
+        } else {
+          toast.info('No stuck states found');
+        }
       }
     };
 
@@ -367,7 +442,7 @@ export default function TimelineEditor() {
     return () => {
       document.removeEventListener("keydown", handleGlobalKeyPress);
     };
-  }, []); // Empty dependency array since we're accessing playerRef.current directly
+  }, [handleSplitClick, getAllScrubbers, handleUpdateScrubber, selectedItem, selectedScrubberId, setSelectedItem, setSelectedScrubberId]); // Include dependencies
 
 
   // Fetch GitHub star count
@@ -636,6 +711,7 @@ export default function TimelineEditor() {
                             size="sm"
                             onClick={togglePlayback}
                             className="h-6 w-6 p-0"
+                        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
                           >
                             {isPlaying ? (
                               <Pause className="h-3 w-3" />
@@ -720,7 +796,7 @@ export default function TimelineEditor() {
                       title="Split selected scrubber at ruler position"
                     >
                       <Scissors className="h-3 w-3 mr-1" />
-                      Split
+                      Split (S)
                     </Button>
                     <Separator orientation="vertical" className="h-4 mx-1" />
                     <Button

@@ -31,6 +31,7 @@ export function llmAddScrubberByName(
   trackNumber: number,
   positionSeconds: number,
   pixelsPerSecond: number,
+  timeline: TimelineState,
   handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void
 ) {
   const scrubber = mediaBinItems.find(item => 
@@ -39,7 +40,14 @@ export function llmAddScrubberByName(
   if (!scrubber) {
     throw new Error(`Media item with name "${name}" not found`);
   }
-  const trackId = `track-${trackNumber}`;
+  
+  // Convert track number to array index (bottom-to-top ordering)
+  const trackIndex = timeline.tracks.length - trackNumber;
+  if (trackIndex < 0 || trackIndex >= timeline.tracks.length) {
+    throw new Error(`Track ${trackNumber} does not exist`);
+  }
+  
+  const trackId = timeline.tracks[trackIndex].id;
   const dropLeftPx = positionSeconds * pixelsPerSecond;
   handleDropOnTrack(scrubber, trackId, dropLeftPx);
 }
@@ -61,7 +69,7 @@ export function llmMoveScrubber(
   const updatedScrubber: ScrubberState = {
     ...scrubber,
     left: newPositionSeconds * pixelsPerSecond,
-    y: newTrackNumber - 1 // Convert to 0-based index
+    y: timeline.tracks.length - newTrackNumber // Convert track number to 0-based visual index (bottom-to-top ordering)
   };
   
   handleUpdateScrubber(updatedScrubber);
@@ -127,7 +135,7 @@ export function llmDeleteTrackByNumber(
   timeline: TimelineState,
   handleDeleteTrack: (trackId: string) => void
 ) {
-  const trackIndex = trackNumber - 1; // Convert to 0-based index
+  const trackIndex = timeline.tracks.length - trackNumber; // Convert track number to array index (bottom-to-top ordering)
   if (trackIndex < 0 || trackIndex >= timeline.tracks.length) {
     throw new Error(`Track ${trackNumber} does not exist`);
   }
@@ -595,7 +603,7 @@ export function llmGetScrubberAtPosition(
   pixelsPerSecond: number,
   timeline: TimelineState
 ): ScrubberState | null {
-  const trackIndex = trackNumber - 1;
+  const trackIndex = timeline.tracks.length - trackNumber; // Convert track number to array index (bottom-to-top ordering)
   if (trackIndex < 0 || trackIndex >= timeline.tracks.length) {
     return null;
   }

@@ -148,6 +148,10 @@ export const useTimeline = () => {
           // for video scrubbers (and audio in the future)
           trimBefore: scrubber.trimBefore,
           trimAfter: scrubber.trimAfter,
+            
+            // Audio controls
+            muted: scrubber.muted,
+            volume: scrubber.volume,
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
@@ -209,7 +213,7 @@ export const useTimeline = () => {
     };
     setTimeline((prev) => ({
       ...prev,
-      tracks: [...prev.tracks, newTrack],
+      tracks: [newTrack, ...prev.tracks], // Prepend instead of append for bottom-to-top ordering
     }));
   }, []);
 
@@ -459,6 +463,10 @@ export const useTimeline = () => {
         // for video scrubbers (and audio in the future)
         trimBefore: null,
         trimAfter: null,
+        
+        // Audio controls - initialize with defaults
+        muted: false,
+        volume: 1,
 
         left_transition_id: null,
         right_transition_id: null,

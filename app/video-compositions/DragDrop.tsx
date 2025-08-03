@@ -233,9 +233,26 @@ export const SelectionOutline: React.FC<{
 
       console.log("onPointerDown is called", ScrubberState.id);
       setSelectedItem(ScrubberState.id);
-      startDragging(e);
+      
+      // Add failsafe timeout to prevent stuck dragging
+      const dragTimeout = setTimeout(() => {
+        console.warn('Drag timeout reached, forcing cleanup for:', ScrubberState.id);
+        changeItem({
+          ...ScrubberState,
+          is_dragging: false,
+        });
+      }, 10000); // 10 second timeout
+      
+      // Store timeout reference for cleanup
+      const originalStartDragging = startDragging;
+      const wrappedStartDragging = (event: PointerEvent | React.MouseEvent) => {
+        clearTimeout(dragTimeout); // Clear timeout since we're properly handling drag
+        originalStartDragging(event);
+      };
+      
+      wrappedStartDragging(e);
     },
-    [ScrubberState.id, setSelectedItem, startDragging]
+    [ScrubberState, setSelectedItem, startDragging, changeItem]
   );
 
   return (
@@ -317,6 +334,47 @@ export const SortedOutlines: React.FC<{
         .some((ScrubberState) => ScrubberState.is_dragging),
     [timeline]
   );
+
+  // Reset any stuck dragging states if there are multiple items stuck in dragging mode
+  React.useEffect(() => {
+    const draggingItems = timeline.tracks
+      .flatMap((track: TrackState) => track.scrubbers)
+      .filter((ScrubberState) => ScrubberState.is_dragging);
+    
+    // If there are multiple items stuck dragging or items dragging without user interaction
+    if (draggingItems.length > 1) {
+      console.warn('Multiple items stuck in dragging state, resetting...', draggingItems.map(item => item.id));
+      draggingItems.forEach((item) => {
+        handleUpdateScrubber({
+          ...item,
+          is_dragging: false,
+        });
+      });
+    }
+    
+    // Also check for items that have been dragging for too long (potential stuck state)
+    // This uses a simple heuristic - if there are dragging items but no current pointer activity
+    if (draggingItems.length > 0) {
+      // Set a timeout to check if dragging state persists without user interaction
+      const timeoutId = setTimeout(() => {
+        const stillDraggingItems = timeline.tracks
+          .flatMap((track: TrackState) => track.scrubbers)
+          .filter((ScrubberState) => ScrubberState.is_dragging);
+        
+        if (stillDraggingItems.length > 0) {
+          console.warn('Detected potentially stuck dragging states, auto-clearing...', stillDraggingItems.map(item => item.id));
+          stillDraggingItems.forEach((item) => {
+            handleUpdateScrubber({
+              ...item,
+              is_dragging: false,
+            });
+          });
+        }
+      }, 5000); // 5 second timeout
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [timeline, handleUpdateScrubber]);
 
   return itemsToDisplay.map((ScrubberState) => {
     return (
