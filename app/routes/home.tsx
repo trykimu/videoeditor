@@ -94,6 +94,7 @@ export default function TimelineEditor() {
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false)
 
   const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
 
@@ -427,6 +428,12 @@ export default function TimelineEditor() {
       timelineContainer.removeEventListener("wheel", handleWheel);
     };
   }, [handleZoomIn, handleZoomOut]);
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null;
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground" onPointerDown={(e: React.PointerEvent) => {
