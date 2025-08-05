@@ -47,6 +47,9 @@ importers:
       '@remotion/bundler':
         specifier: 4.0.329
         version: 4.0.329(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@remotion/captions':
+        specifier: 4.0.331
+        version: 4.0.331
       '@remotion/cli':
         specifier: 4.0.329
         version: 4.0.329(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1205,6 +1208,9 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
+
+  '@remotion/captions@4.0.331':
+    resolution: {integrity: sha512-cip734ht4BLbcAXkz9tbs7fk514O/1ZjPogCKnWabyXZuyELWgQrfM5nIu73naXm56qtfZHJ4bWLYuKKKzFIbw==}
 
   '@remotion/cli@4.0.329':
     resolution: {integrity: sha512-6MoSY73yW+yqB+tVimmLyNRdmS/SICsSu6+vvvFL37dIHZLcFRQVO8ToRUC8DBTuUidujRm6JiSEdN6Q8BPYWg==}
@@ -5015,6 +5021,8 @@ snapshots:
       - uglify-js
       - utf-8-validate
       - webpack-cli
+
+  '@remotion/captions@4.0.331': {}
 
   '@remotion/cli@4.0.329(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
