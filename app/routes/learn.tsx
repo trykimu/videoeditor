@@ -238,8 +238,8 @@ const AlternativeCaptionStyle: React.FC<CaptionPageProps> = ({ page }) => {
       }}
     >
       {page.tokens.map((token, index) => {
-        const tokenStartFrame = (token.fromMs / 1000) * fps;
-        const isActive = frame >= tokenStartFrame;
+        const tokenRelativeStartFrame = ((token.fromMs - page.startMs) / 1000) * fps;
+        const isActive = frame >= tokenRelativeStartFrame;
 
         return (
           <span
