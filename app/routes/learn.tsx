@@ -102,7 +102,7 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
 
   // Animation for the page entrance
   const pageProgress = spring({
-    frame: frame - (page.startMs / 1000) * fps,
+    frame,
     fps,
     config: {
       damping: 15,
@@ -135,9 +135,11 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
     >
       {/* Render each token with individual animation */}
       {page.tokens.map((token, index) => {
-        const tokenStartFrame = (token.fromMs / 1000) * fps;
+        // Inside a <Sequence />, `frame` starts at 0 at `page.startMs`.
+        // Make token timing relative to the page start to avoid double-offsets.
+        const tokenRelativeStartFrame = ((token.fromMs - page.startMs) / 1000) * fps;
         const tokenProgress = spring({
-          frame: frame - tokenStartFrame,
+          frame: frame - tokenRelativeStartFrame,
           fps,
           config: {
             damping: 12,
@@ -146,16 +148,18 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
         });
 
         const tokenOpacity = interpolate(tokenProgress, [0, 0.3], [0, 1], {
+          extrapolateLeft: 'clamp',
           extrapolateRight: 'clamp',
         });
 
         const tokenScale = interpolate(tokenProgress, [0, 0.3], [0.9, 1], {
+          extrapolateLeft: 'clamp',
           extrapolateRight: 'clamp',
         });
 
         return (
           <span
-            key={`token-${token.fromMs}`}
+            key={`token-${page.startMs}-${token.fromMs}-${token.toMs}`}
             style={{
               opacity: tokenOpacity,
               transform: `scale(${tokenScale})`,
