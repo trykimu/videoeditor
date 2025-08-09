@@ -149,6 +149,7 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
         inset: 0,
         opacity,
         fontFamily: 'Arial, sans-serif',
+        zIndex: 10, // Ensure CaptionPage is above other elements
       }}
     >
       {/* Render each token with individual animation */}
@@ -272,6 +273,7 @@ const AlternativeCaptionStyle: React.FC<CaptionPageProps> = ({ page }) => {
         overflowWrap: 'anywhere',
         fontFamily: 'Impact, Arial Black, sans-serif',
         letterSpacing: '2px',
+        zIndex: 5, // Lower z-index than CaptionPage
       }}
     >
       {page.tokens.map((token, index) => {
@@ -340,23 +342,6 @@ export const CaptionsShowcase: React.FC = () => {
           <AlternativeCaptionStyle page={page} />
         </Sequence>
       ))}
-
-      {/* Debug info */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '5px',
-          left: '5px',
-          color: 'white',
-          fontSize: '1rem',
-          fontFamily: 'monospace',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          padding: '0.5rem',
-          borderRadius: '4px',
-        }}
-      >
-        Pages generated: {pages.length} | Quick pages: {quickPages.length} | Slow pages: {slowPages.length}
-      </div>
     </AbsoluteFill>
   );
 };
