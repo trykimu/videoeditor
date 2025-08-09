@@ -8,9 +8,19 @@ import {
   Sequence,
 } from 'remotion';
 import { Player } from '@remotion/player';
-import { createTikTokStyleCaptions, type Caption } from '@remotion/captions';
+import { createTikTokStyleCaptions } from '@remotion/captions';
 
-// Sample caption data - note the spaces before each word for proper formatting
+type Caption = {
+  text: string;
+  startMs: number;
+  endMs: number;
+  timestampMs: number | null;
+  confidence: number | null;
+  left: string;
+  top?: string;
+};
+
+
 const captions: Caption[] = [
   {
     text: 'Hi,',
@@ -18,13 +28,15 @@ const captions: Caption[] = [
     endMs: 500,
     timestampMs: 250,
     confidence: 0.95,
+    left: '10%',
   },
   {
-    text: ' Welcome',
+    text: ' Welcome efd sdf sd fsd fsd fsd f sf sdf sd fsd fsd fs d',
     startMs: 500,
     endMs: 800,
     timestampMs: 650,
     confidence: 0.98,
+    left: '20%',
   },
   {
     text: ' to',
@@ -32,6 +44,7 @@ const captions: Caption[] = [
     endMs: 1100,
     timestampMs: 950,
     confidence: 0.99,
+    left: '30%',
   },
   {
     text: ' Kimu',
@@ -39,6 +52,7 @@ const captions: Caption[] = [
     endMs: 1800,
     timestampMs: 1450,
     confidence: 0.97,
+    left: '40%',
   },
   {
     text: ' world',
@@ -46,6 +60,7 @@ const captions: Caption[] = [
     endMs: 2200,
     timestampMs: 2000,
     confidence: 0.96,
+    left: '50%',
   },
   {
     text: ' of',
@@ -53,6 +68,7 @@ const captions: Caption[] = [
     endMs: 2500,
     timestampMs: 2350,
     confidence: 0.99,
+    left: '60%',
   },
   {
     text: ' Remotion',
@@ -60,6 +76,7 @@ const captions: Caption[] = [
     endMs: 3200,
     timestampMs: 2850,
     confidence: 0.98,
+    left: '70%',
   },
   {
     text: ' video',
@@ -67,6 +84,7 @@ const captions: Caption[] = [
     endMs: 3800,
     timestampMs: 3500,
     confidence: 0.97,
+    left: '80%',
   },
   {
     text: ' editing!',
@@ -74,6 +92,7 @@ const captions: Caption[] = [
     endMs: 4500,
     timestampMs: 4150,
     confidence: 0.95,
+    left: '90%',
   },
 ];
 
@@ -110,26 +129,25 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
     },
   });
 
-  const scale = interpolate(pageProgress, [0, 1], [0.8, 1]);
   const opacity = interpolate(pageProgress, [0, 0.2, 1], [0, 1, 1]);
+
+  const findPositionForToken = (token: { text: string; fromMs: number; toMs: number }) => {
+    const byTime = captions.find(
+      (c) => Math.abs(c.startMs - token.fromMs) <= 50 && Math.abs(c.endMs - token.toMs) <= 50
+    );
+    if (byTime) {
+      return { left: byTime.left, top: byTime.top ?? '80%' };
+    }
+    const byText = captions.find((c) => c.text.trim() === token.text.trim());
+    return { left: byText?.left ?? '50%', top: byText?.top ?? '80%' };
+  };
 
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: '20%',
-        left: '50%',
-        transform: `translateX(-50%) scale(${scale})`,
+        inset: 0,
         opacity,
-        fontSize: '3rem',
-        fontWeight: 'bold',
-        color: '#ffffff',
-        textAlign: 'center',
-        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-        padding: '1rem 2rem',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        borderRadius: '1rem',
-        whiteSpace: 'pre', // Important: preserves spaces
         fontFamily: 'Arial, sans-serif',
       }}
     >
@@ -157,14 +175,29 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
           extrapolateRight: 'clamp',
         });
 
+        const { left, top } = findPositionForToken(token);
+
         return (
           <span
             key={`token-${page.startMs}-${token.fromMs}-${token.toMs}`}
             style={{
+              position: 'absolute',
+              left,
+              top,
               opacity: tokenOpacity,
-              transform: `scale(${tokenScale})`,
+              transform: `translate(-50%, -50%) scale(${tokenScale})`,
               display: 'inline-block',
               transition: 'transform 0.1s ease-out',
+              fontSize: '3rem',
+              fontWeight: 'bold',
+              color: '#ffffff',
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+            onMouseEnter={() => {
+              console.log('mouse entered token', token.text);
+            }}
+            onMouseLeave={() => {
+              console.log('mouse left token', token.text);
             }}
           >
             {token.text}
@@ -232,7 +265,11 @@ const AlternativeCaptionStyle: React.FC<CaptionPageProps> = ({ page }) => {
         color: '#ffff00',
         textAlign: 'center',
         WebkitTextStroke: '1px black',
-        whiteSpace: 'pre',
+        // Allow wrapping within a constrained width
+        maxWidth: '90%',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
         fontFamily: 'Impact, Arial Black, sans-serif',
         letterSpacing: '2px',
       }}
