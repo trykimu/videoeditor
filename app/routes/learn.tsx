@@ -16,8 +16,6 @@ type Caption = {
   endMs: number;
   timestampMs: number | null;
   confidence: number | null;
-  left: string;
-  top?: string;
 };
 
 
@@ -28,7 +26,6 @@ const captions: Caption[] = [
     endMs: 500,
     timestampMs: 250,
     confidence: 0.95,
-    left: '10%',
   },
   {
     text: ' Welcome efd sdf sd fsd fsd fsd f sf sdf sd fsd fsd fs d',
@@ -36,7 +33,6 @@ const captions: Caption[] = [
     endMs: 800,
     timestampMs: 650,
     confidence: 0.98,
-    left: '20%',
   },
   {
     text: ' to',
@@ -44,7 +40,6 @@ const captions: Caption[] = [
     endMs: 1100,
     timestampMs: 950,
     confidence: 0.99,
-    left: '30%',
   },
   {
     text: ' Kimu',
@@ -52,7 +47,6 @@ const captions: Caption[] = [
     endMs: 1800,
     timestampMs: 1450,
     confidence: 0.97,
-    left: '40%',
   },
   {
     text: ' world',
@@ -60,7 +54,6 @@ const captions: Caption[] = [
     endMs: 2200,
     timestampMs: 2000,
     confidence: 0.96,
-    left: '50%',
   },
   {
     text: ' of',
@@ -68,7 +61,6 @@ const captions: Caption[] = [
     endMs: 2500,
     timestampMs: 2350,
     confidence: 0.99,
-    left: '60%',
   },
   {
     text: ' Remotion',
@@ -76,7 +68,6 @@ const captions: Caption[] = [
     endMs: 3200,
     timestampMs: 2850,
     confidence: 0.98,
-    left: '70%',
   },
   {
     text: ' video',
@@ -84,7 +75,6 @@ const captions: Caption[] = [
     endMs: 3800,
     timestampMs: 3500,
     confidence: 0.97,
-    left: '80%',
   },
   {
     text: ' editing!',
@@ -92,7 +82,6 @@ const captions: Caption[] = [
     endMs: 4500,
     timestampMs: 4150,
     confidence: 0.95,
-    left: '90%',
   },
 ];
 
@@ -136,10 +125,10 @@ const CaptionPage = ({ page }: CaptionPageProps) => {
       (c) => Math.abs(c.startMs - token.fromMs) <= 50 && Math.abs(c.endMs - token.toMs) <= 50
     );
     if (byTime) {
-      return { left: byTime.left, top: byTime.top ?? '80%' };
+      return { left: '50%', top: '80%' };
     }
     const byText = captions.find((c) => c.text.trim() === token.text.trim());
-    return { left: byText?.left ?? '50%', top: byText?.top ?? '80%' };
+    return { left: '50%', top: '80%' };
   };
 
   return (
@@ -300,6 +289,94 @@ const AlternativeCaptionStyle: React.FC<CaptionPageProps> = ({ page }) => {
   );
 };
 
+// Glassy subtitles-only composition (bottom overlay)
+const GlassySubtitlePage = ({ page }: CaptionPageProps) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const containerStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: '50%',
+    bottom: '8%',
+    transform: 'translateX(-50%)',
+    zIndex: 20,
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.4rem',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '0.6rem 0.8rem',
+    borderRadius: 18,
+    backdropFilter: 'blur(12px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+    background: 'rgba(255, 255, 255, 0.14)',
+    border: '1px solid rgba(255, 255, 255, 0.22)',
+    boxShadow:
+      '0 10px 30px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
+  };
+
+  const tokenBaseStyle: React.CSSProperties = {
+    fontSize: 'clamp(18px, 3.2vw, 36px)',
+    fontWeight: 800,
+    lineHeight: 1.2,
+    letterSpacing: '0.6px',
+    padding: '0.1rem 0.2rem',
+    color: 'transparent',
+    backgroundImage:
+      'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.78) 100%)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    textShadow: '0 2px 10px rgba(0,0,0,0.45), 0 0 1px rgba(255,255,255,0.4)',
+    whiteSpace: 'pre-wrap',
+  };
+
+  const tokenInactiveStyle: React.CSSProperties = {
+    opacity: 0.35,
+    filter: 'blur(0.2px)',
+  };
+
+  return (
+    <div style={containerStyle}>
+      {page.tokens.map((token) => {
+        const tokenRelativeStartFrame = ((token.fromMs - page.startMs) / 1000) * fps;
+        const isActive = frame >= tokenRelativeStartFrame;
+        return (
+          <span
+            key={`glass-token-${page.startMs}-${token.fromMs}-${token.toMs}`}
+            style={{ ...tokenBaseStyle, ...(isActive ? {} : tokenInactiveStyle) }}
+          >
+            {token.text}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+const GlassySubtitlesExample: React.FC = () => {
+  const { fps } = useVideoConfig();
+  return (
+    <AbsoluteFill
+      style={{
+        background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {pages.map((page) => (
+        <Sequence
+          key={`glass-page-${page.startMs}`}
+          from={(page.startMs / 1000) * fps}
+          durationInFrames={(page.durationMs / 1000) * fps}
+        >
+          <GlassySubtitlePage page={page} />
+        </Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
 // Composition showcasing different caption configurations
 export const CaptionsShowcase: React.FC = () => {
   const { fps } = useVideoConfig();
@@ -407,6 +484,28 @@ const CaptionsPlayer = () => {
             style={{
               width: '300px',
               height: '533px', // Maintain aspect ratio
+            }}
+            controls
+            loop
+          />
+        </div>
+
+        {/* Glassy subtitles player */}
+        <div style={{
+          border: '2px solid #333',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        }}>
+          <Player
+            component={GlassySubtitlesExample}
+            durationInFrames={videoConfig.durationInFrames}
+            compositionWidth={videoConfig.width}
+            compositionHeight={videoConfig.height}
+            fps={videoConfig.fps}
+            style={{
+              width: '300px',
+              height: '533px',
             }}
             controls
             loop
