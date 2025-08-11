@@ -31,6 +31,7 @@ export interface TextProperties {
   color: string;
   textAlign: "left" | "center" | "right";
   fontWeight: "normal" | "bold";
+  template: "normal" | "glassy" | null;          // template uses tiktok style pages. null for normal text. templates might override the text properties.
 }
 
 // state of the scrubber in the media bin
