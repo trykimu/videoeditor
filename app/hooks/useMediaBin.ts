@@ -179,6 +179,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         uploadProgress: 0,
         left_transition_id: null,
         right_transition_id: null,
+        groupped_scrubber_ids: null,
       };
       setMediaBinItems(prev => [...prev, newItem]);
 
@@ -253,6 +254,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         color,
         textAlign,
         fontWeight,
+        template: null,       // for now, maybe we can also allow text to have a template (same ones from captions)
       },
       mediaUrlLocal: null,
       mediaUrlRemote: null,
@@ -261,6 +263,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       uploadProgress: null,
       left_transition_id: null,
       right_transition_id: null,
+      groupped_scrubber_ids: null,
     };
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);
@@ -356,6 +359,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         uploadProgress: null,
         left_transition_id: null,
         right_transition_id: null,
+        groupped_scrubber_ids: null,
       };
 
       // Add the audio item to the media bin

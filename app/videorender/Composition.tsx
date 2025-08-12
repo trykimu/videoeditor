@@ -32,7 +32,8 @@ export default function RenderComposition() {
                                     fontFamily: "Arial",
                                     color: "#000000",
                                     textAlign: "left",
-                                    fontWeight: "normal"
+                                    fontWeight: "normal",
+                                    template: null
                                 },
                                 left_player: 100,
                                 top_player: 100,
@@ -42,7 +43,8 @@ export default function RenderComposition() {
                                 trimBefore: null,
                                 trimAfter: null,
                                 left_transition_id: null,
-                                right_transition_id: null
+                                right_transition_id: null,
+                                groupped_scrubber_ids: null,
                             },
                         ],
                         transitions: {},

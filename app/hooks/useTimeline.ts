@@ -151,6 +151,7 @@ export const useTimeline = () => {
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
+          groupped_scrubber_ids: scrubber.groupped_scrubber_ids,
         });
       }
     }
@@ -443,6 +444,7 @@ export const useTimeline = () => {
         media_width: item.media_width,
         media_height: item.media_height,
         text: item.text,
+        groupped_scrubber_ids: item.groupped_scrubber_ids,
         sourceMediaBinId: item.id,
 
         // the following are the properties of the scrubber in <Player>
@@ -1068,6 +1070,155 @@ export const useTimeline = () => {
     }
   }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber, handleCollisionDetection, timelineWidth, hasTransitionBetween]);
 
+  // Group multiple scrubbers into a single grouped scrubber
+  const handleGroupScrubbers = useCallback((scrubberIds: string[]) => {
+    if (scrubberIds.length < 2) return;
+
+    setTimeline((prev) => {
+      // Find all scrubbers to group and their tracks
+      const scrubbersToGroup: ScrubberState[] = [];
+      let targetTrackIndex = -1;
+
+      for (const track of prev.tracks) {
+        for (const scrubber of track.scrubbers) {
+          if (scrubberIds.includes(scrubber.id)) {
+            scrubbersToGroup.push(scrubber);
+            if (targetTrackIndex === -1) {
+              targetTrackIndex = prev.tracks.indexOf(track);
+            }
+          }
+        }
+      }
+
+      if (scrubbersToGroup.length < 2 || targetTrackIndex === -1) return prev;
+
+      // Calculate grouped scrubber bounds
+      const leftmost = Math.min(...scrubbersToGroup.map(s => s.left));
+      const rightmost = Math.max(...scrubbersToGroup.map(s => s.left + s.width));
+      const topmost = Math.min(...scrubbersToGroup.map(s => s.y || 0));
+
+      // Create grouped scrubber
+      const groupedScrubber: ScrubberState = {
+        id: generateUUID(),
+        mediaType: "groupped_scrubber",
+        mediaUrlLocal: null,
+        mediaUrlRemote: null,
+        media_width: rightmost - leftmost,
+        media_height: 60,
+        text: null,
+        groupped_scrubber_ids: scrubberIds,
+        left_transition_id: null,
+        right_transition_id: null,
+        name: `Group (${scrubbersToGroup.length} items)`,
+        durationInSeconds: (rightmost - leftmost) / (PIXELS_PER_SECOND * zoomLevel),
+        uploadProgress: null,
+        isUploading: false,
+        left: leftmost,
+        y: topmost,
+        width: rightmost - leftmost,
+        sourceMediaBinId: generateUUID(),
+        left_player: 0,
+        top_player: 0,
+        width_player: 0,
+        height_player: 0,
+        is_dragging: false,
+        trimBefore: null,
+        trimAfter: null,
+      };
+
+      // Remove individual scrubbers and add grouped scrubber
+      return {
+        ...prev,
+        tracks: prev.tracks.map((track, index) => {
+          if (index === targetTrackIndex) {
+            return {
+              ...track,
+              scrubbers: [
+                ...track.scrubbers.filter(s => !scrubberIds.includes(s.id)),
+                groupedScrubber
+              ]
+            };
+          } else {
+            return {
+              ...track,
+              scrubbers: track.scrubbers.filter(s => !scrubberIds.includes(s.id))
+            };
+          }
+        }),
+      };
+    });
+  }, [zoomLevel]);
+
+  // Ungroup a grouped scrubber back into individual scrubbers
+  const handleUngroupScrubber = useCallback((groupedScrubberId: string) => {
+    setTimeline((prev) => {
+      // Find the grouped scrubber
+      let groupedScrubber: ScrubberState | null = null;
+      let trackIndex = -1;
+
+      for (let i = 0; i < prev.tracks.length; i++) {
+        const found = prev.tracks[i].scrubbers.find(s => s.id === groupedScrubberId);
+        if (found) {
+          groupedScrubber = found;
+          trackIndex = i;
+          break;
+        }
+      }
+
+      if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber" || !groupedScrubber.groupped_scrubber_ids) {
+        return prev;
+      }
+
+      // For now, we'll create placeholder individual scrubbers since we don't store the original data
+      // In a real implementation, you'd want to store the original scrubber data
+      const groupedIds = groupedScrubber.groupped_scrubber_ids || [];
+      const individualScrubbers: ScrubberState[] = groupedIds.map((id, index) => ({
+        id: generateUUID(),
+        mediaType: "image" as const,
+        mediaUrlLocal: null,
+        mediaUrlRemote: null,
+        media_width: 100,
+        media_height: 60,
+        text: null,
+        groupped_scrubber_ids: null,
+        left_transition_id: null,
+        right_transition_id: null,
+        name: `Ungrouped Item ${index + 1}`,
+        durationInSeconds: groupedScrubber.width / groupedIds.length / (PIXELS_PER_SECOND * zoomLevel),
+        uploadProgress: null,
+        isUploading: false,
+        left: groupedScrubber.left + (index * groupedScrubber.width / groupedIds.length),
+        y: groupedScrubber.y,
+        width: groupedScrubber.width / groupedIds.length,
+        sourceMediaBinId: generateUUID(),
+        left_player: 0,
+        top_player: 0,
+        width_player: 0,
+        height_player: 0,
+        is_dragging: false,
+        trimBefore: null,
+        trimAfter: null,
+      }));
+
+      // Replace grouped scrubber with individual scrubbers
+      return {
+        ...prev,
+        tracks: prev.tracks.map((track, index) => {
+          if (index === trackIndex) {
+            return {
+              ...track,
+              scrubbers: [
+                ...track.scrubbers.filter(s => s.id !== groupedScrubberId),
+                ...individualScrubbers
+              ]
+            };
+          }
+          return track;
+        }),
+      };
+    });
+  }, [zoomLevel]);
+
   return {
     timeline,
     timelineWidth,
@@ -1087,6 +1238,8 @@ export const useTimeline = () => {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    handleGroupScrubbers,
+    handleUngroupScrubber,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
