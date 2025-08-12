@@ -1,19 +1,19 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
-  PIXELS_PER_SECOND,
-  MIN_ZOOM,
-  MAX_ZOOM,
   DEFAULT_ZOOM,
+  FPS,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  PIXELS_PER_SECOND,
+  type MediaBinItem,
+  type ScrubberState,
+  type TimelineDataItem,
   type TimelineState,
   type TrackState,
-  type ScrubberState,
-  type MediaBinItem,
-  type TimelineDataItem,
   type Transition,
-  FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
-import { toast } from "sonner";
 
 export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
@@ -108,6 +108,50 @@ export const useTimeline = () => {
           ...scrubber,
           left: scrubber.left * zoomRatio,
           width: scrubber.width * zoomRatio,
+        })),
+      })),
+    }));
+  }, []);
+
+  // New zoom function that zooms to a specific center point
+  const handleZoomToPoint = useCallback((zoomFactor: number, centerX: number) => {
+    const currentZoom = zoomLevelRef.current;
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentZoom * zoomFactor));
+    const zoomRatio = newZoom / currentZoom;
+
+    zoomLevelRef.current = newZoom;
+    setZoomLevel(newZoom);
+
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => {
+          // Calculate new position relative to zoom center
+          const scrubberCenter = scrubber.left + scrubber.width / 2;
+          const distanceFromCenter = scrubberCenter - centerX;
+          const newDistanceFromCenter = distanceFromCenter * zoomRatio;
+          const newLeft = centerX + newDistanceFromCenter - (scrubber.width * zoomRatio) / 2;
+
+          return {
+            ...scrubber,
+            left: newLeft,
+            width: scrubber.width * zoomRatio,
+          };
+        }),
+      })),
+    }));
+  }, []);
+
+  // Pan function for horizontal scrolling
+  const handlePan = useCallback((deltaX: number) => {
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => ({
+          ...scrubber,
+          left: scrubber.left + deltaX,
         })),
       })),
     }));
@@ -1087,6 +1131,8 @@ export const useTimeline = () => {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    handleZoomToPoint,
+    handlePan,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,

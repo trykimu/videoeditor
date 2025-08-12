@@ -1,16 +1,14 @@
-import React, { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { Scrubber } from "./Scrubber";
 import { TransitionOverlay } from "./TransitionOverlay";
 import {
   DEFAULT_TRACK_HEIGHT,
-  PIXELS_PER_SECOND,
-  type ScrubberState,
   type MediaBinItem,
+  type ScrubberState,
   type TimelineState,
-  type Transition,
+  type Transition
 } from "./types";
 
 interface TimelineTracksProps {
@@ -39,6 +37,9 @@ interface TimelineTracksProps {
   pixelsPerSecond: number;
   selectedScrubberId: string | null;
   onSelectScrubber: (scrubberId: string | null) => void;
+  // Add zoom and pan handlers
+  onZoom?: (delta: number, centerX: number) => void;
+  onPan?: (deltaX: number) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -59,6 +60,8 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   pixelsPerSecond,
   selectedScrubberId,
   onSelectScrubber,
+  onZoom,
+  onPan,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -90,6 +93,32 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
       return () => document.removeEventListener("click", handleGlobalClick);
     }
   }, [selectedScrubberId, containerRef, onSelectScrubber]);
+
+  // Wheel event handler for zoom and pan
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    const container = containerRef.current;
+    if (!container || (!onZoom && !onPan) || timeline.tracks.length === 0) return;
+
+    const containerBounds = container.getBoundingClientRect();
+    const centerX = e.clientX - containerBounds.left + container.scrollLeft;
+
+    // Vertical scroll (deltaY) for zoom
+    if (onZoom && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      // Zoom factor - negative deltaY means scroll up (zoom in), positive means scroll down (zoom out)
+      // Use smaller zoom increments for smoother zooming
+      const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+      onZoom(zoomFactor, centerX);
+    }
+    
+    // Horizontal scroll (deltaX) for panning
+    if (onPan && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      // Scale down the pan amount for smoother panning
+      const panAmount = -e.deltaX * 0.5;
+      onPan(panAmount);
+    }
+  };
 
   return (
     <div className="flex flex-1 min-h-0">
@@ -130,6 +159,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
         className={`relative flex-1 bg-timeline-background timeline-scrollbar ${timeline.tracks.length === 0 ? "overflow-hidden" : "overflow-auto"
           }`}
         onScroll={timeline.tracks.length > 0 ? onScroll : undefined}
+        onWheel={handleWheel}
       >
         {timeline.tracks.length === 0 ? (
           /* Empty state - non-scrollable and centered */

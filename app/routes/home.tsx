@@ -119,6 +119,8 @@ export default function TimelineEditor() {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    handleZoomToPoint,
+    handlePan,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -404,32 +406,7 @@ export default function TimelineEditor() {
     }
   }, [isDraggingRuler, handleRulerMouseMove, handleRulerMouseUp]);
 
-  // Timeline wheel zoom functionality
-  useEffect(() => {
-    const timelineContainer = containerRef.current;
-    if (!timelineContainer) return;
 
-    const handleWheel = (e: WheelEvent) => {
-      // Only zoom if Ctrl or Cmd is held
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const scrollDirection = e.deltaY > 0 ? -1 : 1;
-
-        if (scrollDirection > 0) {
-          handleZoomIn();
-        } else {
-          handleZoomOut();
-        }
-      }
-    };
-
-    timelineContainer.addEventListener("wheel", handleWheel, {
-      passive: false,
-    });
-    return () => {
-      timelineContainer.removeEventListener("wheel", handleWheel);
-    };
-  }, [handleZoomIn, handleZoomOut]);
 
   useEffect(() => {
     setMounted(true)
@@ -680,6 +657,7 @@ export default function TimelineEditor() {
                     >
                       {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                     </Badge>
+                    {/* <span className="text-xs text-muted-foreground">• Mouse wheel to zoom</span> */}
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="flex items-center">
@@ -773,6 +751,8 @@ export default function TimelineEditor() {
                   pixelsPerSecond={getPixelsPerSecond()}
                   selectedScrubberId={selectedScrubberId}
                   onSelectScrubber={setSelectedScrubberId}
+                  onZoom={handleZoomToPoint}
+                  onPan={handlePan}
                 />
               </div>
             </ResizablePanel>
