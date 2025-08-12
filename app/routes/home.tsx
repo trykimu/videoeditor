@@ -1,53 +1,53 @@
-import React, { useRef, useEffect, useCallback, useState } from "react";
-import type { PlayerRef, CallbackListener } from "@remotion/player";
+import type { CallbackListener, PlayerRef } from "@remotion/player";
 import {
-  Moon,
-  Sun,
-  Play,
-  Pause,
-  Upload,
-  Download,
-  Settings,
-  Plus,
-  Minus,
   ChevronLeft,
+  Download,
+  Minus,
+  Moon,
+  Pause,
+  Play,
+  Plus,
   Scissors,
+  Settings,
   Star,
+  Sun,
+  Upload,
 } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // Custom video controls
-import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
 import { useTheme } from "next-themes";
+import { FullscreenButton, MuteButton } from "~/components/ui/video-controls";
 
 // Components
+import { toast } from "sonner";
 import LeftPanel from "~/components/editor/LeftPanel";
-import { VideoPlayer } from "~/video-compositions/VideoPlayer";
 import { RenderStatus } from "~/components/timeline/RenderStatus";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
-import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "~/components/ui/resizable";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "~/components/ui/resizable";
-import { toast } from "sonner";
+import { VideoPlayer } from "~/video-compositions/VideoPlayer";
 
 // Hooks
-import { useTimeline } from "~/hooks/useTimeline";
 import { useMediaBin } from "~/hooks/useMediaBin";
-import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
+import { useRuler } from "~/hooks/useRuler";
+import { useTimeline } from "~/hooks/useTimeline";
 
 // Types and constants
-import { FPS, type Transition } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
+import { FPS, type Transition } from "~/components/timeline/types";
 
 interface Message {
   id: string;
@@ -355,8 +355,10 @@ export default function TimelineEditor() {
         if (player) {
           if (player.isPlaying()) {
             player.pause();
+            setIsPlaying(false);
           } else {
             player.play();
+            setIsPlaying(true);
           }
         }
       }
