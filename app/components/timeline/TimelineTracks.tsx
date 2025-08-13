@@ -308,6 +308,10 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     const rightScrubber = transition.rightScrubberId ?
                       track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
 
+                    if (leftScrubber == null && rightScrubber == null) {
+                      continue;
+                    }
+
                     transitionComponents.push(
                       <TransitionOverlay
                         key={transition.id}

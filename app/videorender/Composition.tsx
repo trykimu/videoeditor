@@ -44,7 +44,7 @@ export default function RenderComposition() {
                                 trimAfter: null,
                                 left_transition_id: null,
                                 right_transition_id: null,
-                                groupped_scrubber_ids: null,
+                                groupped_scrubbers: null,
                             },
                         ],
                         transitions: {},

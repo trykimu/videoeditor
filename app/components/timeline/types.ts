@@ -8,7 +8,7 @@ export interface BaseScrubber {
   media_height: number; // height of the media in pixels
 
   text: TextProperties | null;
-  groupped_scrubber_ids: string[] | null; // null for not grouped
+  groupped_scrubbers: ScrubberState[] | null; // null for not grouped
 
   // transitions are managed using the right transition id, as in what to add to the right. Convenient to think of. Left one is for the initial transition, first scrubber intro. we won't use it anywhere else.
   // for a middle transition, you will only see its information in the left scrubber.

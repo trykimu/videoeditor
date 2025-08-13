@@ -151,7 +151,7 @@ export const useTimeline = () => {
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
-          groupped_scrubber_ids: scrubber.groupped_scrubber_ids,
+          groupped_scrubbers: scrubber.groupped_scrubbers,
         });
       }
     }
@@ -444,7 +444,7 @@ export const useTimeline = () => {
         media_width: item.media_width,
         media_height: item.media_height,
         text: item.text,
-        groupped_scrubber_ids: item.groupped_scrubber_ids,
+        groupped_scrubbers: item.groupped_scrubbers,
         sourceMediaBinId: item.id,
 
         // the following are the properties of the scrubber in <Player>
@@ -1106,7 +1106,7 @@ export const useTimeline = () => {
         media_width: rightmost - leftmost,
         media_height: 60,
         text: null,
-        groupped_scrubber_ids: scrubberIds,
+        groupped_scrubbers: scrubbersToGroup,
         left_transition_id: null,
         right_transition_id: null,
         name: `Group (${scrubbersToGroup.length} items)`,
@@ -1165,13 +1165,13 @@ export const useTimeline = () => {
         }
       }
 
-      if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber" || !groupedScrubber.groupped_scrubber_ids) {
+      if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber" || !groupedScrubber.groupped_scrubbers) {
         return prev;
       }
 
       // For now, we'll create placeholder individual scrubbers since we don't store the original data
       // In a real implementation, you'd want to store the original scrubber data
-      const groupedIds = groupedScrubber.groupped_scrubber_ids || [];
+      const groupedIds = groupedScrubber.groupped_scrubbers || [];
       const individualScrubbers: ScrubberState[] = groupedIds.map((id, index) => ({
         id: generateUUID(),
         mediaType: "image" as const,
@@ -1180,7 +1180,7 @@ export const useTimeline = () => {
         media_width: 100,
         media_height: 60,
         text: null,
-        groupped_scrubber_ids: null,
+        groupped_scrubbers: null,
         left_transition_id: null,
         right_transition_id: null,
         name: `Ungrouped Item ${index + 1}`,
