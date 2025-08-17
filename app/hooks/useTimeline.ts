@@ -1169,35 +1169,42 @@ export const useTimeline = () => {
         return prev;
       }
 
-      // For now, we'll create placeholder individual scrubbers since we don't store the original data
-      // In a real implementation, you'd want to store the original scrubber data
+      // Calculate the original bounds when the scrubbers were grouped
       const groupedIds = groupedScrubber.groupped_scrubbers || [];
-      const individualScrubbers: ScrubberState[] = groupedIds.map((id, index) => ({
-        id: generateUUID(),
-        mediaType: "image" as const,
-        mediaUrlLocal: null,
-        mediaUrlRemote: null,
-        media_width: 100,
-        media_height: 60,
-        text: null,
-        groupped_scrubbers: null,
-        left_transition_id: null,
-        right_transition_id: null,
-        name: `Ungrouped Item ${index + 1}`,
-        durationInSeconds: groupedScrubber.width / groupedIds.length / (PIXELS_PER_SECOND * zoomLevel),
-        uploadProgress: null,
-        isUploading: false,
-        left: groupedScrubber.left + (index * groupedScrubber.width / groupedIds.length),
-        y: groupedScrubber.y,
-        width: groupedScrubber.width / groupedIds.length,
-        sourceMediaBinId: generateUUID(),
-        left_player: 0,
-        top_player: 0,
-        width_player: 0,
-        height_player: 0,
-        is_dragging: false,
-        trimBefore: null,
-        trimAfter: null,
+      const originalLeftmost = Math.min(...groupedIds.map(s => s.left));
+      const originalTopmost = Math.min(...groupedIds.map(s => s.y || 0));
+
+      // Calculate offset based on current grouped scrubber position vs original position
+      const leftOffset = groupedScrubber.left - originalLeftmost;
+      const topOffset = groupedScrubber.y - originalTopmost;
+
+      const individualScrubbers: ScrubberState[] = groupedIds.map((id, _) => ({
+        id: id.id,
+        mediaType: id.mediaType,
+        mediaUrlLocal: id.mediaUrlLocal,
+        mediaUrlRemote: id.mediaUrlRemote,
+        media_width: id.media_width,
+        media_height: id.media_height,
+        text: id.text,
+        groupped_scrubbers: id.groupped_scrubbers,
+        left_transition_id: id.left_transition_id,
+        right_transition_id: id.right_transition_id,
+        name: id.name,
+        durationInSeconds: id.durationInSeconds,
+        uploadProgress: id.uploadProgress,
+        isUploading: id.isUploading,
+        // Maintain relative positions but adjust based on current grouped scrubber position
+        left: id.left + leftOffset,
+        y: id.y + topOffset,
+        width: id.width,
+        sourceMediaBinId: id.sourceMediaBinId,
+        left_player: id.left_player,
+        top_player: id.top_player,
+        width_player: id.width_player,
+        height_player: id.height_player,
+        is_dragging: id.is_dragging,
+        trimBefore: id.trimBefore,
+        trimAfter: id.trimAfter,
       }));
 
       // Replace grouped scrubber with individual scrubbers
@@ -1217,7 +1224,7 @@ export const useTimeline = () => {
         }),
       };
     });
-  }, [zoomLevel]);
+  }, []);
 
   return {
     timeline,
