@@ -121,6 +121,7 @@ export default function TimelineEditor() {
     handleZoomReset,
     handleGroupScrubbers,
     handleUngroupScrubber,
+    handleMoveGroupToMediaBin,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -132,6 +133,7 @@ export default function TimelineEditor() {
     mediaBinItems,
     handleAddMediaToBin,
     handleAddTextToBin,
+    handleAddGroupToMediaBin,
     contextMenu,
     handleContextMenu,
     handleDeleteFromContext,
@@ -332,6 +334,12 @@ export default function TimelineEditor() {
     setSelectedScrubberIds([]); // Clear selection after ungrouping
     toast.success("Ungrouped scrubber");
   }, [handleUngroupScrubber]);
+
+  // Handler for moving grouped scrubber to media bin
+  const handleMoveToMediaBinSelected = useCallback((scrubberId: string) => {
+    handleMoveGroupToMediaBin(scrubberId, handleAddGroupToMediaBin);
+    setSelectedScrubberIds([]); // Clear selection after moving
+  }, [handleMoveGroupToMediaBin, handleAddGroupToMediaBin]);
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef);
@@ -823,6 +831,7 @@ export default function TimelineEditor() {
                   onSelectScrubber={handleSelectScrubber}
                   onGroupScrubbers={handleGroupSelected}
                   onUngroupScrubber={handleUngroupSelected}
+                  onMoveToMediaBin={handleMoveToMediaBinSelected}
                 />
               </div>
             </ResizablePanel>

@@ -404,7 +404,7 @@ export const useTimeline = () => {
 
       const pixelsPerSecond = getPixelsPerSecond();
       let widthPx = item.mediaType === "text" ? 80 : 150;
-      if ((item.mediaType === "video" || item.mediaType === "audio") && item.durationInSeconds) {
+      if ((item.mediaType === "video" || item.mediaType === "audio" || item.mediaType === "groupped_scrubber") && item.durationInSeconds) {
         widthPx = item.durationInSeconds * pixelsPerSecond;
       } else if (item.mediaType === "image") {
         widthPx = 100;
@@ -1228,6 +1228,34 @@ export const useTimeline = () => {
     });
   }, []);
 
+  // Move a grouped scrubber to media bin and remove from timeline
+  const handleMoveGroupToMediaBin = useCallback((groupedScrubberId: string, addToMediaBin: (scrubber: ScrubberState, pixelsPerSecond: number) => void) => {
+    // Find the grouped scrubber
+    const allScrubbers = getAllScrubbers();
+    const groupedScrubber = allScrubbers.find(s => s.id === groupedScrubberId);
+    
+    if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber") {
+      toast.error("Invalid grouped scrubber");
+      return;
+    }
+
+    // Add to media bin first with current pixels per second for correct duration calculation
+    addToMediaBin(groupedScrubber, getPixelsPerSecond());
+    
+    // Then remove from timeline (similar to handleDeleteScrubber)
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.filter(
+          (scrubber) => scrubber.id !== groupedScrubberId
+        ),
+      }))
+    }));
+
+    toast.success("Moved grouped scrubber to media bin");
+  }, [getAllScrubbers, getPixelsPerSecond]);
+
   return {
     timeline,
     timelineWidth,
@@ -1249,6 +1277,7 @@ export const useTimeline = () => {
     handleZoomReset,
     handleGroupScrubbers,
     handleUngroupScrubber,
+    handleMoveGroupToMediaBin,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,

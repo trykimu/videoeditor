@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { Trash2, Group, Ungroup } from "lucide-react";
+import { Trash2, Group, Ungroup, Archive } from "lucide-react";
 
 // something something for the css not gonna bother with it for now
 export interface SnapConfig {
@@ -23,6 +23,7 @@ export interface ScrubberProps {
   onSelect: (scrubberId: string, ctrlKey: boolean) => void;
   onGroupScrubbers: () => void;
   onUngroupScrubber: (scrubberId: string) => void;
+  onMoveToMediaBin?: (scrubberId: string) => void;
   selectedScrubberIds: string[];
 }
 
@@ -41,6 +42,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   onSelect,
   onGroupScrubbers,
   onUngroupScrubber,
+  onMoveToMediaBin,
   selectedScrubberIds = [],
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -383,6 +385,19 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, [onUngroupScrubber, scrubber.id]);
 
+  // Handle context menu move to media bin action
+  const handleContextMenuMoveToMediaBin = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onMoveToMediaBin) {
+      onMoveToMediaBin(scrubber.id);
+    }
+
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [onMoveToMediaBin, scrubber.id]);
+
   // Add click outside listener for context menu
   useEffect(() => {
     if (contextMenu.visible) {
@@ -503,6 +518,17 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             >
               <Ungroup className="h-3 w-3" />
               Ungroup
+            </button>
+          )}
+
+          {/* Show Move to Media Bin option only for grouped scrubbers */}
+          {scrubber.mediaType === "groupped_scrubber" && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuMoveToMediaBin}
+            >
+              <Archive className="h-3 w-3" />
+              Move to Media Bin
             </button>
           )}
 

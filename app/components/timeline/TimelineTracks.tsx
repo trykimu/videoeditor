@@ -41,6 +41,7 @@ interface TimelineTracksProps {
   onSelectScrubber: (scrubberId: string | null, ctrlKey: boolean) => void;
   onGroupScrubbers: () => void;
   onUngroupScrubber: (scrubberId: string) => void;
+  onMoveToMediaBin?: (scrubberId: string) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -63,6 +64,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onSelectScrubber,
   onGroupScrubbers,
   onUngroupScrubber,
+  onMoveToMediaBin,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -288,6 +290,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     onSelect={onSelectScrubber}
                     onGroupScrubbers={onGroupScrubbers}
                     onUngroupScrubber={onUngroupScrubber}
+                    onMoveToMediaBin={onMoveToMediaBin}
                     selectedScrubberIds={selectedScrubberIds}
                     containerRef={containerRef}
                     expandTimeline={expandTimeline}

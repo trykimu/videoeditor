@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import axios from "axios"
-import { type MediaBinItem } from "~/components/timeline/types"
+import { type MediaBinItem, type ScrubberState } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
 
@@ -400,12 +400,41 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     setContextMenu(null);
   }, []);
 
+  const handleAddGroupToMediaBin = useCallback((groupedScrubber: ScrubberState, currentPixelsPerSecond: number) => {
+    // Calculate the actual duration in seconds by dividing the current pixel width
+    // by the current zoom-adjusted pixels per second - this gives us the true duration
+    // regardless of zoom level
+    const actualDurationInSeconds = groupedScrubber.width / currentPixelsPerSecond;
+    
+    // Create a new media bin item from the grouped scrubber
+    const newItem: MediaBinItem = {
+      id: groupedScrubber.id,
+      name: groupedScrubber.name || "Grouped Media",
+      mediaType: "groupped_scrubber",
+      mediaUrlLocal: null,
+      mediaUrlRemote: null,
+      durationInSeconds: actualDurationInSeconds,
+      media_width: groupedScrubber.media_width || 0,
+      media_height: groupedScrubber.media_height || 0,
+      text: null,
+      isUploading: false,
+      uploadProgress: null,
+      left_transition_id: null,
+      right_transition_id: null,
+      groupped_scrubbers: groupedScrubber.groupped_scrubbers,
+    };
+    
+    setMediaBinItems(prev => [...prev, newItem]);
+    console.log("Added grouped scrubber to media bin:", newItem.name);
+  }, []);
+
   return {
     mediaBinItems,
     handleAddMediaToBin,
     handleAddTextToBin,
     handleDeleteMedia,
     handleSplitAudio,
+    handleAddGroupToMediaBin,
     contextMenu,
     handleContextMenu,
     handleDeleteFromContext,
