@@ -27,13 +27,26 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
     let left = 0;
     const width = (transition.durationInFrames / 30) * pixelsPerSecond; // Convert frames to pixels
     let top = 0;
+    
+    // Define snap distance threshold (same as in useTimeline.ts)
+    const SNAP_DISTANCE = 10;
 
     if (leftScrubber && rightScrubber) {
-      // Position transition on the overlap area
-      // The overlap starts at the rightScrubber.left and has width equal to transition duration
-      const overlapStart = rightScrubber.left;
-      left = overlapStart;
-      top = leftScrubber.y * DEFAULT_TRACK_HEIGHT;
+      // Check if there's an overlap or a gap between scrubbers
+      const leftScrubberEnd = leftScrubber.left + leftScrubber.width;
+      const gap = rightScrubber.left - leftScrubberEnd;
+      
+      if (gap <= SNAP_DISTANCE) {
+        // Scrubbers are close enough - position transition on the overlap area
+        // The overlap starts at the rightScrubber.left and has width equal to transition duration
+        const overlapStart = rightScrubber.left;
+        left = overlapStart;
+        top = leftScrubber.y * DEFAULT_TRACK_HEIGHT;
+      } else {
+        // There's a gap - position the transition as an outro from the left scrubber
+        left = leftScrubber.left + leftScrubber.width - width;
+        top = leftScrubber.y * DEFAULT_TRACK_HEIGHT;
+      }
     } else if (leftScrubber) {
       // Transition after a scrubber (outro) - position at the end of left scrubber
       left = leftScrubber.left + leftScrubber.width - width;
