@@ -1172,11 +1172,13 @@ export const useTimeline = () => {
       // Calculate the original bounds when the scrubbers were grouped
       const groupedIds = groupedScrubber.groupped_scrubbers || [];
       const originalLeftmost = Math.min(...groupedIds.map(s => s.left));
+      const originalRightmost = Math.max(...groupedIds.map(s => s.left + s.width));
       const originalTopmost = Math.min(...groupedIds.map(s => s.y || 0));
+      const originalGroupWidth = originalRightmost - originalLeftmost;
 
-      // Calculate offset based on current grouped scrubber position vs original position
-      const leftOffset = groupedScrubber.left - originalLeftmost;
+      // Calculate scaling based on current grouped scrubber vs original bounds
       const topOffset = groupedScrubber.y - originalTopmost;
+      const widthScale = originalGroupWidth > 0 ? groupedScrubber.width / originalGroupWidth : 1;
 
       const individualScrubbers: ScrubberState[] = groupedIds.map((id, _) => ({
         id: id.id,
@@ -1193,10 +1195,10 @@ export const useTimeline = () => {
         durationInSeconds: id.durationInSeconds,
         uploadProgress: id.uploadProgress,
         isUploading: id.isUploading,
-        // Maintain relative positions but adjust based on current grouped scrubber position
-        left: id.left + leftOffset,
+        // Scale relative positions and adjust based on current grouped scrubber position
+        left: groupedScrubber.left + (id.left - originalLeftmost) * widthScale,
         y: id.y + topOffset,
-        width: id.width,
+        width: id.width * widthScale, // Adjust width according to how the group has been scaled
         sourceMediaBinId: id.sourceMediaBinId,
         left_player: id.left_player,
         top_player: id.top_player,

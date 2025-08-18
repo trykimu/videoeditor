@@ -675,6 +675,7 @@ export default function TimelineEditor() {
                           handleUpdateScrubber={handleUpdateScrubber}
                           selectedItem={selectedItem}
                           setSelectedItem={setSelectedItem}
+                          getPixelsPerSecond={getPixelsPerSecond}
                         />
                       </div>
 

@@ -29,6 +29,7 @@ type TimelineCompositionProps = {
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   timeline: TimelineState;
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
+  getPixelsPerSecond: () => number;
 };
 
 // props for the preview mode player
@@ -42,6 +43,7 @@ export type VideoPlayerProps = {
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
+  getPixelsPerSecond: () => number;
 };
 
 export function TimelineComposition({
@@ -51,6 +53,7 @@ export function TimelineComposition({
   setSelectedItem,
   timeline,
   handleUpdateScrubber,
+  getPixelsPerSecond,
 }: TimelineCompositionProps) {
   // Get all transitions from timelineData
   const allTransitions = timelineData[0].transitions;
@@ -259,7 +262,7 @@ export function TimelineComposition({
           scrubberStack.push({
             scrubber: grouppedScrubber,
             keyPrefix: `scrubber-${grouppedScrubber.id}`,
-            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / PIXELS_PER_SECOND) * FPS), 1)    // todo: bring the duration() code from gettimelinedata() because it is written with zoom in mind.
+            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / getPixelsPerSecond()) * FPS), 1)
           });
         }
       } else {
@@ -282,7 +285,7 @@ export function TimelineComposition({
             scrubberStack.push({
               scrubber: nestedScrubber,
               keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
-              durationCalculation: () => Math.max(Math.round((nestedScrubber.width / PIXELS_PER_SECOND) * FPS), 1)
+              durationCalculation: () => Math.max(Math.round((nestedScrubber.width / getPixelsPerSecond()) * FPS), 1)
             });
           }
         } else {
@@ -380,6 +383,7 @@ export function VideoPlayer({
   handleUpdateScrubber,
   selectedItem,
   setSelectedItem,
+  getPixelsPerSecond,
 }: VideoPlayerProps) {
   // Calculate composition width if not provided
   if (compositionWidth === null) {
@@ -422,6 +426,7 @@ export function VideoPlayer({
         setSelectedItem,
         timeline,
         handleUpdateScrubber,
+        getPixelsPerSecond,
       }}
       durationInFrames={durationInFrames || 10}
       compositionWidth={compositionWidth}
