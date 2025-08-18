@@ -258,7 +258,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       },
       mediaUrlLocal: null,
       mediaUrlRemote: null,
-      durationInSeconds: 0,
+      durationInSeconds: 0,     // interesting code. i wish i remembered why i did this. maybe there's a better way.
       isUploading: false,
       uploadProgress: null,
       left_transition_id: null,

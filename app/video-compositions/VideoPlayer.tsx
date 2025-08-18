@@ -14,6 +14,7 @@ import { slide } from "@remotion/transitions/slide";
 import React from "react";
 import {
   FPS,
+  PIXELS_PER_SECOND,
   type ScrubberState,
   type TimelineDataItem,
   type TimelineState,
@@ -75,7 +76,7 @@ export function TimelineComposition({
   }
 
   // Helper function to create media content
-  const createMediaContent = (scrubber: TimelineDataItem['scrubbers'][0]): React.ReactNode => {
+  const createMediaContent = (scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState): React.ReactNode => {
     let content: React.ReactNode = null;
 
     switch (scrubber.mediaType) {
@@ -156,7 +157,7 @@ export function TimelineComposition({
         const audioUrl = isRendering
           ? scrubber.mediaUrlRemote
           : scrubber.mediaUrlLocal;
-        content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined}/>;
+        content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />;
         break;
       }
       default:
@@ -243,17 +244,61 @@ export function TimelineComposition({
         );
       }
 
-      // Add the scrubber content
-      const mediaContent = createMediaContent(scrubber);
-      if (mediaContent) {
-        transitionSeriesElements.push(
-          <TransitionSeries.Sequence
-            key={`scrubber-${scrubber.id}`}
-            durationInFrames={Math.max(Math.round(scrubber.duration * FPS), 1)}
-          >
-            {mediaContent}
-          </TransitionSeries.Sequence>
-        );
+      // Add the scrubber content using stack-based approach for nested groups
+      const scrubberStack: Array<{
+        scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState;
+        keyPrefix: string;
+        durationCalculation: () => number;
+      }> = [];
+
+      // Initialize stack with current scrubber
+      if (scrubber.mediaType === "groupped_scrubber") {
+        // Add all grouped scrubbers to the stack in reverse order (so they're processed in correct order)
+        for (let j = (scrubber.groupped_scrubbers || []).length - 1; j >= 0; j--) {
+          const grouppedScrubber = (scrubber.groupped_scrubbers || [])[j];
+          scrubberStack.push({
+            scrubber: grouppedScrubber,
+            keyPrefix: `scrubber-${grouppedScrubber.id}`,
+            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / PIXELS_PER_SECOND) * FPS), 1)    // todo: bring the duration() code from gettimelinedata() because it is written with zoom in mind.
+          });
+        }
+      } else {
+        scrubberStack.push({
+          scrubber: scrubber,
+          keyPrefix: `scrubber-${scrubber.id}`,
+          durationCalculation: () => Math.max(Math.round(scrubber.duration * FPS), 1)
+        });
+      }
+
+      // Process the stack
+      while (scrubberStack.length > 0) {
+        const stackItem = scrubberStack.pop()!;
+        const { scrubber: currentScrubber, keyPrefix, durationCalculation } = stackItem;
+
+        if (currentScrubber.mediaType === "groupped_scrubber") {
+          // Add nested grouped scrubbers to the stack in reverse order
+          for (let k = (currentScrubber.groupped_scrubbers || []).length - 1; k >= 0; k--) {
+            const nestedScrubber = (currentScrubber.groupped_scrubbers || [])[k];
+            scrubberStack.push({
+              scrubber: nestedScrubber,
+              keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
+              durationCalculation: () => Math.max(Math.round((nestedScrubber.width / PIXELS_PER_SECOND) * FPS), 1)
+            });
+          }
+        } else {
+          // Create media content for non-grouped scrubber
+          const mediaContent = createMediaContent(currentScrubber);
+          if (mediaContent) {
+            transitionSeriesElements.push(
+              <TransitionSeries.Sequence
+                key={keyPrefix}
+                durationInFrames={durationCalculation()}
+              >
+                {mediaContent}
+              </TransitionSeries.Sequence>
+            );
+          }
+        }
       }
 
       // Add right transition if exists

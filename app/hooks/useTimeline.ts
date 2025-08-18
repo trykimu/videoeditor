@@ -1090,7 +1090,7 @@ export const useTimeline = () => {
         }
       }
 
-      if (scrubbersToGroup.length < 2 || targetTrackIndex === -1) return prev;
+      scrubbersToGroup.sort((a, b) => a.left - b.left);
 
       // Calculate grouped scrubber bounds
       const leftmost = Math.min(...scrubbersToGroup.map(s => s.left));
