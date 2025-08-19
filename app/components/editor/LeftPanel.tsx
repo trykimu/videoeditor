@@ -77,7 +77,7 @@ export default function LeftPanel({
               asChild
               className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
-              <Link to="/transitions" className="flex items-center gap-1.5">
+              <Link to="transitions" className="flex items-center gap-1.5">
                 <BetweenVerticalEnd className="h-3 w-3" />
               </Link>
             </TabsTrigger>

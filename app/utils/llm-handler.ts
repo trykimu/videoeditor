@@ -634,13 +634,13 @@ export function llmSetTheme(
 export function llmNavigateToTextEditor(
   navigate: (path: string) => void
 ) {
-  navigate("/text-editor");
+  navigate("/editor/text-editor");
 }
 
 export function llmNavigateToMediaBin(
   navigate: (path: string) => void
 ) {
-  navigate("/media-bin");
+  navigate("/editor/media-bin");
 }
 
 export function llmNavigateHome(

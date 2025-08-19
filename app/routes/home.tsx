@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Scissors,
   Star,
+  Bot,
 } from "lucide-react";
 
 // Custom video controls
@@ -48,6 +49,7 @@ import { useRenderer } from "~/hooks/useRenderer";
 import { FPS, type Transition } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
+import { KimuLogo } from "~/components/ui/KimuLogo";
 
 interface Message {
   id: string;
@@ -90,7 +92,7 @@ export default function TimelineEditor() {
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
   const [isAutoSize, setIsAutoSize] = useState<boolean>(false);
-  const [isChatMinimized, setIsChatMinimized] = useState<boolean>(true);
+  const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
@@ -256,7 +258,7 @@ export default function TimelineEditor() {
   }, []);
 
   const handleAddTextClick = useCallback(() => {
-    navigate("/text-editor");
+    navigate("/editor/text-editor");
   }, [navigate]);
 
   const handleAddTrackClick = useCallback(() => {
@@ -445,7 +447,8 @@ export default function TimelineEditor() {
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-medium tracking-tight">Kimu</h1>
+          <KimuLogo className="h-4 w-4" />
+          <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
 
         <div className="flex items-center gap-1">
@@ -518,157 +521,141 @@ export default function TimelineEditor() {
         </div>
       </header>
 
-      {/* Main content area with chat extending to bottom */}
+      {/* Main content: Left panel full height, center preview+timeline, right chat always visible */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* Left section with media bin, video preview, and timeline */}
-        <ResizablePanel defaultSize={isChatMinimized ? 100 : 80}>
+        {/* Left Panel - Media Bin & Tools (full height) */}
+        <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
+          <div className="h-full border-r border-border">
+            <LeftPanel
+              mediaBinItems={mediaBinItems}
+              onAddMedia={handleAddMediaToBin}
+              onAddText={handleAddTextToBin}
+              contextMenu={contextMenu}
+              handleContextMenu={handleContextMenu}
+              handleDeleteFromContext={handleDeleteFromContext}
+              handleSplitAudioFromContext={handleSplitAudioFromContext}
+              handleCloseContextMenu={handleCloseContextMenu}
+            />
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Center Area: Preview and Timeline */}
+        <ResizablePanel defaultSize={55}>
           <ResizablePanelGroup direction="vertical">
-            {/* Top section with media bin and video preview */}
+            {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
-              <ResizablePanelGroup direction="horizontal">
-                {/* Left Panel - Media Bin & Tools */}
-                <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
-                  <div className="h-full border-r border-border">
-                    <LeftPanel
-                      mediaBinItems={mediaBinItems}
-                      onAddMedia={handleAddMediaToBin}
-                      onAddText={handleAddTextToBin}
-                      contextMenu={contextMenu}
-                      handleContextMenu={handleContextMenu}
-                      handleDeleteFromContext={handleDeleteFromContext}
-                      handleSplitAudioFromContext={handleSplitAudioFromContext}
-                      handleCloseContextMenu={handleCloseContextMenu}
+              <div className="h-full flex flex-col bg-background">
+                {/* Compact Top Bar */}
+                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Resolution:</span>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={width}
+                        onChange={(e) =>
+                          handleWidthChange(Number(e.target.value))
+                        }
+                        disabled={isAutoSize}
+                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                      />
+                      <span>×</span>
+                      <Input
+                        type="number"
+                        value={height}
+                        onChange={(e) =>
+                          handleHeightChange(Number(e.target.value))
+                        }
+                        disabled={isAutoSize}
+                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
+                      <Switch
+                        id="auto-size"
+                        checked={isAutoSize}
+                        onCheckedChange={handleAutoSizeChange}
+                        className="scale-75"
+                      />
+                      <Label htmlFor="auto-size" className="text-xs">
+                        Auto
+                      </Label>
+                    </div>
+
+                    {!isChatMinimized && null}
+                    {isChatMinimized && (
+                      <>
+                        <Separator orientation="vertical" className="h-4 mx-1" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsChatMinimized(false)}
+                          className="h-6 w-6 p-0 text-primary"
+                          title="Open Chat"
+                        >
+                          <Bot className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Video Preview */}
+                <div
+                  className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"}
+                    flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                >
+                  <div className="flex-1 flex items-center justify-center w-full">
+                    <VideoPlayer
+                      timelineData={timelineData}
+                      durationInFrames={durationInFrames}
+                      ref={playerRef}
+                      compositionWidth={isAutoSize ? null : width}
+                      compositionHeight={isAutoSize ? null : height}
+                      timeline={timeline}
+                      handleUpdateScrubber={handleUpdateScrubber}
+                      selectedItem={selectedItem}
+                      setSelectedItem={setSelectedItem}
                     />
                   </div>
-                </ResizablePanel>
 
-                <ResizableHandle withHandle />
-
-                {/* Video Preview Area */}
-                <ResizablePanel defaultSize={75}>
-                  <div className="h-full flex flex-col bg-background">
-                    {/* Compact Top Bar */}
-                    <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>Resolution:</span>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            value={width}
-                            onChange={(e) =>
-                              handleWidthChange(Number(e.target.value))
-                            }
-                            disabled={isAutoSize}
-                            className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                          />
-                          <span>×</span>
-                          <Input
-                            type="number"
-                            value={height}
-                            onChange={(e) =>
-                              handleHeightChange(Number(e.target.value))
-                            }
-                            disabled={isAutoSize}
-                            className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <div className="flex items-center gap-1">
-                          <Switch
-                            id="auto-size"
-                            checked={isAutoSize}
-                            onCheckedChange={handleAutoSizeChange}
-                            className="scale-75"
-                          />
-                          <Label htmlFor="auto-size" className="text-xs">
-                            Auto
-                          </Label>
-                        </div>
-
-                        {/* Show chat toggle when minimized */}
-                        {isChatMinimized && (
-                          <>
-                            <Separator
-                              orientation="vertical"
-                              className="h-4 mx-1"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setIsChatMinimized(false)}
-                              className="h-6 px-2 text-xs"
-                              title="Show Chat"
-                            >
-                              <ChevronLeft className="h-3 w-3 mr-1" />
-                              Chat
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                  {/* Custom Video Controls - Below Player */}
+                  <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                    <div className="flex items-center gap-1">
+                      <MuteButton playerRef={playerRef} />
                     </div>
-
-                    {/* Video Preview */}
-                    <div
-                      className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                        } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
-                    >
-                      <div
-                        className="flex-1 flex items-center justify-center w-full">
-                        <VideoPlayer
-                          timelineData={timelineData}
-                          durationInFrames={durationInFrames}
-                          ref={playerRef}
-                          compositionWidth={isAutoSize ? null : width}
-                          compositionHeight={isAutoSize ? null : height}
-                          timeline={timeline}
-                          handleUpdateScrubber={handleUpdateScrubber}
-                          selectedItem={selectedItem}
-                          setSelectedItem={setSelectedItem}
-                        />
-                      </div>
-
-                      {/* Custom Video Controls - Below Player */}
-                      <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                        {/* Left side controls */}
-                        <div className="flex items-center gap-1">
-                          <MuteButton playerRef={playerRef} />
-                        </div>
-
-                        {/* Center play/pause button */}
-                        <div className="flex items-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={togglePlayback}
-                            className="h-6 w-6 p-0"
-                          >
-                            {isPlaying ? (
-                              <Pause className="h-3 w-3" />
-                            ) : (
-                              <Play className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-
-                        {/* Right side controls */}
-                        <div className="flex items-center gap-1">
-                          <FullscreenButton playerRef={playerRef} />
-                        </div>
-                      </div>
+                    <div className="flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={togglePlayback}
+                        className="h-6 w-6 p-0"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-3 w-3" />
+                        ) : (
+                          <Play className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FullscreenButton playerRef={playerRef} />
                     </div>
                   </div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
+                </div>
+              </div>
             </ResizablePanel>
 
             <ResizableHandle withHandle />
 
-            {/* Timeline Area - spans width of left section */}
+            {/* Timeline Area */}
             <ResizablePanel defaultSize={35} minSize={25}>
               <div className="h-full flex flex-col bg-muted/20">
-                {/* Compact Timeline Header */}
                 <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium">Timeline</span>
@@ -742,7 +729,6 @@ export default function TimelineEditor() {
                   </div>
                 </div>
 
-                {/* Timeline Ruler - Ultra compact */}
                 <TimelineRuler
                   timelineWidth={timelineWidth}
                   rulerPositionPx={rulerPositionPx}
@@ -750,9 +736,9 @@ export default function TimelineEditor() {
                   onRulerDrag={handleRulerDrag}
                   onRulerMouseDown={handleRulerMouseDown}
                   pixelsPerSecond={getPixelsPerSecond()}
+                  scrollLeft={containerRef.current?.scrollLeft || 0}
                 />
 
-                {/* Timeline Content */}
                 <TimelineTracks
                   timeline={timeline}
                   timelineWidth={timelineWidth}
@@ -777,12 +763,10 @@ export default function TimelineEditor() {
           </ResizablePanelGroup>
         </ResizablePanel>
 
-        {/* Conditionally render chat panel - extends full height */}
+        {/* Right Panel - Chat (toggleable) */}
         {!isChatMinimized && (
           <>
             <ResizableHandle withHandle />
-
-            {/* Right Panel - Chat (full height) */}
             <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
               <div className="h-full border-l border-border">
                 <ChatBox

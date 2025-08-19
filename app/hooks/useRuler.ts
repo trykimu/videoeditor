@@ -28,10 +28,10 @@ export const useRuler = (
         const timeInSeconds = clampedPositionPx / pixelsPerSecond;
         const frame = Math.round(timeInSeconds * FPS);
         playerRef.current.seekTo(frame);
-        // Reset seeking flag after a brief delay
-        setTimeout(() => {
+        // Reset seeking flag on next animation frame
+        requestAnimationFrame(() => {
           isSeekingRef.current = false;
-        }, 50);
+        });
       }
     },
     [timelineWidth, playerRef, pixelsPerSecond]
@@ -73,9 +73,9 @@ export const useRuler = (
         const newPositionPx = timeInSeconds * pixelsPerSecond;
         setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
         // Reset flag after state update
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           isUpdatingFromPlayerRef.current = false;
-        }, 50);
+        });
       }
     },
     [pixelsPerSecond, timelineWidth]
@@ -94,29 +94,7 @@ export const useRuler = (
     []
   );
 
-  // Sync ruler with player position
-  useEffect(() => {
-    if (
-      playerRef.current &&
-      rulerPositionPx !== undefined &&
-      !isUpdatingFromPlayerRef.current &&
-      !isDraggingRuler
-    ) {
-      const targetFrame = Math.round((rulerPositionPx / pixelsPerSecond) * FPS);
-      const currentFrame = playerRef.current.getCurrentFrame();
-
-      // Only seek if there's a significant difference to avoid micro-adjustments
-      if (Math.abs(currentFrame - targetFrame) > 2) {
-        isSeekingRef.current = true;
-        playerRef.current.seekTo(targetFrame);
-
-        // Clear the seeking flag after a short delay to ensure it doesn't get stuck
-        setTimeout(() => {
-          isSeekingRef.current = false;
-        }, 150);
-      }
-    }
-  }, [rulerPositionPx, timelineWidth, isDraggingRuler, playerRef, pixelsPerSecond]);
+  // No smoothing: frame updates drive the ruler; explicit seeks happen on drag or click
 
   // Listen for player frame updates
   useEffect(() => {
@@ -129,17 +107,11 @@ export const useRuler = (
         const currentFrame = e.detail.frame;
         const currentTimeInSeconds = currentFrame / FPS;
         const newPositionPx = currentTimeInSeconds * pixelsPerSecond;
-
-        // Only update if there's a meaningful difference to prevent jitter
-        if (Math.abs(newPositionPx - rulerPositionPx) > 2) {
-          isUpdatingFromPlayerRef.current = true;
-          setRulerPositionPx(newPositionPx);
-
-          // Clear the flag after the update
-          setTimeout(() => {
-            isUpdatingFromPlayerRef.current = false;
-          }, 100);
-        }
+        isUpdatingFromPlayerRef.current = true;
+        setRulerPositionPx(newPositionPx);
+        requestAnimationFrame(() => {
+          isUpdatingFromPlayerRef.current = false;
+        });
       };
 
       const handleSeeked = () => {

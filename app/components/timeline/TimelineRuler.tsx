@@ -9,6 +9,7 @@ interface TimelineRulerProps {
   onRulerDrag: (newPositionPx: number) => void;
   onRulerMouseDown: (e: React.MouseEvent) => void;
   pixelsPerSecond: number;
+  scrollLeft: number;
 }
 
 export const TimelineRuler: React.FC<TimelineRulerProps> = ({
@@ -18,6 +19,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
   onRulerDrag,
   onRulerMouseDown,
   pixelsPerSecond,
+  scrollLeft,
 }) => {
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [timeInputValue, setTimeInputValue] = useState("");
@@ -26,42 +28,36 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
   const currentTimeInSeconds = rulerPositionPx / pixelsPerSecond;
   const currentFrame = Math.round(currentTimeInSeconds * FPS);
 
-  // Format timestamp in HH:MM:SS:mmm format with trailing zero removal
+  // Format timestamp to always show HH:MM:SS.mmm (matches professional NLEs)
   const formatTimestamp = (timeInSeconds: number) => {
-    const hours = Math.floor(timeInSeconds / 3600);
-    const minutes = Math.floor((timeInSeconds % 3600) / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    const milliseconds = Math.round((timeInSeconds % 1) * 1000);
+    const totalMs = Math.max(0, Math.round(timeInSeconds * 1000));
+    const hours = Math.floor(totalMs / 3600000);
+    const minutes = Math.floor((totalMs % 3600000) / 60000);
+    const seconds = Math.floor((totalMs % 60000) / 1000);
+    const milliseconds = totalMs % 1000;
 
-    // Format with appropriate precision, removing trailing zeros
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-        .toString()
-        .padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
-    } else if (minutes > 0) {
-      return `${minutes}:${seconds.toString().padStart(2, "0")}.${milliseconds
-        .toString()
-        .padStart(3, "0")}`;
-    } else {
-      return `${seconds}.${milliseconds.toString().padStart(3, "0")}`;
-    }
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds
+      .toString()
+      .padStart(3, "0")}`;
   };
 
-  // Format ruler marks - simplified format for cleaner display
+  // Format ruler marks to mm:ss or HH:MM:SS, centered on major ticks
   const formatRulerMark = (timeInSeconds: number) => {
-    if (timeInSeconds === 0) return "0s";
-
-    const hours = Math.floor(timeInSeconds / 3600);
-    const minutes = Math.floor((timeInSeconds % 3600) / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
+    const totalSeconds = Math.max(0, Math.floor(timeInSeconds));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
     if (hours > 0) {
-      return `${hours}h${minutes > 0 ? `${minutes}m` : ""}`;
-    } else if (minutes > 0) {
-      return `${minutes}m${seconds > 0 ? `${seconds}s` : ""}`;
-    } else {
-      return `${seconds}s`;
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // Handle time input submission with improved parsing
@@ -116,52 +112,38 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
     }
   };
 
-  // Determine intervals based on zoom level - more frequent markings like a real ruler
-  const getRulerIntervals = () => {
-    const pixelsPerSecondValue = pixelsPerSecond;
+  // Fixed professional cadence: major 10s (labeled), minor 1s, micro 0.5s
+  const MAJOR_SECONDS = 10;
+  const MINOR_SECONDS = 1;
+  const MICRO_SECONDS = 0.5;
+  const showMinor = pixelsPerSecond * MINOR_SECONDS >= 8; // avoid clutter if zoomed out
+  const showMicro = pixelsPerSecond * MICRO_SECONDS >= 6;
 
-    if (pixelsPerSecondValue >= 800) {
-      // Ultra-high zoom: major marks every 0.5s, medium every 0.1s, minor every 0.05s
-      return { major: 0.5, medium: 0.1, minor: 0.05 };
-    } else if (pixelsPerSecondValue >= 400) {
-      // High zoom: major marks every 1s, medium every 0.2s, minor every 0.1s
-      return { major: 1, medium: 0.2, minor: 0.1 };
-    } else if (pixelsPerSecondValue >= 200) {
-      // Medium-high zoom: major marks every 2s, medium every 0.5s, minor every 0.25s
-      return { major: 2, medium: 0.5, minor: 0.25 };
-    } else if (pixelsPerSecondValue >= 100) {
-      // Medium zoom: major marks every 5s, medium every 1s, minor every 0.5s
-      return { major: 5, medium: 1, minor: 0.5 };
-    } else if (pixelsPerSecondValue >= 50) {
-      // Normal zoom: major marks every 10s, medium every 2s, minor every 1s
-      return { major: 10, medium: 2, minor: 1 };
-    } else if (pixelsPerSecondValue >= 20) {
-      // Low zoom: major marks every 30s, medium every 5s, minor every 2.5s
-      return { major: 30, medium: 5, minor: 2.5 };
-    } else {
-      // Very low zoom: major marks every 60s, medium every 10s, minor every 5s
-      return { major: 60, medium: 10, minor: 5 };
-    }
+  const formatMajorLabel = (seconds: number) => {
+    const total = Math.floor(seconds);
+    const mm = Math.floor((total % 3600) / 60)
+      .toString()
+      .padStart(2, "0");
+    const ss = (total % 60).toString().padStart(2, "0");
+    return `${mm}:${ss}`;
   };
-
-  const intervals = getRulerIntervals();
   return (
     <div className="flex flex-shrink-0 h-8">
       {/* Track controls header with timestamp display */}
-      <div className="w-12 bg-muted border-r border-border/50 flex-shrink-0 flex flex-col items-center justify-center py-0.5">
+      <div className="w-28 bg-muted border-r border-border/50 flex-shrink-0 flex flex-col items-center justify-center py-0.5 px-2">
         {isEditingTime ? (
           <Input
             value={timeInputValue}
             onChange={(e) => setTimeInputValue(e.target.value)}
             onBlur={handleTimeInputSubmit}
             onKeyDown={handleTimeInputKeyDown}
-            placeholder="00:00.00"
+            placeholder="00:00:00.000"
             className="h-4 text-xs font-mono w-full px-1 py-0 text-center border-0 bg-transparent focus:bg-muted/50 transition-colors"
             autoFocus
           />
         ) : (
           <div
-            className="text-xs font-mono text-foreground font-medium leading-none cursor-pointer hover:bg-muted/50 px-1 rounded transition-colors"
+            className="w-full text-xs font-mono text-foreground font-medium leading-none cursor-pointer hover:bg-muted/50 px-1 rounded transition-colors whitespace-nowrap overflow-hidden text-center"
             onClick={() => {
               setIsEditingTime(true);
               setTimeInputValue(formatTimestamp(currentTimeInSeconds));
@@ -182,9 +164,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           className="absolute top-0 left-0 h-full"
           style={{
             width: `${timelineWidth}px`,
-            transform: `translateX(-${
-              containerRef.current?.scrollLeft || 0
-            }px)`,
+            transform: `translateX(-${scrollLeft}px)`,
           }}
           onClick={(e) => {
             if (containerRef.current) {
@@ -199,87 +179,87 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             }
           }}
         >
-          {/* Major markings - ruler-style with timestamps */}
-          {Array.from(
-            {
-              length:
-                Math.floor(
-                  timelineWidth / (intervals.major * pixelsPerSecond)
-                ) + 1,
-            },
-            (_, index) => index
-          ).map((tick) => {
-            const timeValue = tick * intervals.major;
+          {/* Major markings - 10s with labels (no 00:00) */}
+          {(() => {
+            const elements: React.ReactNode[] = [];
+            let lastLabelX = -Infinity;
+            const minLabelSpacingPx = 40; // avoid label overlap
+            const count = Math.floor(
+              timelineWidth / (MAJOR_SECONDS * pixelsPerSecond)
+            ) + 1;
+            for (let tick = 0; tick < count; tick++) {
+              const timeValue = tick * MAJOR_SECONDS;
+              const x = tick * MAJOR_SECONDS * pixelsPerSecond;
+              const showLabel = timeValue !== 0 && x - lastLabelX >= minLabelSpacingPx;
+              if (showLabel) {
+                lastLabelX = x;
+              }
+              elements.push(
+                <div
+                  key={`major-mark-${tick}`}
+                  className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
+                  style={{ left: `${x}px` }}
+                >
+                  {showLabel ? (
+                    <span className="text-[10px] text-muted-foreground -translate-x-1/2 mt-0.5 bg-background/90 px-1.5 py-0.5 rounded-sm border border-border/30 font-mono">
+                      {formatMajorLabel(timeValue)}
+                    </span>
+                  ) : (
+                    <span className="sr-only">{formatMajorLabel(timeValue)}</span>
+                  )}
+                  <div className="w-px bg-border h-6 mt-auto" />
+                </div>
+              );
+            }
+            return elements;
+          })()}
 
-            return (
-              <div
-                key={`major-mark-${tick}`}
-                className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                style={{
-                  left: `${tick * intervals.major * pixelsPerSecond}px`,
-                }}
-              >
-                <span className="text-[10px] text-muted-foreground -ml-2 mt-0.5 bg-background/90 px-1.5 py-0.5 rounded-sm border border-border/30 font-mono">
-                  {formatRulerMark(timeValue)}
-                </span>
-                <div className="w-0.5 bg-border h-7 mt-auto" />
-              </div>
-            );
-          })}
-
-          {/* Medium markings - medium lines */}
-          {Array.from(
-            {
-              length:
-                Math.floor(
-                  timelineWidth / (intervals.medium * pixelsPerSecond)
-                ) + 1,
-            },
-            (_, index) => index
-          ).map((tick) => {
-            const timeValue = tick * intervals.medium;
-            const isMajorTick = timeValue % intervals.major === 0;
-
-            // Skip if this coincides with a major tick
-            if (isMajorTick) return null;
-
-            return (
-              <div
-                key={`medium-mark-${tick}`}
-                className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
-                style={{
-                  left: `${tick * intervals.medium * pixelsPerSecond}px`,
-                }}
-              >
-                <div className="w-px bg-border/60 h-4 mt-auto" />
-              </div>
-            );
-          })}
-
-          {/* Minor markings - small lines */}
-          {intervals.minor * pixelsPerSecond >= 3 &&
+          {/* Minor markings - 1s ticks */}
+          {showMinor &&
             Array.from(
               {
-                length:
-                  Math.floor(
-                    timelineWidth / (intervals.minor * pixelsPerSecond)
-                  ) + 1,
+                length: Math.floor(
+                  timelineWidth / (MINOR_SECONDS * pixelsPerSecond)
+                ) + 1,
               },
               (_, index) => index
             ).map((tick) => {
-              const timeValue = tick * intervals.minor;
-              const isMediumTick = timeValue % intervals.medium === 0;
-              const isMajorTick = timeValue % intervals.major === 0;
-
-              // Skip if this coincides with medium or major ticks
-              if (isMediumTick || isMajorTick) return null;
-
+              const timeValue = tick * MINOR_SECONDS;
+              const isMajorTick = timeValue % MAJOR_SECONDS === 0;
+              if (isMajorTick) return null;
               return (
                 <div
                   key={`minor-mark-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
                   style={{
-                    left: `${tick * intervals.minor * pixelsPerSecond}px`,
+                    left: `${tick * MINOR_SECONDS * pixelsPerSecond}px`,
+                  }}
+                >
+                  <div className="w-px bg-border/60 h-4 mt-auto" />
+                </div>
+              );
+            })}
+
+          {/* Micro markings - 0.5s ticks */}
+          {showMicro &&
+            Array.from(
+              {
+                length: Math.floor(
+                  timelineWidth / (MICRO_SECONDS * pixelsPerSecond)
+                ) + 1,
+              },
+              (_, index) => index
+            ).map((tick) => {
+              const timeValue = tick * MICRO_SECONDS;
+              const isMinorTick = timeValue % MINOR_SECONDS === 0;
+              const isMajorTick = timeValue % MAJOR_SECONDS === 0;
+              if (isMinorTick || isMajorTick) return null;
+              return (
+                <div
+                  key={`micro-mark-${tick}`}
+                  className="absolute top-0 h-full flex flex-col justify-end pointer-events-none"
+                  style={{
+                    left: `${tick * MICRO_SECONDS * pixelsPerSecond}px`,
                   }}
                 >
                   <div className="w-px bg-border/30 h-2 mt-auto" />
@@ -296,7 +276,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             }}
           />
 
-          {/* Playhead handle - perfectly aligned with no lag or animations */}
+          {/* Playhead handle - rectangular marker (original style) */}
           <div
             className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border-2 border-background shadow-lg"
             style={{
@@ -305,8 +285,8 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               width: "12px",
               height: "10px",
               borderRadius: "2px",
-              transform: "none", // No transform to ensure perfect alignment
-              transition: "none", // No transitions for immediate response
+              transform: "none",
+              transition: "none",
             }}
             onMouseDown={onRulerMouseDown}
             title="Drag to seek"

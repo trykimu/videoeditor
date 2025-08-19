@@ -164,7 +164,7 @@ export default function Landing() {
       desc: 'A new way to edit. Effortless, playful, and powerful.',
       subtext: 'Creators save time while Kimu handles the heavy lifting.',
       subtext2: 'For creators who\'d rather be creating. If editing drains you — Kimu gives your time back.',
-      badges: ["AI-Powered", "Zero Latency", "Creator DNA"],
+      badges: ["AI-Powered", "Instant Preview", "Creator DNA"],
       start: 0,
       duration: 30,
       animation: { initial: { opacity: 0, scale: 0.8, y: 40 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.8, y: -40 } },
@@ -188,12 +188,12 @@ export default function Landing() {
       animation: { initial: { opacity: 0, x: -80, scale: 0.7 }, animate: { opacity: 1, x: 0, scale: 1 }, exit: { opacity: 0, x: 80, scale: 0.7 } },
     },
     {
-      label: 'Zero Latency',
+      label: 'Instant Preview',
       color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
       icon: <Zap className="w-3 h-3 text-blue-400 mr-1" />, // blue
       heading: (
         <>
-          <span className="text-blue-400">Zero Latency</span>
+          <span className="text-blue-400">Instant Preview</span>
         </>
       ),
       desc: 'Real-time editing with instant preview. Every cut happens immediately.',
@@ -261,7 +261,7 @@ export default function Landing() {
 
   // Use totalDuration for playhead looping
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isPlaying) {
       interval = setInterval(() => {
         setCurrentTime(prev => (prev >= totalDuration ? 0 : prev + 1));
@@ -362,7 +362,7 @@ export default function Landing() {
   // Features array for the stepper
   const features = [
     {
-      title: "Zero Latency",
+      title: "Instant Preview",
       desc: "Real-time editing with instant preview. Every cut happens immediately.",
       icon: <Zap className="w-6 h-6" />,
     },
@@ -466,9 +466,7 @@ export default function Landing() {
                   <path d="M7 16.5c3.5 1 6.5 1 10 0"></path>
                 </svg>
               </a>
-              <Link to="/roadmap" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Roadmap
-              </Link>
+              {/* Roadmap link removed per request */}
             </div>
           </div>
         </div>
@@ -477,7 +475,12 @@ export default function Landing() {
       {/* Main Content */}
       <div className="hidden sm:block pt-20">
         {/* Logo and Title Section - Left Aligned */}
-        <section id="hero-section" className="py-12">
+        <section id="hero-section" className="py-12 relative">
+          {/* Decorative background */}
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] max-w-[1000px] bg-gradient-to-br from-blue-500/15 via-purple-500/10 to-pink-500/15 blur-3xl rounded-full" />
+            <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:16px_16px]" />
+          </div>
           <div className="max-w-7xl mx-auto px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -497,6 +500,65 @@ export default function Landing() {
               </motion.div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground">Kimu</h1>
             </motion.div>
+            <div className="mt-4 max-w-2xl">
+              <p className="text-lg md:text-xl text-muted-foreground">
+                Edit less. Create more. The playful, zero‑latency, AI‑powered editor for creators.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link to="/editor">
+                  <Button className="bg-foreground text-background hover:bg-foreground/90">
+                    Open Editor
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+                {/* Roadmap CTA removed per request */}
+                {gitHubStars > 0 && (
+                  <div className="ml-1 text-xs text-muted-foreground border border-border/30 rounded-full px-3 py-1">
+                    {gitHubStars.toLocaleString()} GitHub stars
+                  </div>
+                )}
+              </div>
+
+              {/* Quick stats / value props */}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {formattedCreatorCount && (
+                  <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {formattedCreatorCount} creators joined
+                  </span>
+                )}
+                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-blue-400" /> Instant preview
+                </span>
+                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
+                  <Wand2 className="w-3 h-3 text-purple-400" /> AI Copilot
+                </span>
+                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Privacy-first
+                </span>
+              </div>
+
+              {/* Soft marquee */}
+              <div className="mt-8 relative overflow-hidden rounded-lg border border-border/20 bg-background/40">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-background z-10" style={{ maskImage: 'linear-gradient(90deg, transparent, black 15%, black 85%, transparent)' }} />
+                <div className="whitespace-nowrap py-3 text-sm text-muted-foreground flex items-center" style={{ animation: 'marquee 30s linear infinite' }}>
+                  <span className="mx-6 inline-flex items-center gap-2"><Video className="w-4 h-4 text-blue-400" /> Multi‑track timeline</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Scissors className="w-4 h-4" /> Smart cuts</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-400" /> One‑click polish</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Wand2 className="w-4 h-4 text-purple-400" /> Style‑aware prompts</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Layers className="w-4 h-4" /> Dynamic overlays</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Type className="w-4 h-4" /> Motion titles</span>
+                  {/* repeat for seamless loop */}
+                  <span className="mx-6 inline-flex items-center gap-2"><Video className="w-4 h-4 text-blue-400" /> Multi‑track timeline</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Scissors className="w-4 h-4" /> Smart cuts</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-400" /> One‑click polish</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Wand2 className="w-4 h-4 text-purple-400" /> Style‑aware prompts</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Layers className="w-4 h-4" /> Dynamic overlays</span>
+                  <span className="mx-6 inline-flex items-center gap-2"><Type className="w-4 h-4" /> Motion titles</span>
+                </div>
+                <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -873,6 +935,7 @@ export default function Landing() {
           loading={loading}
           success={success}
           handleSubmit={handleSubmit}
+          waitlistCount={waitlistCount}
         />
       </div>
       {/* Sleek Modern Footer */}
@@ -932,9 +995,7 @@ export default function Landing() {
               <div className="space-y-3">
                 <h4 className="font-semibold text-foreground">Product</h4>
                 <div className="space-y-2">
-                  <Link to="/roadmap" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Roadmap
-                  </Link>
+                  {/* Roadmap link removed per request */}
                   <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Privacy Policy
                   </Link>
@@ -1245,6 +1306,7 @@ interface MobileVideoEditorProps {
   loading: boolean;
   success: boolean;
   handleSubmit: (e: React.FormEvent) => void;
+  waitlistCount: number;
 }
 
 function MobileVideoEditorPreview({ 
@@ -1255,7 +1317,8 @@ function MobileVideoEditorPreview({
   setEmail, 
   loading, 
   success, 
-  handleSubmit 
+  handleSubmit,
+  waitlistCount
 }: MobileVideoEditorProps) {
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [playing, setPlaying] = React.useState(true); // Auto-play by default
