@@ -670,7 +670,7 @@ export default function Landing() {
                             <m.p
                               key={activeAssetIndex + '-desc'}
                               initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
                               transition={{ delay: 0.25, duration: 0.7 }}
                               className="text-lg md:text-xl text-zinc-200 text-center max-w-2xl font-semibold mb-6"
@@ -685,15 +685,15 @@ export default function Landing() {
                             </p>
                             <p className="text-sm md:text-base text-zinc-400 text-center max-w-xl font-normal" style={{ fontFamily: 'Inter, system-ui, Arial, sans-serif' }}>
                               {activeAsset.subtext2}
-                            </p>
-                          </div>
+                          </p>
+                        </div>
                           <div className="flex flex-wrap items-center justify-center gap-3 w-full min-h-[48px] mt-6">
                             {activeAsset.badges.map((badge, i) => (
                               <Badge key={i} className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
                                 {badge}
-                              </Badge>
+                          </Badge>
                             ))}
-                          </div>
+                        </div>
                         </m.div>
                       </AnimatePresence>
                     </div>
@@ -811,7 +811,7 @@ export default function Landing() {
                                 key={i}
                                 className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border ${asset.color}`}
                                 style={{ width, minWidth: 0 }}
-                                initial={{ width: 0 }}
+                            initial={{ width: 0 }}
                                 animate={{ width }}
                                 transition={{ duration: 1, delay: 0.8 + i * 0.1 }}
                               >
@@ -840,47 +840,47 @@ export default function Landing() {
                   {/* Waitlist Card with reduced white glow */}
                   <div className="px-3 py-2">
                   <div className="bg-background/40 backdrop-blur-sm border border-border/20 rounded-xl p-6 shadow-md relative w-full mb-4" style={{ boxShadow: '0 0 12px 2px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.10)' }}>
-                    {/* White gradient border for extra glow */}
-                    <div className="pointer-events-none absolute inset-0 rounded-xl z-10" style={{boxShadow: '0 0 16px 4px rgba(255,255,255,0.12)'}} />
-                    <div className="flex items-center justify-between mb-2 relative z-20">
-                      <h3 className="text-md font-semibold text-foreground">Join the waitlist !</h3>
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
+                      {/* White gradient border for extra glow */}
+                      <div className="pointer-events-none absolute inset-0 rounded-xl z-10" style={{boxShadow: '0 0 16px 4px rgba(255,255,255,0.12)'}} />
+                      <div className="flex items-center justify-between mb-2 relative z-20">
+                        <h3 className="text-md font-semibold text-foreground">Join the waitlist !</h3>
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
                     {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
                       <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2 relative z-20">
                         {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
-                      </div>
-                    )}
-                    <form onSubmit={handleSubmit} className="space-y-3 relative z-20">
-                      <Input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
-                        required
-                      />
-                      <Button
-                        type="submit"
-                        disabled={loading || success || !email}
-                        className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
-                      >
-                        {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
-                      </Button>
-                    </form>
-                    {success && (
-                      <motion.div
-                        className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2 relative z-20"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        🎉 We'll notify you when it's ready!
-                      </motion.div>
-                    )}
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
-                      Get notified when Kimu launches. No spam, just updates on the future of video editing.
-                    </p>
+                        </div>
+                      )}
+                      <form onSubmit={handleSubmit} className="space-y-3 relative z-20">
+                        <Input
+                          type="email"
+                          placeholder="your@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
+                          required
+                        />
+                        <Button
+                          type="submit"
+                          disabled={loading || success || !email}
+                          className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
+                        >
+                          {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+                        </Button>
+                      </form>
+                      {success && (
+                        <motion.div
+                          className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2 relative z-20"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          🎉 We'll notify you when it's ready!
+                        </motion.div>
+                      )}
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
+                        Get notified when Kimu launches. No spam, just updates on the future of video editing.
+                      </p>
                     </div>
                     </div>
 
@@ -922,7 +922,7 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
-      </div>
+            </div>
 
       {/* Mobile Only View */}
       <div className="sm:hidden">
@@ -937,7 +937,7 @@ export default function Landing() {
           handleSubmit={handleSubmit}
           waitlistCount={waitlistCount}
         />
-      </div>
+                  </div>
       {/* Sleek Modern Footer */}
       <footer className="bg-background border-t border-border/10">
         <div className="max-w-7xl mx-auto px-6 py-16">
@@ -1152,8 +1152,8 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
         </p>
-      </div>
-    </div>
+            </div>
+          </div>
   );
 } 
 
@@ -1204,7 +1204,7 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
                  style={{ borderBottom: '4px solid #222' }}>
               <div className="w-10 h-2 bg-muted/40 rounded absolute left-3 top-2 rotate-[-10deg]" />
               <div className="w-3 h-2 bg-muted/60 rounded absolute right-2 top-2 rotate-[10deg]" />
-            </div>
+        </div>
             <div className="w-16 h-10 bg-background rounded-b-md flex items-center justify-center border-x border-b border-border/30">
               <KimuLogo className="w-8 h-8 text-foreground" />
             </div>
@@ -1399,38 +1399,38 @@ function MobileVideoEditorPreview({
                 </div>
               )}
               <form onSubmit={handleSubmit} className="space-y-3">
-                <Input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                   className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
-                  required
-                />
-                <Button
-                  type="submit"
-                  disabled={loading || success || !email}
+                required
+              />
+              <Button
+                type="submit"
+                disabled={loading || success || !email}
                   className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
-                >
-                  {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
-                </Button>
-              </form>
-              {success && (
-                <motion.div
+              >
+                {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+              </Button>
+            </form>
+            {success && (
+              <motion.div
                   className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  🎉 We'll notify you when it's ready!
-                </motion.div>
-              )}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                🎉 We'll notify you when it's ready!
+              </motion.div>
+            )}
               <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
-                Get notified when Kimu launches. No spam, just updates on the future of video editing.
-              </p>
-            </div>
+              Get notified when Kimu launches. No spam, just updates on the future of video editing.
+            </p>
           </div>
         </div>
+              </div>
 
         {/* Video Editor App Window */}
         <div className="px-4 py-6">
@@ -1440,14 +1440,14 @@ function MobileVideoEditorPreview({
               <div className="flex items-center gap-2">
                 <KimuLogo className="w-4 h-4 text-foreground" />
                 <span className="text-xs font-semibold text-foreground">Kimu Studio</span>
-              </div>
+          </div>
               <div className="flex-1" />
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>File</span>
                 <span>Edit</span>
                 <span>View</span>
-              </div>
-            </div>
+        </div>
+          </div>
 
             {/* Preview Window - Vertically Bigger */}
             <div className="w-full h-64 bg-black/90 relative flex items-center justify-center">
@@ -1623,4 +1623,4 @@ function MobileVideoEditorPreview({
       </div>
     </div>
   );
-}
+} 

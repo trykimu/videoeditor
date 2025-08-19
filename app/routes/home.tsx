@@ -14,6 +14,7 @@ import {
   Scissors,
   Star,
   Bot,
+  LogOut,
 } from "lucide-react";
 
 // Custom video controls
@@ -27,6 +28,12 @@ import { RenderStatus } from "~/components/timeline/RenderStatus";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
 import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
@@ -50,6 +57,9 @@ import { FPS, type Transition } from "~/components/timeline/types";
 import { useNavigate } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
+import { useAuth } from "~/hooks/useAuth";
+import { AuthOverlay } from "~/components/ui/AuthOverlay";
+
 
 interface Message {
   id: string;
@@ -96,7 +106,7 @@ export default function TimelineEditor() {
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false)
+  // Avoid initial blank render; don't delay render on a 'mounted' gate
 
   const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
 
@@ -431,11 +441,7 @@ export default function TimelineEditor() {
     };
   }, [handleZoomIn, handleZoomOut]);
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null;
+  const { user, isLoading: isAuthLoading, isSigningIn, signInWithGoogle, signOut } = useAuth();
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground" onPointerDown={(e: React.PointerEvent) => {
@@ -518,6 +524,47 @@ export default function TimelineEditor() {
             <Download className="h-3 w-3 mr-1" />
             {isRendering ? "Rendering..." : "Export"}
           </Button>
+
+          {/* Auth status — keep avatar as the last item (right corner) */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-6 w-6 rounded-full overflow-hidden border border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/30 relative ml-1">
+                  <div className="absolute inset-0 bg-muted flex items-center justify-center text-[10px] font-medium">
+                    {(user.name ?? user.email ?? "").slice(0,1).toUpperCase()}
+                  </div>
+                  {user.image && (
+                    <img
+                      src={user.image}
+                      alt={user.name ?? user.email ?? "Profile"}
+                      className="h-full w-full object-cover relative z-10"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  {user.name || user.email || "Signed in"}
+                </div>
+                <DropdownMenuItem onClick={signOut} variant="destructive">
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-xs font-medium">Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signInWithGoogle}
+              className="h-7 px-2 text-xs ml-1"
+              title="Sign in with Google"
+            >
+              Sign in
+            </Button>
+          )}
         </div>
       </header>
 
@@ -799,6 +846,11 @@ export default function TimelineEditor() {
         <div className="fixed bottom-4 right-4 z-50">
           <RenderStatus renderStatus={renderStatus} />
         </div>
+      )}
+
+      {/* Blocker overlay for unauthenticated users */}
+      {!isAuthLoading && !user && (
+        <AuthOverlay isLoading={isAuthLoading} isSigningIn={isSigningIn} onSignIn={signInWithGoogle} />
       )}
     </div>
   );

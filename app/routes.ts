@@ -8,6 +8,8 @@ export default [
         route("media-bin", "components/timeline/MediaBinPage.tsx"),
         route("transitions", "components/media/Transitions.tsx"),
     ]),
+    // Better Auth handler (catch-all under /api/auth/...)
+    route("/api/auth/*", "routes/api.auth.$.tsx"),
     route("/learn", "routes/learn.tsx"),
     route("/roadmap", "routes/roadmap.tsx"),
     route("/privacy", "routes/privacy.tsx"),
