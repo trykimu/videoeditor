@@ -8,6 +8,6 @@ Kimu is licensed under a **dual license**:
 
 - **Commercial License**:  
   For closed-source or commercial use without AGPL obligations, you must obtain a commercial license from the copyright holder.  
-  Contact: robinroy.work@gmail.com or sreecharansiva@gmail.com
+  Contact: robinroy.work@gmail.com or sr33ch4@yahoo.com
 
 Copyright (c) 2025 Robin Roy
