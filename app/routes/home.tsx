@@ -445,7 +445,7 @@ export default function TimelineEditor() {
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-medium tracking-tight">Kimu</h1>
+          <h1 className="text-sm font-medium tracking-tight">Video Editor</h1>
         </div>
 
         <div className="flex items-center gap-1">
