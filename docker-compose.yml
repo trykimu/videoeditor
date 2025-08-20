@@ -17,6 +17,8 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: videoeditor-frontend
+    env_file:
+      - .env
     # ports:
     #   - "3000:3000"
     depends_on:
@@ -27,6 +29,8 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: videoeditor-backend
+    env_file:
+      - .env
     # ports:
     #   - "8000:8000"
     volumes:
