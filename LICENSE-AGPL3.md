@@ -619,8 +619,8 @@ to attach them to the start of each source file to most effectively
 state the exclusion of warranty; and each file should have at least
 the “copyright” line and a pointer to where the full notice is found.
 
-    Kimu, an AI powered Video Editor
-    Copyright (C) 2025 Kimu
+    Open-Source Video Editor
+    Copyright (C) 2025 Kimu Team
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
