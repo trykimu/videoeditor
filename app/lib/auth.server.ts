@@ -34,11 +34,7 @@ console.log("🔧 Note: baseURL will be auto-detected from request headers");
 const defaultTrustedOrigins = [
   // Dev
   "http://localhost:5173",
-  "http://localhost:5174",
   "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
   // Prod (can be overridden/extended via env)
   "https://trykimu.com",
   "https://www.trykimu.com",
@@ -54,7 +50,7 @@ const trustedOrigins = Array.from(new Set([...defaultTrustedOrigins, ...envTrust
 export const auth = betterAuth({
   basePath: "/api/auth",
   // Force baseURL in development so Google gets the correct redirect_uri
-  baseURL: process.env.AUTH_BASE_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : undefined),
+  baseURL: process.env.AUTH_BASE_URL || (process.env.NODE_ENV === "development" ? "http://localhost:5173" : undefined),
   // Let Better Auth auto-detect baseURL from the request
   database: new Pool({
     connectionString,

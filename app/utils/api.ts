@@ -1,18 +1,18 @@
 // Dynamic environment detection using Vite
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 const isProduction: boolean = typeof import.meta !== "undefined" && import.meta.env ? !!import.meta.env.PROD : process.env.NODE_ENV === "production";
 
-export const getApiBaseUrl = (fastapi: boolean = false): string => {
+export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = false): string => {
   // In development, point directly to local services
   if (!isProduction) {
     // fastapi=true -> python backend (8000)
-    if (fastapi) return "http://localhost:8000";
-    // Otherwise, use same-origin so it works on whatever port the app runs on (e.g., 3000 or 5173 with proxy)
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}/api`;
-    }
-    return "/api";
+    if (betterauth) return "http://localhost:5173";
+    return fastapi ? "http://127.0.0.1:3000" : "http://localhost:8000";
+    // // Otherwise, use same-origin so it works on whatever port the app runs on (e.g., 3000 or 5173 with proxy)
+    // if (typeof window !== "undefined") {
+    //   return `${window.location.origin}/api`;
+    // }
+    // return "/api";
   }
 
   // In production, go through the reverse proxy paths
@@ -26,8 +26,8 @@ export const getApiBaseUrl = (fastapi: boolean = false): string => {
   return "/api";
 };
 
-export const apiUrl = (endpoint: string, fastapi: boolean = false): string => {
-  const baseUrl = getApiBaseUrl(fastapi);
+export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: boolean = false): string => {
+  const baseUrl = getApiBaseUrl(fastapi, betterauth);
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   return `${baseUrl}${cleanEndpoint}`;
 };

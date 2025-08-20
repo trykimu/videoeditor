@@ -14,7 +14,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         headers: { "Content-Type": "application/json" },
       });
     }
-  } catch {}
+  } catch { /* empty */ }
   // After successful OAuth callback, redirect to /editor
   if (isCallback && (res.status === 200 || res.status === 302)) {
     const headers = new Headers(res.headers);

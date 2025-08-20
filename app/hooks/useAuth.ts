@@ -9,6 +9,38 @@ interface AuthUser {
   image?: string | null;
 }
 
+interface AuthResponse {
+  user?: {
+    id?: string;
+    userId?: string;
+    email?: string;
+    name?: string;
+    image?: string;
+    avatarUrl?: string;
+  };
+  data?: {
+    user?: {
+      id?: string;
+      userId?: string;
+      email?: string;
+      name?: string;
+      image?: string;
+      avatarUrl?: string;
+    };
+  };
+  session?: {
+    user?: {
+      id?: string;
+      userId?: string;
+      email?: string;
+      name?: string;
+      image?: string;
+      avatarUrl?: string;
+    };
+    userId?: string;
+  };
+}
+
 interface UseAuthResult {
   user: AuthUser | null;
   isLoading: boolean;
@@ -24,9 +56,12 @@ export function useAuth(): UseAuthResult {
 
   useEffect(() => {
     let isMounted = true;
-    const extractUser = (data: any): AuthUser | null => {
-      if (!data) return null;
-      const raw = data.user || data?.data?.user || data?.session?.user || null;
+    const extractUser = (data: unknown): AuthUser | null => {
+      if (!data || typeof data !== 'object') return null;
+
+      const dataObj = data as AuthResponse;
+      const raw = dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
+
       if (raw) {
         return {
           id: String(raw.id ?? raw.userId ?? ""),
@@ -35,16 +70,18 @@ export function useAuth(): UseAuthResult {
           image: raw.image ?? raw.avatarUrl ?? null,
         };
       }
-      if (data.session?.userId) {
-        return { id: String(data.session.userId) } as AuthUser;
+
+      if (dataObj.session?.userId) {
+        return { id: String(dataObj.session.userId) } as AuthUser;
       }
+
       return null;
     };
 
     // Fetch helpers return undefined on error (so we don't clear user)
     const fetchRestSession = async (): Promise<AuthUser | null | undefined> => {
       try {
-        const sessionUrl = apiUrl("/auth/session");
+        const sessionUrl = apiUrl("/api/auth/session", false, true);
         const res = await fetch(sessionUrl, {
           credentials: "include",
           headers: {
@@ -81,24 +118,24 @@ export function useAuth(): UseAuthResult {
         setUser(next ?? null);
       }
     };
-    
+
     const checkSession = async () => {
       try {
         console.log("🔍 Checking session...");
-        const sessionUrl = apiUrl("/auth/session");
+        const sessionUrl = apiUrl("/api/auth/session", false, true);
         console.log("🔍 Fetching session from:", sessionUrl);
-        
-        const res = await fetch(sessionUrl, { 
+
+        const res = await fetch(sessionUrl, {
           credentials: "include",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
             Accept: "application/json"
           }
         });
-        
+
         console.log("🌐 API response status:", res.status);
-        
+
         if (res.ok) {
           const session = await res.json();
           console.log("🌐 API session:", session);
@@ -139,11 +176,11 @@ export function useAuth(): UseAuthResult {
     // Check if we're returning from OAuth (look for common OAuth params)
     const urlParams = new URLSearchParams(window.location.search);
     const hasOAuthParams = urlParams.has('code') || urlParams.has('state') || urlParams.has('error');
-    
+
     console.log("🔍 Current URL:", window.location.href);
     console.log("🔍 URL params:", Object.fromEntries(urlParams.entries()));
     console.log("🔍 Has OAuth params:", hasOAuthParams);
-    
+
     if (hasOAuthParams) {
       console.log("🔄 OAuth callback detected, processing...");
       let attempts = 0;
@@ -177,7 +214,7 @@ export function useAuth(): UseAuthResult {
       console.log("🔍 Window focused, checking session...");
       Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
     };
-    
+
     const handleVisibilityChange = () => {
       if (!isMounted || document.hidden) return;
       console.log("🔍 Page became visible, checking session...");
@@ -185,22 +222,25 @@ export function useAuth(): UseAuthResult {
         Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
       }, 150);
     };
-    
+
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Poll less frequently to avoid noisy logs
     const interval = setInterval(() => {
       if (!isMounted) return;
       Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
     }, 15000);
-    
-    // Subscribe to Better Auth state changes
-    const unsubscribe = authClient.onAuthStateChange?.((event: any) => {
-      if (!isMounted) return;
-      const nextUser = extractUser(event);
-      if (typeof nextUser !== 'undefined') setUser(nextUser);
-    });
+
+    // Subscribe to Better Auth state changes (if available)
+    let unsubscribe: (() => void) | undefined;
+    if ('onAuthStateChange' in authClient && typeof authClient.onAuthStateChange === 'function') {
+      unsubscribe = authClient.onAuthStateChange((event: unknown) => {
+        if (!isMounted) return;
+        const nextUser = extractUser(event);
+        if (typeof nextUser !== 'undefined') setUser(nextUser);
+      });
+    }
 
     return () => {
       isMounted = false;
@@ -209,13 +249,33 @@ export function useAuth(): UseAuthResult {
       clearInterval(interval);
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   const signInWithGoogle = async () => {
     setIsSigningIn(true);
     try {
       console.log("🔐 Starting Google sign-in...");
-      const response = await fetch(apiUrl("/auth/sign-in/social"), {
+
+      // Try using Better Auth client's signIn method first
+      if (authClient.signIn) {
+        console.log("🔐 Using Better Auth client signIn");
+        try {
+          const result = await authClient.signIn.social({
+            provider: "google",
+            callbackURL: "/editor"
+          });
+          console.log("🔐 Sign-in response:", result);
+          return;
+        } catch (clientError) {
+          console.log("🔐 Client signIn failed, falling back to REST API:", clientError);
+        }
+      }
+
+      // Fallback to REST API call with correct endpoint
+      console.log("🔐 Using REST API signIn");
+      const signInUrl = apiUrl("/api/auth/sign-in/social", false, true);
+      console.log("🔐 Sign-in URL:", signInUrl);
+      const response = await fetch(signInUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -242,10 +302,28 @@ export function useAuth(): UseAuthResult {
   const signOut = async () => {
     try {
       console.log("🚪 Signing out...");
-      const response = await fetch(apiUrl("/auth/sign-out"), {
+
+      // Try using Better Auth client's signOut method first
+      if (authClient.signOut) {
+        console.log("🔐 Using Better Auth client signOut");
+        const result = await authClient.signOut();
+        console.log("✅ Sign-out successful via client");
+        setUser(null);
+        return;
+      }
+
+      // Fallback to REST API call with correct endpoint
+      console.log("🔐 Using REST API signOut");
+      const signOutUrl = apiUrl("/api/auth/sign-out", false, true);
+      console.log("URL:", signOutUrl);
+      const response = await fetch(signOutUrl, {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
       if (response.ok) {
         console.log("✅ Sign-out successful");
         setUser(null);
