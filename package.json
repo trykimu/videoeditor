@@ -2,6 +2,7 @@
   "name": "videoeditor",
   "private": true,
   "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
