@@ -1,6 +1,6 @@
 # License
 
-Kimu is licensed under a **dual license**:
+This project is licensed under a **dual license**:
 
 - **Open Source License**: GNU AGPL v3 (see `LICENSE-AGPL3.md`).  
   Unless you have a separate commercial license from the copyright holder, the AGPL v3 applies by default.  
