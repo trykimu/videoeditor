@@ -186,6 +186,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       formData.append('media', file);
 
       console.log("Uploading file to server...");
+      console.log("URL APIURL", apiUrl('/upload'));
       const uploadResponse = await axios.post(apiUrl('/upload'), formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {

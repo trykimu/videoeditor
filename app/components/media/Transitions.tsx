@@ -3,6 +3,11 @@ import { Card, CardContent } from "~/components/ui/card";
 import { FPS } from "../timeline/types";
 import { generateUUID } from "~/utils/uuid";
 
+// Data router loader (no data needed, ensures route is compatible with data router)
+export function loader() {
+    return null;
+}
+
 type TransitionType = {
     type: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris";
     name: string;

@@ -97,7 +97,7 @@ export interface TimelineDataItem {
 
 // Constants
 export const PIXELS_PER_SECOND = 100;
-export const DEFAULT_TRACK_HEIGHT = 60;
+export const DEFAULT_TRACK_HEIGHT = 52;
 export const FPS = 30;
 export const RULER_HEIGHT = 32;
 

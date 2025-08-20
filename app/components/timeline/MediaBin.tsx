@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router";
-import { useMemo, memo } from "react";
+import { useMemo, memo, useState, useCallback } from "react";
 import { FileVideo, FileImage, Type, Clock, Upload, Music, Trash2, SplitSquareHorizontal } from "lucide-react";
 import { Thumbnail } from '@remotion/player';
 import { OffthreadVideo, Img, Video } from 'remotion';
@@ -74,6 +74,54 @@ export default function MediaBin() {
     handleSplitAudioFromContext, 
     handleCloseContextMenu 
   } = useOutletContext<MediaBinProps>();
+
+  // Drag & Drop state for external file imports
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOverRoot = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only react to file drags from OS, not internal element drags
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeaveRoot = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    // Only reset when leaving the current target
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragOver(false);
+  }, []);
+
+  const handleDropRoot = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    setIsDragOver(false);
+    const droppedFiles = Array.from(e.dataTransfer.files || []);
+
+    const isAllowed = (file: File) => {
+      const type = (file.type || "").toLowerCase();
+      if (type.startsWith("video/") || type.startsWith("audio/") || type.startsWith("image/")) {
+        return true; // includes GIF via image/gif
+      }
+      // Fallback by extension when MIME is missing
+      const name = file.name.toLowerCase();
+      const imageExts = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff", ".svg"];
+      const videoExts = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".wmv"];
+      const audioExts = [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg", ".opus"];
+      const all = [...imageExts, ...videoExts, ...audioExts];
+      return all.some((ext) => name.endsWith(ext));
+    };
+
+    const files = droppedFiles.filter(isAllowed);
+    for (const file of files) {
+      try {
+        await onAddMedia(file);
+      } catch (err) {
+        console.error("Failed to import file via drop:", file.name, err);
+      }
+    }
+  }, [onAddMedia]);
 
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType) {
@@ -151,7 +199,14 @@ export default function MediaBin() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-background" onClick={handleCloseContextMenu}>
+    <div
+      className="h-full flex flex-col bg-background relative"
+      onClick={handleCloseContextMenu}
+      onDragOver={handleDragOverRoot}
+      onDragEnter={handleDragOverRoot}
+      onDragLeave={handleDragLeaveRoot}
+      onDrop={handleDropRoot}
+    >
       {/* Compact Header */}
       <div className="p-2 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -240,6 +295,18 @@ export default function MediaBin() {
           </div>
         )}
       </div>
+
+      {/* Dropzone overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-background/80">
+          <div className="absolute inset-2 border-2 border-dashed border-primary/80 rounded-md flex items-center justify-center">
+            <div className="pointer-events-none text-center">
+              <Upload className="h-6 w-6 mx-auto mb-2 text-primary" />
+              <p className="text-sm text-primary font-medium">Drop files to import</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context Menu */}
       {contextMenu && (

@@ -1,7 +1,7 @@
 <samp>
   
-<h1>Open-Source Video Editor</h1>
-<p>Not your ordinary Video Editor Application using React, Remotion & TypeScript.</p>
+<h1>Kimu</h1>
+<p>Copilot for Video Editing.</p>
 <br />
 
 > [!NOTE]  
