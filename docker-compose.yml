@@ -16,9 +16,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     container_name: videoeditor-frontend
     env_file:
       - .env
+    environment:
+      # Ensure server-side code can construct proper callback URLs
+      AUTH_BASE_URL: https://trykimu.com
+      AUTH_TRUSTED_ORIGINS: https://trykimu.com,https://www.trykimu.com
+      HOST: 0.0.0.0
+      PORT: 3000
     # ports:
     #   - "3000:3000"
     depends_on:
@@ -31,6 +40,11 @@ services:
     container_name: videoeditor-backend
     env_file:
       - .env
+    environment:
+      AUTH_BASE_URL: https://trykimu.com
+      AUTH_TRUSTED_ORIGINS: https://trykimu.com,https://www.trykimu.com
+      NODE_ENV: production
+      PORT: 8000
     # ports:
     #   - "8000:8000"
     volumes:
