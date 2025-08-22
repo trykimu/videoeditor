@@ -33,7 +33,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "~/components/ui/dropdown-menu";
+import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
@@ -90,12 +93,19 @@ const DiscordIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// X (Twitter) SVG Component
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M18.244 2H21l-6.6 7.548L22 22h-6.8l-4.4-5.8L5.6 22H3l7.2-8.24L2 2h6.8l4 5.4L18.244 2Zm-1.2 18h1.88L8.08 4H6.2l10.844 16Z" />
+  </svg>
+);
+
 export default function TimelineEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const navigate = useNavigate();
 
@@ -458,50 +468,6 @@ export default function TimelineEditor() {
         </div>
 
         <div className="flex items-center gap-1">
-          {/* GitHub Star Counter */}
-          <a
-            href="https://github.com/robinroy03/videoeditor"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors text-xs"
-          >
-            <GitHubIcon className="h-3 w-3" />
-            GitHub
-            <span className="font-medium">
-              {starCount !== null ? starCount.toLocaleString() : '...'}
-            </span>
-            <Star className="h-2.5 w-2.5" />
-          </a>
-
-          {/* Discord Link */}
-          <a
-            href="https://discord.com/invite/GSknuxubZK"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 hover:bg-muted/80 transition-colors text-xs"
-            title="Join our Discord community"
-          >
-            <DiscordIcon className="h-3 w-3" />
-            <span className="font-medium">Discord</span>
-          </a>
-
-          <Separator orientation="vertical" className="h-4 mx-1" />
-
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="h-7 w-7 p-0 hover:bg-muted"
-          >
-            {theme === "dark" ? (
-              <Sun className="h-3.5 w-3.5" />
-            ) : (
-              <Moon className="h-3.5 w-3.5" />
-            )}
-          </Button>
-
-          <Separator orientation="vertical" className="h-4 mx-1" />
 
           {/* Import/Export */}
           <Button
@@ -527,33 +493,7 @@ export default function TimelineEditor() {
 
           {/* Auth status — keep avatar as the last item (right corner) */}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-6 w-6 rounded-full overflow-hidden border border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/30 relative ml-1">
-                  <div className="absolute inset-0 bg-muted flex items-center justify-center text-[10px] font-medium">
-                    {(user.name ?? user.email ?? "").slice(0,1).toUpperCase()}
-                  </div>
-                  {user.image && (
-                    <img
-                      src={user.image}
-                      alt={user.name ?? user.email ?? "Profile"}
-                      className="h-full w-full object-cover relative z-10"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[180px]">
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  {user.name || user.email || "Signed in"}
-                </div>
-                <DropdownMenuItem onClick={signOut} variant="destructive">
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-xs font-medium">Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ProfileMenu user={user} starCount={starCount} onSignOut={signOut} />
           ) : (
             <Button
               variant="ghost"
@@ -654,7 +594,7 @@ export default function TimelineEditor() {
 
                 {/* Video Preview */}
                 <div
-                  className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"}
+                  className={`flex-1 ${(resolvedTheme ?? "dark") === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"}
                     flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
                 >
                   <div className="flex-1 flex items-center justify-center w-full">
@@ -824,6 +764,8 @@ export default function TimelineEditor() {
                   messages={chatMessages}
                   onMessagesChange={setChatMessages}
                   timelineState={timeline}
+                  handleUpdateScrubber={handleUpdateScrubberWithLocking}
+                  handleDeleteScrubber={handleDeleteScrubber}
                 />
               </div>
             </ResizablePanel>
