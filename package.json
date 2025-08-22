@@ -6,6 +6,7 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
+    "migrate": "tsx app/lib/migrate.ts",
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint . --ext .ts,.tsx"
   },
@@ -75,6 +76,7 @@
     "multer": "^2.0.2",
     "tailwindcss": "^4.1.11",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.4",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.8.3",
     "vite": "^7.0.6",

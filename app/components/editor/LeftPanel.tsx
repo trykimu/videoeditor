@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 interface LeftPanelProps {
   mediaBinItems: MediaBinItem[];
+  isMediaLoading?: boolean;
   onAddMedia: (file: File) => void;
   onAddText: (
     textContent: string,
@@ -28,6 +29,7 @@ interface LeftPanelProps {
 
 export default function LeftPanel({
   mediaBinItems,
+  isMediaLoading,
   onAddMedia,
   onAddText,
   contextMenu,
@@ -90,6 +92,7 @@ export default function LeftPanel({
             context={{
               // MediaBin props
               mediaBinItems,
+              isMediaLoading,
               onAddMedia,
               onAddText,
               contextMenu,

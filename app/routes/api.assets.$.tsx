@@ -1,24 +1,17 @@
 import type { Route } from "./+types/api.assets.$";
 import { auth } from "~/lib/auth.server";
-import {
-  ensureAssetsTable,
-  insertAsset,
-  listAssetsByUser,
-  getAssetById,
-  softDeleteAsset,
-} from "~/lib/assets.repo";
+import { insertAsset, listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
 
 const OUT_DIR = path.resolve("out");
-let ensured = false;
 
 async function requireUserId(request: Request): Promise<string> {
   // Try Better Auth runtime API first
   try {
     // @ts-ignore - runtime API may not be typed
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const userId: string | undefined = session?.user?.id || session?.userId || session?.session?.user?.id || session?.session?.userId;
+    const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
     if (userId) return String(userId);
   } catch {}
 
@@ -61,19 +54,16 @@ function inferMediaTypeFromName(name: string, fallback: string = "application/oc
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  if (!ensured) {
-    ensured = true;
-    await ensureAssetsTable();
-  }
-
   const url = new URL(request.url);
   const pathname = url.pathname;
 
   const userId = await requireUserId(request);
 
-  // GET /api/assets -> list assets for user
+  // GET /api/assets[?projectId=...] -> list assets for user
   if (pathname.endsWith("/api/assets") && request.method === "GET") {
-    const rows = await listAssetsByUser(userId);
+    const projectIdParam = new URL(request.url).searchParams.get('projectId');
+    const projectId = projectIdParam ? String(projectIdParam) : null;
+    const rows = await listAssetsByUser(userId, projectId);
     const items = rows.map((r) => ({
       id: r.id,
       name: r.original_name,
@@ -149,11 +139,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  if (!ensured) {
-    ensured = true;
-    await ensureAssetsTable();
-  }
-
   const url = new URL(request.url);
   const pathname = url.pathname;
   const method = request.method.toUpperCase();
@@ -166,6 +151,7 @@ export async function action({ request }: Route.ActionArgs) {
     const height = Number(request.headers.get("x-media-height") || "") || null;
     const duration = Number(request.headers.get("x-media-duration") || "") || null;
     const originalNameHeader = request.headers.get("x-original-name") || "file";
+    const projectIdHeader = request.headers.get("x-project-id");
 
     // Parse incoming multipart form
     const incoming = await request.formData();
@@ -201,6 +187,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     const record = await insertAsset({
       userId,
+      projectId: projectIdHeader || null,
       originalName: filenameFor8000,
       storageKey: filename,
       mimeType: mime,
@@ -334,6 +321,7 @@ export async function action({ request }: Route.ActionArgs) {
     const stat = fs.statSync(destPath);
     const record = await insertAsset({
       userId,
+      projectId: asset.project_id ?? null,
       originalName: `${asset.original_name} ${suffix}`.trim(),
       storageKey: newFilename,
       mimeType: asset.mime_type,

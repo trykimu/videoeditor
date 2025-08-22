@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 
 interface MediaBinProps {
   mediaBinItems: MediaBinItem[];
+  isMediaLoading?: boolean;
   onAddMedia: (file: File) => Promise<void>;
   onAddText: (
     textContent: string,
@@ -187,6 +188,7 @@ export function loader() {
 export default function MediaBin() {
   const { 
     mediaBinItems, 
+    isMediaLoading,
     onAddMedia, 
     onAddText, 
     contextMenu, 
@@ -383,6 +385,27 @@ export default function MediaBin() {
   }, []);
   const closePreview = useCallback(() => setPreviewItem(null), []);
 
+  // Support closing preview with Escape key
+  useEffect(() => {
+    if (!previewItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closePreview();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewItem, closePreview]);
+
+  // Focus overlay so onKeyDown works if needed
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (previewItem && overlayRef.current) {
+      overlayRef.current.focus();
+    }
+  }, [previewItem]);
+
   return (
     <div
       className="h-full flex flex-col bg-background relative"
@@ -455,6 +478,11 @@ export default function MediaBin() {
 
       {/* Media Items */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1 panel-scrollbar">
+        {isMediaLoading && (
+          <div className="px-0.5">
+            <div className="indeterminate-line text-primary" />
+          </div>
+        )}
         {arrangeMode === 'default' && (
           <>
             {defaultArrangedItems.map((item) => (
@@ -682,9 +710,17 @@ export default function MediaBin() {
 
       {/* Preview overlay */}
       {previewItem && (
-        <div className="fixed inset-0 z-[60] bg-background/80" onClick={closePreview}>
-          <div className="w-full h-full flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="w-full max-w-[760px] max-h-[80vh] border border-border rounded-md bg-popover shadow-lg flex flex-col overflow-hidden">
+        <div
+          ref={overlayRef}
+          className="fixed inset-0 z-[60] bg-black/70"
+          onClick={closePreview}
+          onKeyDown={(e) => { if (e.key === 'Escape') closePreview(); }}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full max-w-[760px] max-h-[80vh] border border-border rounded-md bg-popover shadow-lg flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5">

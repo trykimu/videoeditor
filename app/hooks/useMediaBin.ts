@@ -138,6 +138,7 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): P
 
 export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void) => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
+  const [isMediaLoading, setIsMediaLoading] = useState<boolean>(true)
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -183,6 +184,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         setMediaBinItems(items);
       } catch (e) {
         console.error('Failed to load assets', e);
+      } finally {
+        setIsMediaLoading(false);
       }
     };
     loadAssets();
@@ -430,6 +433,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
   return {
     mediaBinItems,
+    isMediaLoading,
     handleAddMediaToBin,
     handleAddTextToBin,
     handleDeleteMedia,

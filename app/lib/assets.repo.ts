@@ -4,6 +4,7 @@ import crypto from "crypto";
 export type AssetRecord = {
   id: string;
   user_id: string;
+  project_id: string | null;
   original_name: string;
   storage_key: string;
   mime_type: string;
@@ -36,41 +37,11 @@ function getPool(): Pool {
   return pool;
 }
 
-export async function ensureAssetsTable(): Promise<void> {
-  const client = await getPool().connect();
-  try {
-    await client.query(`
-      create table if not exists assets (
-        id uuid primary key,
-        user_id text not null,
-        original_name text not null,
-        storage_key text not null,
-        mime_type text not null,
-        size_bytes bigint not null,
-        width int null,
-        height int null,
-        duration_seconds double precision null,
-        created_at timestamptz not null default now(),
-        deleted_at timestamptz null
-      );
-      create index if not exists idx_assets_user_id_created_at on assets(user_id, created_at desc);
-      create unique index if not exists idx_assets_user_storage_key on assets(user_id, storage_key);
-    `);
-    // If table already existed with user_id as uuid, migrate it to text
-    try {
-      await client.query(
-        `alter table assets alter column user_id type text using user_id::text;`
-      );
-    } catch {
-      // ignore if already text or migration not needed
-    }
-  } finally {
-    client.release();
-  }
-}
+// Schema creation is handled by SQL migrations in /migrations.
 
 export async function insertAsset(params: {
   userId: string;
+  projectId?: string | null;
   originalName: string;
   storageKey: string;
   mimeType: string;
@@ -83,12 +54,13 @@ export async function insertAsset(params: {
   try {
     const id = crypto.randomUUID();
     const { rows } = await client.query<AssetRecord>(
-      `insert into assets (id, user_id, original_name, storage_key, mime_type, size_bytes, width, height, duration_seconds)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `insert into assets (id, user_id, project_id, original_name, storage_key, mime_type, size_bytes, width, height, duration_seconds)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        returning *`,
       [
         id,
         params.userId,
+        params.projectId ?? null,
         params.originalName,
         params.storageKey,
         params.mimeType,
@@ -104,13 +76,15 @@ export async function insertAsset(params: {
   }
 }
 
-export async function listAssetsByUser(userId: string): Promise<AssetRecord[]> {
+export async function listAssetsByUser(userId: string, projectId: string | null): Promise<AssetRecord[]> {
   const client = await getPool().connect();
   try {
-    const { rows } = await client.query<AssetRecord>(
-      `select * from assets where user_id = $1 and deleted_at is null order by created_at desc`,
-      [userId]
-    );
+    const query =
+      projectId === null
+        ? `select * from assets where user_id = $1 and project_id is null and deleted_at is null order by created_at desc`
+        : `select * from assets where user_id = $1 and project_id = $2 and deleted_at is null order by created_at desc`;
+    const params = projectId === null ? [userId] : [userId, projectId];
+    const { rows } = await client.query<AssetRecord>(query, params as any);
     return rows;
   } finally {
     client.release();
