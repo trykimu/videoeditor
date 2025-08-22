@@ -105,6 +105,22 @@ export function llmDeleteScrubber(
   throw new Error("Delete function needs to be implemented in the timeline hook");
 }
 
+export function llmDeleteScrubbersInTrack(
+  trackNumber: number,
+  timeline: TimelineState,
+  handleDeleteScrubber: (scrubberId: string) => void
+) {
+  const trackIndex = trackNumber - 1;
+  if (trackIndex < 0 || trackIndex >= timeline.tracks.length) {
+    throw new Error(`Track ${trackNumber} does not exist`);
+  }
+  const track = timeline.tracks[trackIndex];
+  // Delete all scrubbers in this track
+  track.scrubbers.forEach((scrubber) => {
+    handleDeleteScrubber(scrubber.id);
+  });
+}
+
 // ============================
 // TRACK OPERATIONS
 // ============================

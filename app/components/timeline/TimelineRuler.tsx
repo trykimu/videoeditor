@@ -157,7 +157,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
       {/* Timeline Ruler */}
       <div
-        className="bg-muted/50 border-b border-border/50 cursor-pointer relative z-50 flex-1 overflow-hidden"
+        className="bg-muted/50 border-b border-border/50 cursor-pointer relative z-20 flex-1 overflow-hidden"
         style={{ height: "32px" }}
       >
         <div
@@ -269,7 +269,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
           {/* Playhead line - extends full height */}
           <div
-            className="absolute top-0 w-0.5 bg-primary pointer-events-none z-50 shadow-sm"
+            className="absolute top-0 w-0.5 bg-primary pointer-events-none z-20 shadow-sm"
             style={{
               left: `${rulerPositionPx}px`,
               height: "32px",
@@ -278,7 +278,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
           {/* Playhead handle - rectangular marker (original style) */}
           <div
-            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border-2 border-background shadow-lg"
+            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-20 border-2 border-background shadow-lg"
             style={{
               left: `${rulerPositionPx - 5}px`,
               top: "1px",

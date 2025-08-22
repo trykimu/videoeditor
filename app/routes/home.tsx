@@ -824,6 +824,8 @@ export default function TimelineEditor() {
                   messages={chatMessages}
                   onMessagesChange={setChatMessages}
                   timelineState={timeline}
+                  handleUpdateScrubber={handleUpdateScrubberWithLocking}
+                  handleDeleteScrubber={handleDeleteScrubber}
                 />
               </div>
             </ResizablePanel>
