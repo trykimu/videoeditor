@@ -21,6 +21,7 @@
 - 🔀Multi-track Support
 - 👀Live Preview
 - 📤Export Video
+- 📜Licensed under MIT
 
 ## 🐋Deployment
 
@@ -52,4 +53,4 @@ We would love your contributions! ❤️ Check the [contribution guide](CONTRIBU
 
 ## 📜License
 
-This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
+This project is licensed under the MIT License. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
