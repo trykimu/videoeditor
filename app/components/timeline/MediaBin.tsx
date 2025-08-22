@@ -238,9 +238,9 @@ export default function MediaBin() {
       }
       // Fallback by extension when MIME is missing
       const name = file.name.toLowerCase();
-      const imageExts = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff", ".svg"];
-      const videoExts = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".wmv"];
-      const audioExts = [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg", ".opus"];
+      const imageExts = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff", ".svg", ".heic", ".heif"];
+      const videoExts = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".wmv", ".mts", ".m2ts", ".3gp", ".flv"];
+      const audioExts = [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg", ".opus", ".aiff", ".aif", ".wma"];
       const all = [...imageExts, ...videoExts, ...audioExts];
       return all.some((ext) => name.endsWith(ext));
     };
@@ -544,39 +544,38 @@ export default function MediaBin() {
               { key: 'audio' as const, title: 'Audio', items: groupedItems.audio, count: counts.audio },
               { key: 'text' as const, title: 'Text', items: groupedItems.text, count: counts.text },
             ]).filter(section => section.count > 0).map(section => (
-              <div key={section.key} className="border border-border/50 rounded-md overflow-hidden">
+              <div key={section.key} className="rounded-lg border border-border/40 bg-card/40 overflow-hidden">
                 <button
-                  className="w-full flex items-center justify-between px-2 py-1.5 bg-muted/50 hover:bg-muted/70 text-xs"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs hover:bg-accent/40 transition-colors"
                   onClick={() => setCollapsed(prev => ({ ...prev, [section.key]: !prev[section.key] }))}
                 >
-                  <div className="flex items-center gap-1.5">
-                    {section.key === 'videos' && <FileVideo className="h-3.5 w-3.5" />}
-                    {section.key === 'gifs' && <FileImage className="h-3.5 w-3.5" />}
-                    {section.key === 'images' && <FileImage className="h-3.5 w-3.5" />}
-                    {section.key === 'audio' && <Music className="h-3.5 w-3.5" />}
-                    {section.key === 'text' && <Type className="h-3.5 w-3.5" />}
-                    <span className="font-medium">{section.title}</span>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    {section.key === 'videos' && <FileVideo className="h-3 w-3" />}
+                    {section.key === 'gifs' && <FileImage className="h-3 w-3" />}
+                    {section.key === 'images' && <FileImage className="h-3 w-3" />}
+                    {section.key === 'audio' && <Music className="h-3 w-3" />}
+                    {section.key === 'text' && <Type className="h-3 w-3" />}
+                    <span className="font-medium text-foreground/90">{section.title}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs h-4 px-1.5 font-mono">{section.count}</Badge>
-                    {collapsed[section.key] ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">{section.count}</Badge>
+                    {collapsed[section.key] ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
                   </div>
                 </button>
                 {!collapsed[section.key] && (
-                  <div className="p-2 space-y-1">
+                  <div className="p-2 space-y-1.5">
                     {section.items.map((item) => (
                       <div
                         key={item.id}
-                        className={`group p-2 border border-border/50 rounded-md transition-colors ${
+                        className={`group p-2 rounded-md border border-border/40 transition-colors ${
                           item.isUploading 
                             ? "bg-accent/30 cursor-default" 
-                            : "bg-card cursor-grab hover:bg-accent/50"
+                            : "bg-card hover:bg-accent/30"
                         }`}
                         draggable={!item.isUploading}
                         onDragStart={(e) => {
                           if (!item.isUploading) {
                             e.dataTransfer.setData("application/json", JSON.stringify(item));
-                            console.log("Dragging item:", item.name);
                           }
                         }}
                         onContextMenu={(e) => handleContextMenu(e, item)}
@@ -589,14 +588,11 @@ export default function MediaBin() {
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className={`text-xs font-medium truncate transition-colors ${
-                                item.isUploading 
-                                  ? "text-muted-foreground" 
-                                  : "text-foreground group-hover:text-accent-foreground"
+                              <p className={`text-xs font-medium truncate ${
+                                item.isUploading ? "text-muted-foreground" : "text-foreground"
                               }`}>
                                 {item.name}
                               </p>
-                              
                               {item.isUploading && typeof item.uploadProgress === "number" && (
                                 <span className="text-xs text-muted-foreground font-mono">
                                   {item.uploadProgress}%
@@ -611,15 +607,11 @@ export default function MediaBin() {
                             )}
 
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <Badge
-                                variant="secondary"
-                                className="text-xs px-1 py-0 h-auto"
-                              >
+                              <Badge variant="secondary" className="text-[10px] px-1 py-0 h-auto">
                                 {item.isUploading ? "uploading" : item.mediaType}
                               </Badge>
-
                               {(item.mediaType === "video" || item.mediaType === "audio") && item.durationInSeconds > 0 && !item.isUploading && (
-                                <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                                   <Clock className="h-2.5 w-2.5" />
                                   {item.durationInSeconds.toFixed(1)}s
                                 </div>
