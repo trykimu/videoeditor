@@ -12,6 +12,7 @@ import "./app.css";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ui/ThemeProvider";
 
+
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -35,9 +36,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-screen bg-background text-foreground font-sans antialiased">
+      <body className="min-h-screen font-sans antialiased">
         <ThemeProvider>
-          <main className="h-screen w-full overflow-hidden">{children}</main>
+          <main className="w-full">{children}</main>
           <Toaster position="top-right" expand={false} richColors closeButton />
           <ScrollRestoration />
           <Scripts />

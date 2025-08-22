@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 interface LeftPanelProps {
   mediaBinItems: MediaBinItem[];
+  isMediaLoading?: boolean;
   onAddMedia: (file: File) => void;
   onAddText: (
     textContent: string,
@@ -28,6 +29,7 @@ interface LeftPanelProps {
 
 export default function LeftPanel({
   mediaBinItems,
+  isMediaLoading,
   onAddMedia,
   onAddText,
   contextMenu,
@@ -59,7 +61,7 @@ export default function LeftPanel({
               asChild
               className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
-              <Link to="/media-bin" className="flex items-center gap-1.5">
+              <Link to="media-bin" className="flex items-center gap-1.5">
                 <FileImage className="h-3 w-3" />
               </Link>
             </TabsTrigger>
@@ -68,7 +70,7 @@ export default function LeftPanel({
               asChild
               className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
-              <Link to="/text-editor" className="flex items-center gap-1.5">
+              <Link to="text-editor" className="flex items-center gap-1.5">
                 <Type className="h-3 w-3" />
               </Link>
             </TabsTrigger>
@@ -77,7 +79,7 @@ export default function LeftPanel({
               asChild
               className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
-              <Link to="/transitions" className="flex items-center gap-1.5">
+              <Link to="transitions" className="flex items-center gap-1.5">
                 <BetweenVerticalEnd className="h-3 w-3" />
               </Link>
             </TabsTrigger>
@@ -90,6 +92,7 @@ export default function LeftPanel({
             context={{
               // MediaBin props
               mediaBinItems,
+              isMediaLoading,
               onAddMedia,
               onAddText,
               contextMenu,

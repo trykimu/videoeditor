@@ -3,6 +3,7 @@ import axios from "axios"
 import { type MediaBinItem } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
+import { useEffect } from "react"
 
 // Delete media file from server
 export const deleteMediaFile = async (filename: string): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -137,11 +138,58 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): P
 
 export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void) => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
+  const [isMediaLoading, setIsMediaLoading] = useState<boolean>(true)
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     item: MediaBinItem;
   } | null>(null)
+
+  // Hydrate existing assets for the logged-in user
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/assets', false, true), { credentials: 'include' });
+        if (!res.ok) return;
+        const json = await res.json();
+        const assets = (json.assets || []) as Array<{
+          id: string;
+          name: string;
+          mediaUrlRemote: string;
+          width: number | null;
+          height: number | null;
+          durationInSeconds: number | null;
+        }>;
+        const items: MediaBinItem[] = assets.map((a) => ({
+          id: a.id,
+          name: a.name,
+          mediaType: ((): "video" | "image" | "audio" | "text" => {
+            const ext = a.name.toLowerCase();
+            if (/(mp4|mov|webm|mkv|avi)$/.test(ext)) return 'video';
+            if (/(mp3|wav|aac|ogg|flac)$/.test(ext)) return 'audio';
+            if (/(jpg|jpeg|png|gif|bmp|webp)$/.test(ext)) return 'image';
+            return 'image';
+          })(),
+          mediaUrlLocal: null,
+          mediaUrlRemote: a.mediaUrlRemote,
+          durationInSeconds: a.durationInSeconds ?? 0,
+          media_width: a.width ?? 0,
+          media_height: a.height ?? 0,
+          text: null,
+          isUploading: false,
+          uploadProgress: null,
+          left_transition_id: null,
+          right_transition_id: null,
+        }));
+        setMediaBinItems(items);
+      } catch (e) {
+        console.error('Failed to load assets', e);
+      } finally {
+        setIsMediaLoading(false);
+      }
+    };
+    loadAssets();
+  }, []);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
@@ -185,8 +233,15 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       const formData = new FormData();
       formData.append('media', file);
 
-      console.log("Uploading file to server...");
-      const uploadResponse = await axios.post(apiUrl('/upload'), formData, {
+      console.log("Uploading file to server via authenticated proxy...");
+      const uploadResponse = await axios.post(apiUrl('/api/assets/upload', false, true), formData, {
+        headers: {
+          'x-original-name': file.name,
+          'x-media-width': String(metadata.width ?? ''),
+          'x-media-height': String(metadata.height ?? ''),
+          'x-media-duration': String(metadata.durationInSeconds ?? ''),
+        },
+        withCredentials: true,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -213,7 +268,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           item.id === id
             ? {
               ...item,
-              mediaUrlRemote: uploadResult.fullUrl,
+              mediaUrlRemote: uploadResult.asset?.mediaUrlRemote ?? null,
               isUploading: false,
               uploadProgress: null
             }
@@ -277,28 +332,14 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         return;
       }
 
-      // Extract filename from mediaUrlRemote URL
       if (!item.mediaUrlRemote) {
         console.error('No remote URL found for media item');
         return;
       }
-
-      // Parse the URL and extract filename from the path
-      const url = new URL(item.mediaUrlRemote);
-      const pathSegments = url.pathname.split('/');
-      const encodedFilename = pathSegments[pathSegments.length - 1]; // Get the last segment after /media/
-
-      if (!encodedFilename) {
-        console.error('Could not extract filename from URL:', item.mediaUrlRemote);
-        return;
-      }
-
-      // Decode the filename
-      const filename = decodeURIComponent(encodedFilename);
-      console.log('Extracted filename:', filename);
-
-      const result = await deleteMediaFile(filename);
-      if (result.success) {
+      // Call authenticated delete by asset id
+      const assetId = item.id;
+      const res = await fetch(apiUrl(`/api/assets/${assetId}`, false, true), { method: 'DELETE', credentials: 'include' });
+      if (res.ok) {
         console.log(`Media deleted: ${item.name}`);
         // Remove from media bin state
         setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
@@ -307,7 +348,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           handleDeleteScrubbersByMediaBinId(item.id);
         }
       } else {
-        console.error('Failed to delete media:', result.error);
+        console.error('Failed to delete media:', await res.text());
       }
     } catch (error) {
       console.error('Error deleting media:', error);
@@ -325,29 +366,23 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         throw new Error('No remote URL found for video item');
       }
 
-      // Parse the URL and extract filename from the path
-      const url = new URL(videoItem.mediaUrlRemote);
-      const pathSegments = url.pathname.split('/');
-      const encodedFilename = pathSegments[pathSegments.length - 1];
+      // Clone via authenticated API (server will copy within out/ and record)
+      const res = await fetch(apiUrl(`/api/assets/${videoItem.id}/clone`, false, true), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suffix: '(Audio)' })
+      });
+      if (!res.ok) throw new Error('Failed to clone media file');
+      const cloneResult = await res.json();
 
-      if (!encodedFilename) {
-        throw new Error('Could not extract filename from URL');
-      }
-
-      // Clone the file on the server
-      const cloneResult = await cloneMediaFile(encodedFilename, videoItem.name, '(Audio)');
-
-      if (!cloneResult.success) {
-        throw new Error(cloneResult.error || 'Failed to clone media file');
-      }
-
-      // Create a new audio media item with the cloned file info
+      // Create a new audio media item using returned URL
       const audioItem: MediaBinItem = {
         id: generateUUID(),
         name: `${videoItem.name} (Audio)`,
         mediaType: "audio",
         mediaUrlLocal: videoItem.mediaUrlLocal, // Reuse the original video's blob URL
-        mediaUrlRemote: cloneResult.fullUrl!, // Use the new cloned file URL
+        mediaUrlRemote: cloneResult.asset?.mediaUrlRemote!,
         durationInSeconds: videoItem.durationInSeconds,
         media_width: 0, // Audio doesn't have visual dimensions
         media_height: 0,
@@ -398,6 +433,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
   return {
     mediaBinItems,
+    isMediaLoading,
     handleAddMediaToBin,
     handleAddTextToBin,
     handleDeleteMedia,
