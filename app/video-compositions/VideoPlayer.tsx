@@ -118,8 +118,8 @@ export function TimelineComposition({
         break;
       case "image": {
         const imageUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? (scrubber.mediaUrlRemote || scrubber.mediaUrlLocal)
+          : (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote);
         content = (
           <AbsoluteFill
             style={{
@@ -136,8 +136,8 @@ export function TimelineComposition({
       }
       case "video": {
         const videoUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? (scrubber.mediaUrlRemote || scrubber.mediaUrlLocal)
+          : (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote);
         content = (
           <AbsoluteFill
             style={{
@@ -154,8 +154,8 @@ export function TimelineComposition({
       }
       case "audio": {
         const audioUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? (scrubber.mediaUrlRemote || scrubber.mediaUrlLocal)
+          : (scrubber.mediaUrlLocal || scrubber.mediaUrlRemote);
         content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined}/>;
         break;
       }

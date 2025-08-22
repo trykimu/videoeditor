@@ -5,12 +5,14 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ui/ThemeProvider";
+import { auth } from "~/lib/auth.server";
 
 
 export const links: Route.LinksFunction = () => [
@@ -26,6 +28,17 @@ export const links: Route.LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
+
+export async function loader({ request }: Route.LoaderArgs) {
+  try {
+    // @ts-ignore
+    const session = await auth.api?.getSession?.({ headers: request.headers });
+    const user = session?.user || null;
+    return { user };
+  } catch {
+    return { user: null };
+  }
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -49,7 +62,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const data = useLoaderData<typeof loader>() as { user: any };
+  return (
+    <>
+      {/* Expose initial auth user to the client to avoid extra roundtrips/flicker */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `window.__AUTH_USER__ = ${JSON.stringify(data?.user ?? null)};`,
+        }}
+      />
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

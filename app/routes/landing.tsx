@@ -505,9 +505,9 @@ export default function Landing() {
                 Edit less. Create more. The playful, zero‑latency, AI‑powered editor for creators.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link to="/editor">
+                <Link to="/login">
                   <Button className="bg-foreground text-background hover:bg-foreground/90">
-                    Open Editor
+                    Get Started
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>

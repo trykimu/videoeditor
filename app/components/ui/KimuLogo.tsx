@@ -1,9 +1,8 @@
 import * as React from "react";
 
-interface KimuLogoProps {
+interface KimuLogoProps extends React.SVGProps<SVGSVGElement> {
   color?: string; // CSS color or tailwind class
   opacity?: number;
-  className?: string;
   animated?: boolean;
 }
 
@@ -12,6 +11,8 @@ export const KimuLogo: React.FC<KimuLogoProps> = ({
   opacity = 1,
   className = "",
   animated = false,
+  style,
+  ...rest
 }) => {
   return (
     <svg
@@ -26,7 +27,8 @@ export const KimuLogo: React.FC<KimuLogoProps> = ({
           ? " animate-float-icon transition-all duration-700"
           : "")
       }
-      style={{ color, opacity }}
+      style={{ color, opacity, ...(style as any) }}
+      {...rest}
       aria-label="Kimu Logo"
     >
       <path
