@@ -9,6 +9,7 @@ export default [
         route("transitions", "components/media/Transitions.tsx"),
     ]),
     route("/api/auth/*", "routes/api.auth.$.tsx"),
+    route("/api/assets/*", "routes/api.assets.$.tsx"),
     route("/learn", "routes/learn.tsx"),
     route("/roadmap", "routes/roadmap.tsx"),
     route("/privacy", "routes/privacy.tsx"),

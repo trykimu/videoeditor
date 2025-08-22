@@ -150,6 +150,7 @@ export default function TimelineEditor() {
 
   const {
     mediaBinItems,
+    isMediaLoading,
     handleAddMediaToBin,
     handleAddTextToBin,
     contextMenu,
@@ -515,6 +516,7 @@ export default function TimelineEditor() {
           <div className="h-full border-r border-border">
             <LeftPanel
               mediaBinItems={mediaBinItems}
+              isMediaLoading={isMediaLoading}
               onAddMedia={handleAddMediaToBin}
               onAddText={handleAddTextToBin}
               contextMenu={contextMenu}
@@ -594,8 +596,10 @@ export default function TimelineEditor() {
 
                 {/* Video Preview */}
                 <div
-                  className={`flex-1 ${(resolvedTheme ?? "dark") === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"}
-                    flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
+                  className={
+                    "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
+                    "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
+                  }
                 >
                   <div className="flex-1 flex items-center justify-center w-full">
                     <VideoPlayer
