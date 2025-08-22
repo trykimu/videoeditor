@@ -36,6 +36,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "~/components/ui/dropdown-menu";
+import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
@@ -104,7 +105,7 @@ export default function TimelineEditor() {
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const navigate = useNavigate();
 
@@ -492,89 +493,7 @@ export default function TimelineEditor() {
 
           {/* Auth status — keep avatar as the last item (right corner) */}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-6 w-6 rounded-full overflow-hidden border border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/30 relative ml-1">
-                  <div className="absolute inset-0 bg-muted flex items-center justify-center text-[10px] font-medium">
-                    {(user.name ?? user.email ?? "").slice(0,1).toUpperCase()}
-                  </div>
-                  {user.image && (
-                    <img
-                      src={user.image}
-                      alt={user.name ?? user.email ?? "Profile"}
-                      className="h-full w-full object-cover relative z-10"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[220px]">
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  {user.name || user.email || "Signed in"}
-                </div>
-                <DropdownMenuLabel className="text-[11px] text-muted-foreground">Appearance</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <button
-                    className="w-full flex items-center gap-2 text-xs"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  >
-                    {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-                    Switch theme
-                  </button>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-[11px] text-muted-foreground">Socials</DropdownMenuLabel>
-                <div className="px-0 pb-2">
-                  <div className="flex items-center justify-center gap-1">
-                    <DropdownMenuItem asChild className="p-0">
-                      <a
-                        href="https://github.com/trykimu/videoeditor"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center h-8 rounded-md border border-border/40 px-3 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                        title="GitHub"
-                      >
-                        <span className="inline-flex items-center justify-center gap-1 leading-none">
-                          <GitHubIcon className="h-3 w-3 shrink-0" />
-                          <Star className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
-                          <span className="font-mono text-[10px] text-muted-foreground leading-none">
-                            {starCount !== null ? starCount.toLocaleString() : '...'}
-                          </span>
-                        </span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="p-0">
-                      <a
-                        href="https://discord.com/invite/GSknuxubZK"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-14 h-8 rounded-md border border-border/40 px-2 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                        title="Discord"
-                      >
-                        <DiscordIcon className="h-3.5 w-3.5" />
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="p-0">
-                      <a
-                        href="https://x.com/trykimu"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-14 h-8 rounded-md border border-border/40 px-2 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                        title="X (Twitter)"
-                      >
-                        <XIcon className="h-3.5 w-3.5" />
-                      </a>
-                    </DropdownMenuItem>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} variant="destructive">
-                  <LogOut className="h-4 w-4" />
-                  <span className="text-xs font-medium">Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ProfileMenu user={user} starCount={starCount} onSignOut={signOut} />
           ) : (
             <Button
               variant="ghost"
@@ -675,7 +594,7 @@ export default function TimelineEditor() {
 
                 {/* Video Preview */}
                 <div
-                  className={`flex-1 ${theme === "dark" ? "bg-black" : "bg-white"}
+                  className={`flex-1 ${(resolvedTheme ?? "dark") === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"}
                     flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
                 >
                   <div className="flex-1 flex items-center justify-center w-full">
