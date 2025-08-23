@@ -65,7 +65,7 @@ export default function TextEditor() {
         textAlign,
         fontWeight
       );
-      navigate("/editor/media-bin");
+      navigate("../media-bin");
     }
   };
 

@@ -4,12 +4,13 @@ import { createProject, getProjectById, listProjectsByUser, deleteProjectById } 
 import { listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
+import { loadTimeline, saveTimeline, loadProjectState, saveProjectState } from "~/lib/timeline.store";
 
 async function requireUserId(request: Request): Promise<string> {
   try {
     // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.userId || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (uid) return String(uid);
   } catch {}
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
@@ -40,7 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     const id = m[1];
     const proj = await getProjectById(id);
     if (!proj || proj.user_id !== userId) return new Response("Not Found", { status: 404 });
-    return new Response(JSON.stringify({ project: proj }), { status: 200, headers: { "Content-Type": "application/json" } });
+    const state = await loadProjectState(id);
+    return new Response(JSON.stringify({ project: proj, timeline: state.timeline, textBinItems: state.textBinItems }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
   // DELETE /api/projects/:id -> delete project and assets
@@ -66,6 +68,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const ok = await deleteProjectById(id, userId);
     if (!ok) return new Response("Not Found", { status: 404 });
+    // remove timeline file if exists
+    try { await fs.promises.unlink(path.resolve(process.env.TIMELINE_DIR || "project_data", `${id}.json`)); } catch {}
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
@@ -117,7 +121,9 @@ export async function action({ request }: Route.ActionArgs) {
     if (!proj || proj.user_id !== userId) return new Response("Not Found", { status: 404 });
     const body = await request.json().catch(() => ({} as any));
     const name: string | undefined = body?.name ? String(body.name).slice(0, 120) : undefined;
-    if (!name) return new Response(JSON.stringify({ error: "Name is required" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    const timeline: any | undefined = body?.timeline;
+    const textBinItems: any[] | undefined = Array.isArray(body?.textBinItems) ? body.textBinItems : undefined;
+    if (!name && !timeline && !textBinItems) return new Response(JSON.stringify({ error: "No changes" }), { status: 400, headers: { "Content-Type": "application/json" } });
     // simple update
     // inline update using pg (reuse pool via repo)
     // quick import avoided; execute with small query here
@@ -128,9 +134,15 @@ export async function action({ request }: Route.ActionArgs) {
     let connectionString = rawDbUrl; try { const u = new URL(rawDbUrl); u.search = ""; connectionString = u.toString(); } catch {}
     const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
     try {
-      await pool.query(`update projects set name = $1, updated_at = now() where id = $2 and user_id = $3`, [name, id, userId]);
+      if (name) {
+        await pool.query(`update projects set name = $1, updated_at = now() where id = $2 and user_id = $3`, [name, id, userId]);
+      }
     } finally {
       await pool.end();
+    }
+    if (timeline || textBinItems) {
+      const prev = await loadProjectState(id);
+      await saveProjectState(id, { timeline: timeline ?? prev.timeline, textBinItems: textBinItems ?? prev.textBinItems });
     }
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
