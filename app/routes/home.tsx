@@ -365,10 +365,19 @@ export default function TimelineEditor() {
         redo();
         return;
       }
+      // Delete selected item from Player (not just timeline scrubber)
+      if (key === 'delete') {
+        if (selectedItem) {
+          e.preventDefault(); e.stopPropagation();
+          handleDeleteScrubber(selectedItem);
+          setSelectedItem(null);
+          return;
+        }
+      }
     };
     window.addEventListener('keydown', onKeyDown, { capture: true } as AddEventListenerOptions);
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true } as AddEventListenerOptions);
-  }, [handleSaveTimeline, undo, redo]);
+  }, [handleSaveTimeline, undo, redo, selectedItem, handleDeleteScrubber, setSelectedItem]);
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

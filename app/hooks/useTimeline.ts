@@ -264,6 +264,16 @@ export const useTimeline = () => {
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
     setTimeline((prev) => {
+      // On any new edit (not history replay), branch history:
+      if (!isApplyingHistoryRef.current) {
+        setUndoStack((u) => {
+          const clonedPrev = deepClone(prev);
+          const next = [...u, clonedPrev];
+          return next.length > 100 ? next.slice(next.length - 100) : next;
+        });
+        setRedoStack([]);
+      }
+
       // Find current track index of the scrubber
       const currentTrackIndex = prev.tracks.findIndex(track =>
         track.scrubbers.some(scrubber => scrubber.id === updatedScrubber.id)
@@ -305,7 +315,7 @@ export const useTimeline = () => {
         }),
       };
     });
-  }, []);
+  }, [deepClone]);
 
   const handleDeleteScrubber = useCallback((scrubberId: string) => {
     snapshotTimeline();
@@ -1034,6 +1044,10 @@ export const useTimeline = () => {
   }, [getAllScrubbers, checkCollisionWithTrack]);
 
   const handleUpdateScrubberWithLocking = useCallback((updatedScrubber: ScrubberState) => {
+    // Any new edit should invalidate redo branch; we snapshot on mousedown separately
+    if (!isApplyingHistoryRef.current) {
+      setRedoStack([]);
+    }
     const connectedElements = getConnectedElements(updatedScrubber.id);
     const scrubberConnected = connectedElements.filter(id =>
       timeline.tracks.some(track => track.scrubbers.some(s => s.id === id))
