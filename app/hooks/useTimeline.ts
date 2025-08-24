@@ -1109,7 +1109,7 @@ export const useTimeline = () => {
         groupped_scrubbers: scrubbersToGroup,
         left_transition_id: null,
         right_transition_id: null,
-        name: `Group (${scrubbersToGroup.length} items)`,
+        name: `Group: ${scrubbersToGroup.map(scrubber => scrubber.name).join(' + ')}`,
         durationInSeconds: (rightmost - leftmost) / (PIXELS_PER_SECOND * zoomLevel),
         uploadProgress: null,
         isUploading: false,
