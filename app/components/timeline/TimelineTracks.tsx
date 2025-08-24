@@ -304,12 +304,15 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {/* Transitions */}
               {(() => {
                 const transitionComponents = [];
+                // Get all scrubbers across all tracks for transition lookup
+                const allScrubbers = getAllScrubbers();
+                
                 for (const track of timeline.tracks) {
                   for (const transition of track.transitions) {
                     const leftScrubber = transition.leftScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
                     const rightScrubber = transition.rightScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
 
                     if (leftScrubber == null && rightScrubber == null) {
                       continue;

@@ -740,6 +740,12 @@ export const useTimeline = () => {
       return;
     }
 
+    // Validate grouped scrubbers
+    if (leftScrubber?.mediaType === "groupped_scrubber" || rightScrubber?.mediaType === "groupped_scrubber") {
+      toast.error("Grouped scrubbers cannot have transitions");
+      return;
+    }
+
     // Update transition with scrubber IDs
     const updatedTransition: Transition = {
       ...transition,
@@ -821,11 +827,35 @@ export const useTimeline = () => {
 
   const handleDeleteTransition = useCallback((transitionId: string) => {
     setTimeline(prev => {
-      const updatedTracks = prev.tracks.map(track => {
-        // Find the transition being deleted
-        const transitionToDelete = track.transitions.find(t => t.id === transitionId);
-        if (!transitionToDelete) return track;
+      // First, find which track contains the transition
+      let transitionToDelete: Transition | null = null;
+      let targetTrackId: string | null = null;
+      
+      for (const track of prev.tracks) {
+        const foundTransition = track.transitions.find(t => t.id === transitionId);
+        if (foundTransition) {
+          transitionToDelete = foundTransition;
+          targetTrackId = track.id;
+          break;
+        }
+      }
+      
+      // If transition not found in any track, return unchanged timeline
+      if (!transitionToDelete || !targetTrackId) {
+        console.warn(`Transition with ID ${transitionId} not found in any track`);
+        return prev;
+      }
 
+      // Calculate movement parameters for the track that contains the transition
+      let movementDistance = 0;
+      let rightScrubberNewLeft = 0;
+      let shouldRestorePosition = false;
+      let rightScrubber: ScrubberState | null = null;
+      let leftScrubber: ScrubberState | null = null;
+
+      // Find the target track to get scrubber movement information
+      const targetTrack = prev.tracks.find(track => track.id === targetTrackId);
+      if (targetTrack && transitionToDelete) {
         // Calculate the overlap distance to restore
         const pixelsPerSecond = getPixelsPerSecond();
         const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
@@ -834,12 +864,8 @@ export const useTimeline = () => {
         const SNAP_DISTANCE = 10;
 
         // Find the right scrubber and calculate its movement
-        const rightScrubber = track.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId);
-        const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
-
-        let movementDistance = 0;
-        let rightScrubberNewLeft = 0;
-        let shouldRestorePosition = false;
+        rightScrubber = targetTrack.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId) || null;
+        leftScrubber = targetTrack.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId) || null;
 
         if (rightScrubber && leftScrubber) {
           // Check if the scrubbers were originally close enough to be moved together
@@ -855,20 +881,25 @@ export const useTimeline = () => {
           }
           // If originalGap > SNAP_DISTANCE, the right scrubber was never moved, so don't move it back
         }
+      }
 
+      const updatedTracks = prev.tracks.map(track => {
+        const isTargetTrack = track.id === targetTrackId;
+        
         return {
           ...track,
-          transitions: track.transitions.filter(t => t.id !== transitionId),
+          // Only remove transition from the track that contains it
+          transitions: isTargetTrack ? track.transitions.filter(t => t.id !== transitionId) : track.transitions,
           scrubbers: track.scrubbers.map(scrubber => {
-            // Reset transition references
+            // Reset transition references across ALL tracks
             const baseScrubber = {
               ...scrubber,
               left_transition_id: scrubber.left_transition_id === transitionId ? null : scrubber.left_transition_id,
               right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
             };
 
-            // Only move scrubbers if they were originally moved during transition creation
-            if (shouldRestorePosition) {
+            // Only apply movement logic to scrubbers in the target track
+            if (isTargetTrack && shouldRestorePosition && transitionToDelete) {
               // If this scrubber was the right scrubber in the deleted transition, move it back
               if (scrubber.id === transitionToDelete.rightScrubberId) {
                 return { ...baseScrubber, left: rightScrubberNewLeft };
