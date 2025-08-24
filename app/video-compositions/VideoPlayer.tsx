@@ -365,6 +365,11 @@ export function VideoPlayer({
     compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
   }
 
+  // Guard against invalid dimensions (e.g., user typed 0, only-audio timelines)
+  const safeWidth = !compositionWidth || compositionWidth <= 0 ? 1920 : compositionWidth;
+  const safeHeight = !compositionHeight || compositionHeight <= 0 ? 1080 : compositionHeight;
+  const safeDuration = Math.max(1, durationInFrames || 1);
+
   return (
     <Player
       ref={ref}
@@ -378,9 +383,9 @@ export function VideoPlayer({
         timeline,
         handleUpdateScrubber,
       }}
-      durationInFrames={durationInFrames || 10}
-      compositionWidth={compositionWidth}
-      compositionHeight={compositionHeight}
+      durationInFrames={safeDuration}
+      compositionWidth={safeWidth}
+      compositionHeight={safeHeight}
       fps={30}
       style={{
         width: "100%",

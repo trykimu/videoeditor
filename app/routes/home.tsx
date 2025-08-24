@@ -116,6 +116,16 @@ export default function TimelineEditor() {
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
   const [isAutoSize, setIsAutoSize] = useState<boolean>(false);
+  // Text fields for width/height to allow clearing while typing
+  const [widthInput, setWidthInput] = useState<string>("1920");
+  const [heightInput, setHeightInput] = useState<string>("1080");
+  const widthInputRef = useRef<HTMLInputElement>(null);
+  const heightInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep inputs in sync if width/height change elsewhere
+  useEffect(() => { setWidthInput(String(width)); }, [width]);
+  useEffect(() => { setHeightInput(String(height)); }, [height]);
+
   const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -453,6 +463,20 @@ export default function TimelineEditor() {
     setHeight(newHeight);
   }, []);
 
+  const commitWidth = useCallback(() => {
+    const parsed = Number(widthInput);
+    const safe = !isFinite(parsed) || parsed <= 0 ? 1920 : parsed;
+    setWidth(safe);
+    setWidthInput(String(safe));
+  }, [widthInput]);
+
+  const commitHeight = useCallback(() => {
+    const parsed = Number(heightInput);
+    const safe = !isFinite(parsed) || parsed <= 0 ? 1080 : parsed;
+    setHeight(safe);
+    setHeightInput(String(safe));
+  }, [heightInput]);
+
   const handleAutoSizeChange = useCallback((auto: boolean) => {
     setIsAutoSize(auto);
   }, []);
@@ -738,22 +762,24 @@ export default function TimelineEditor() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={width}
-                        onChange={(e) =>
-                          handleWidthChange(Number(e.target.value))
-                        }
+                        value={widthInput}
+                        onChange={(e) => { setWidthInput(e.target.value); const n = Number(e.target.value); if (isFinite(n) && n > 0) setWidth(n); }}
+                        onBlur={commitWidth}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { commitWidth(); (e.currentTarget as HTMLInputElement).blur(); } }}
                         disabled={isAutoSize}
                         className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                        ref={widthInputRef}
                       />
                       <span>×</span>
                       <Input
                         type="number"
-                        value={height}
-                        onChange={(e) =>
-                          handleHeightChange(Number(e.target.value))
-                        }
+                        value={heightInput}
+                        onChange={(e) => { setHeightInput(e.target.value); const n = Number(e.target.value); if (isFinite(n) && n > 0) setHeight(n); }}
+                        onBlur={commitHeight}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { commitHeight(); (e.currentTarget as HTMLInputElement).blur(); } }}
                         disabled={isAutoSize}
                         className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                        ref={heightInputRef}
                       />
                     </div>
                   </div>
