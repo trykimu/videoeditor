@@ -15,10 +15,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       });
     }
   } catch { /* empty */ }
-  // After successful OAuth callback, redirect to /editor
+  // After successful OAuth callback, redirect to /projects
   if (isCallback && (res.status === 200 || res.status === 302)) {
     const headers = new Headers(res.headers);
-    headers.set("Location", "/editor");
+    headers.set("Location", "/projects");
     return new Response(null, { status: 302, headers });
   }
   return res;

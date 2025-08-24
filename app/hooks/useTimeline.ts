@@ -30,6 +30,46 @@ export const useTimeline = () => {
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM);
   const zoomLevelRef = useRef(DEFAULT_ZOOM);
 
+  // Local, session-only undo/redo stacks (not persisted)
+  const [undoStack, setUndoStack] = useState<TimelineState[]>([]);
+  const [redoStack, setRedoStack] = useState<TimelineState[]>([]);
+  const isApplyingHistoryRef = useRef(false);
+
+  const deepClone = useCallback(<T,>(obj: T): T => JSON.parse(JSON.stringify(obj)), []);
+
+  const snapshotTimeline = useCallback(() => {
+    setUndoStack((prev) => {
+      const cloned = deepClone(timeline);
+      const next = [...prev, cloned];
+      // cap history to last 100 states
+      return next.length > 100 ? next.slice(next.length - 100) : next;
+    });
+    setRedoStack([]);
+  }, [timeline, deepClone]);
+
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
+
+  const undo = useCallback(() => {
+    if (!undoStack.length) return;
+    isApplyingHistoryRef.current = true;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack((s) => s.slice(0, -1));
+    setRedoStack((s) => [...s, deepClone(timeline)]);
+    setTimeline(deepClone(previous));
+    isApplyingHistoryRef.current = false;
+  }, [undoStack, deepClone, timeline]);
+
+  const redo = useCallback(() => {
+    if (!redoStack.length) return;
+    isApplyingHistoryRef.current = true;
+    const nextState = redoStack[redoStack.length - 1];
+    setRedoStack((s) => s.slice(0, -1));
+    setUndoStack((s) => [...s, deepClone(timeline)]);
+    setTimeline(deepClone(nextState));
+    isApplyingHistoryRef.current = false;
+  }, [redoStack, deepClone, timeline]);
+
   const EXPANSION_THRESHOLD = 200;
   const EXPANSION_AMOUNT = 1000;
 
@@ -172,6 +212,14 @@ export const useTimeline = () => {
     return timelineData;
   }, [timeline, getPixelsPerSecond]);
 
+  const getTimelineState = useCallback(() => {
+    return timeline;
+  }, [timeline]);
+
+  const setTimelineFromServer = useCallback((newTimeline: TimelineState) => {
+    setTimeline(newTimeline);
+  }, []);
+
   const expandTimeline = useCallback(
     (containerRef: React.RefObject<HTMLDivElement | null>) => {
       if (!containerRef.current) return false;
@@ -191,6 +239,7 @@ export const useTimeline = () => {
   );
 
   const handleAddTrack = useCallback(() => {
+    snapshotTimeline();
     const newTrack: TrackState = {
       id: generateUUID(),
       scrubbers: [],
@@ -203,10 +252,11 @@ export const useTimeline = () => {
   }, []);
 
   const handleDeleteTrack = useCallback((trackId: string) => {
+    snapshotTimeline();
     setTimeline((prev) => ({
       tracks: prev.tracks.filter((t) => t.id !== trackId),
     }));
-  }, []);
+  }, [snapshotTimeline]);
 
   const getAllScrubbers = useCallback(() => {
     return timeline.tracks.flatMap((track) => track.scrubbers);
@@ -214,6 +264,16 @@ export const useTimeline = () => {
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
     setTimeline((prev) => {
+      // On any new edit (not history replay), branch history:
+      if (!isApplyingHistoryRef.current) {
+        setUndoStack((u) => {
+          const clonedPrev = deepClone(prev);
+          const next = [...u, clonedPrev];
+          return next.length > 100 ? next.slice(next.length - 100) : next;
+        });
+        setRedoStack([]);
+      }
+
       // Find current track index of the scrubber
       const currentTrackIndex = prev.tracks.findIndex(track =>
         track.scrubbers.some(scrubber => scrubber.id === updatedScrubber.id)
@@ -255,9 +315,10 @@ export const useTimeline = () => {
         }),
       };
     });
-  }, []);
+  }, [deepClone]);
 
   const handleDeleteScrubber = useCallback((scrubberId: string) => {
+    snapshotTimeline();
     // Find all transitions connected to the scrubber being deleted
     const connectedTransitionIds: string[] = [];
 
@@ -302,9 +363,10 @@ export const useTimeline = () => {
     } else {
       toast.success("Scrubber deleted");
     }
-  }, [timeline]);
+  }, [timeline, snapshotTimeline]);
 
   const handleDeleteScrubbersByMediaBinId = useCallback((mediaBinId: string) => {
+    snapshotTimeline();
     // Find all scrubbers that will be deleted
     const scrubbersToDelete: string[] = [];
     timeline.tracks.forEach(track => {
@@ -361,7 +423,7 @@ export const useTimeline = () => {
         toast.success(`${scrubbersToDelete.length} scrubber${scrubbersToDelete.length > 1 ? 's' : ''} deleted`);
       }
     }
-  }, [timeline]);
+  }, [timeline, snapshotTimeline]);
 
   const handleAddScrubberToTrack = useCallback(
     (trackId: string, newScrubber: ScrubberState) => {
@@ -380,6 +442,7 @@ export const useTimeline = () => {
 
   const handleDropOnTrack = useCallback(
     (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
+      snapshotTimeline();
       console.log(
         "Dropped",
         item.name,
@@ -455,10 +518,11 @@ export const useTimeline = () => {
 
       handleAddScrubberToTrack(trackId, newScrubber);
     },
-    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond]
+    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond, snapshotTimeline]
   );
 
   const handleSplitScrubberAtRuler = useCallback((rulerPositionPx: number, selectedScrubberId: string | null) => {
+    snapshotTimeline();
     if (!selectedScrubberId) {
       return 0; // No scrubber selected
     }
@@ -534,7 +598,7 @@ export const useTimeline = () => {
     }));
 
     return 1; // One scrubber was split
-  }, [timeline, getPixelsPerSecond]);
+  }, [timeline, getPixelsPerSecond, snapshotTimeline]);
 
   // Transition management functions
   const validateTransitionPlacement = useCallback((
@@ -623,6 +687,7 @@ export const useTimeline = () => {
     transition: Transition,
     dropPosition: number
   ) => {
+    snapshotTimeline();
     const track = timeline.tracks.find(t => t.id === trackId);
     if (!track) {
       toast.error("Track not found");
@@ -788,9 +853,10 @@ export const useTimeline = () => {
     }));
 
     toast.success("Transition added successfully");
-  }, [getPixelsPerSecond, timeline.tracks, validateTransitionPlacement]);
+  }, [getPixelsPerSecond, timeline.tracks, validateTransitionPlacement, snapshotTimeline]);
 
   const handleDeleteTransition = useCallback((transitionId: string) => {
+    snapshotTimeline();
     setTimeline(prev => {
       const updatedTracks = prev.tracks.map(track => {
         // Find the transition being deleted
@@ -870,7 +936,7 @@ export const useTimeline = () => {
     });
 
     toast.success("Transition deleted");
-  }, [getPixelsPerSecond]);
+  }, [getPixelsPerSecond, snapshotTimeline]);
 
   // Check if there's a transition between two scrubbers that allows overlap
   const hasTransitionBetween = useCallback(
@@ -978,6 +1044,10 @@ export const useTimeline = () => {
   }, [getAllScrubbers, checkCollisionWithTrack]);
 
   const handleUpdateScrubberWithLocking = useCallback((updatedScrubber: ScrubberState) => {
+    // Any new edit should invalidate redo branch; we snapshot on mousedown separately
+    if (!isApplyingHistoryRef.current) {
+      setRedoStack([]);
+    }
     const connectedElements = getConnectedElements(updatedScrubber.id);
     const scrubberConnected = connectedElements.filter(id =>
       timeline.tracks.some(track => track.scrubbers.some(s => s.id === id))
@@ -1063,6 +1133,7 @@ export const useTimeline = () => {
     zoomLevel,
     getPixelsPerSecond,
     getTimelineData,
+    getTimelineState,
     expandTimeline,
     handleAddTrack,
     handleDeleteTrack,
@@ -1081,5 +1152,12 @@ export const useTimeline = () => {
     handleDeleteTransition,
     getConnectedElements,
     handleUpdateScrubberWithLocking,
+    setTimelineFromServer,
+    // Undo/redo
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    snapshotTimeline,
   };
 };

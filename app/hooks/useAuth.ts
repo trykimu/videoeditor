@@ -56,6 +56,19 @@ export function useAuth(): UseAuthResult {
 
   useEffect(() => {
     let isMounted = true;
+    // Hydrate from SSR data to avoid client flicker and extra fetch
+    try {
+      const initialUser = (window as any).__AUTH_USER__;
+      if (initialUser && !user) {
+        setUser({
+          id: String(initialUser.id ?? initialUser.userId ?? ""),
+          email: initialUser.email ?? null,
+          name: initialUser.name ?? null,
+          image: initialUser.image ?? initialUser.avatarUrl ?? null,
+        });
+        setIsLoading(false);
+      }
+    } catch {}
     const extractUser = (data: unknown): AuthUser | null => {
       if (!data || typeof data !== 'object') return null;
 
@@ -262,7 +275,7 @@ export function useAuth(): UseAuthResult {
         try {
           const result = await authClient.signIn.social({
             provider: "google",
-            callbackURL: "/editor"
+            callbackURL: "/projects"
           });
           console.log("🔐 Sign-in response:", result);
           return;

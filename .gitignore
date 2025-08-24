@@ -28,6 +28,7 @@ ENV/
 /dist/
 /.react-router/
 out/
+project_data/
 *.egg-info/
 *.egg
 

@@ -133,7 +133,15 @@ export function ProfileMenu({
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onSignOut} variant="destructive">
+        <DropdownMenuItem
+          onClick={() => {
+            onSignOut();
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 100);
+          }}
+          variant="destructive"
+        >
           <LogOut className="h-4 w-4" />
           <span className="text-xs font-medium">Sign out</span>
         </DropdownMenuItem>
