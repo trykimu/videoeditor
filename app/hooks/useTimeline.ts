@@ -1233,7 +1233,7 @@ export const useTimeline = () => {
     // Find the grouped scrubber
     const allScrubbers = getAllScrubbers();
     const groupedScrubber = allScrubbers.find(s => s.id === groupedScrubberId);
-    
+
     if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber") {
       toast.error("Invalid grouped scrubber");
       return;
@@ -1241,7 +1241,7 @@ export const useTimeline = () => {
 
     // Add to media bin first with current pixels per second for correct duration calculation
     addToMediaBin(groupedScrubber, getPixelsPerSecond());
-    
+
     // Then remove from timeline (similar to handleDeleteScrubber)
     setTimeline((prev) => ({
       ...prev,

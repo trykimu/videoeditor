@@ -270,7 +270,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
     try {
-      if (item.mediaType === "text") {
+      if (item.mediaType === "text" || item.mediaType === "groupped_scrubber") {
         setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
 
         // Also remove any scrubbers from the timeline that use this media
