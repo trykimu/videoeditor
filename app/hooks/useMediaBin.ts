@@ -188,13 +188,10 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           left_transition_id: null,
           right_transition_id: null,
         }));
-        // Merge: keep existing text items, append fetched asset items
+        // Merge: keep existing text items, replace non-text items with fetched assets
         setMediaBinItems(prev => {
           const textItems = prev.filter(i => i.mediaType === 'text');
-          // Avoid duplicate asset IDs if reloading (not expected with [] deps, but safe)
-          const existingAssetIds = new Set(prev.filter(i => i.mediaType !== 'text').map(i => i.id));
-          const newAssets = items.filter(i => !existingAssetIds.has(i.id));
-          return [...textItems, ...newAssets];
+          return [...textItems, ...items];
         });
       } catch (e) {
         console.error('Failed to load assets', e);
@@ -203,7 +200,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       }
     };
     loadAssets();
-  }, []);
+  }, [projectId]);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();

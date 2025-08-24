@@ -275,6 +275,47 @@ export default function TimelineEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
+  // Re-link scrubbers to remote asset URLs after assets hydrate
+  // Ensures images/videos/audios render after refresh (when local blob URLs are gone)
+  useEffect(() => {
+    if (isMediaLoading) return;
+    if (!mediaBinItems || mediaBinItems.length === 0) return;
+
+    const current = getTimelineState();
+    let changed = false;
+
+    const assetsByName = new Map(
+      mediaBinItems
+        .filter((i) => i.mediaType !== 'text' && i.mediaUrlRemote)
+        .map((i) => [i.name, i])
+    );
+
+    const newTracks = current.tracks.map((track) => ({
+      ...track,
+      scrubbers: track.scrubbers.map((s) => {
+        if (s.mediaType === 'text') return s;
+        if (!s.mediaUrlRemote) {
+          const match = assetsByName.get(s.name);
+          if (match && match.mediaUrlRemote) {
+            changed = true;
+            return {
+              ...s,
+              mediaUrlRemote: match.mediaUrlRemote,
+              sourceMediaBinId: match.id,
+              media_width: match.media_width || s.media_width,
+              media_height: match.media_height || s.media_height,
+            };
+          }
+        }
+        return s;
+      }),
+    }));
+
+    if (changed) {
+      setTimelineFromServer({ ...current, tracks: newTracks });
+    }
+  }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
+
   
 
   // Save timeline to server
