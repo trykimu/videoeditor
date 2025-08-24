@@ -247,59 +247,99 @@ export function TimelineComposition({
         );
       }
 
-      // Add the scrubber content using stack-based approach for nested groups
-      const scrubberStack: Array<{
-        scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState;
-        keyPrefix: string;
-        durationCalculation: () => number;
-      }> = [];
-
-      // Initialize stack with current scrubber
+      // Process grouped scrubbers differently to handle transitions properly
       if (scrubber.mediaType === "groupped_scrubber") {
-        // Add all grouped scrubbers to the stack in reverse order (so they're processed in correct order)
-        for (let j = (scrubber.groupped_scrubbers || []).length - 1; j >= 0; j--) {
-          const grouppedScrubber = (scrubber.groupped_scrubbers || [])[j];
-          scrubberStack.push({
-            scrubber: grouppedScrubber,
-            keyPrefix: `scrubber-${grouppedScrubber.id}`,
-            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / getPixelsPerSecond()) * FPS), 1)
-          });
+        // For grouped scrubbers, create a nested TransitionSeries for each grouped item
+        const groupedScrubbers = scrubber.groupped_scrubbers || [];
+
+        for (let j = 0; j < groupedScrubbers.length; j++) {
+          const grouppedScrubber = groupedScrubbers[j];
+          const grouppedElements: React.ReactNode[] = [];
+
+          // Add left transition for the first grouped scrubber
+          if (j === 0 && grouppedScrubber.left_transition_id && allTransitions[grouppedScrubber.left_transition_id]) {
+            const transition = allTransitions[grouppedScrubber.left_transition_id];
+            grouppedElements.push(
+              <TransitionSeries.Transition
+                key={`grouped-${grouppedScrubber.id}-left-transition`}
+                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+                presentation={getTransitionPresentation(transition)}
+                timing={getTransitionTiming(transition)}
+              />
+            );
+          }
+
+          // Add the grouped scrubber content
+          const mediaContent = createMediaContent(grouppedScrubber);
+          if (mediaContent) {
+            grouppedElements.push(
+              <TransitionSeries.Sequence
+                key={`grouped-${grouppedScrubber.id}`}
+                durationInFrames={Math.max(Math.round((grouppedScrubber.width / getPixelsPerSecond()) * FPS), 1)}
+              >
+                {mediaContent}
+              </TransitionSeries.Sequence>
+            );
+          }
+
+          // Add right transition between grouped scrubbers or at the end
+          if (grouppedScrubber.right_transition_id && allTransitions[grouppedScrubber.right_transition_id]) {
+            const transition = allTransitions[grouppedScrubber.right_transition_id];
+            grouppedElements.push(
+              <TransitionSeries.Transition
+                key={`grouped-${grouppedScrubber.id}-right-transition`}
+                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+                presentation={getTransitionPresentation(transition)}
+                timing={getTransitionTiming(transition)}
+              />
+            );
+          }
+
+          // Add all grouped elements to the main transition series
+          transitionSeriesElements.push(...grouppedElements);
         }
       } else {
+        // Process regular scrubbers using the stack approach
+        const scrubberStack: Array<{
+          scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState;
+          keyPrefix: string;
+          durationCalculation: () => number;
+        }> = [];
+
         scrubberStack.push({
           scrubber: scrubber,
           keyPrefix: `scrubber-${scrubber.id}`,
           durationCalculation: () => Math.max(Math.round(scrubber.duration * FPS), 1)
         });
-      }
 
-      // Process the stack
-      while (scrubberStack.length > 0) {
-        const stackItem = scrubberStack.pop()!;
-        const { scrubber: currentScrubber, keyPrefix, durationCalculation } = stackItem;
+        // Process the stack
+        while (scrubberStack.length > 0) {
+          const stackItem = scrubberStack.pop()!;
+          const { scrubber: currentScrubber, keyPrefix, durationCalculation } = stackItem;
 
-        if (currentScrubber.mediaType === "groupped_scrubber") {
-          // Add nested grouped scrubbers to the stack in reverse order
-          for (let k = (currentScrubber.groupped_scrubbers || []).length - 1; k >= 0; k--) {
-            const nestedScrubber = (currentScrubber.groupped_scrubbers || [])[k];
-            scrubberStack.push({
-              scrubber: nestedScrubber,
-              keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
-              durationCalculation: () => Math.max(Math.round((nestedScrubber.width / getPixelsPerSecond()) * FPS), 1)
-            });
-          }
-        } else {
-          // Create media content for non-grouped scrubber
-          const mediaContent = createMediaContent(currentScrubber);
-          if (mediaContent) {
-            transitionSeriesElements.push(
-              <TransitionSeries.Sequence
-                key={keyPrefix}
-                durationInFrames={durationCalculation()}
-              >
-                {mediaContent}
-              </TransitionSeries.Sequence>
-            );
+          if (currentScrubber.mediaType === "groupped_scrubber") {
+            // Add nested grouped scrubbers to the stack in reverse order
+            for (let k = (currentScrubber.groupped_scrubbers || []).length - 1; k >= 0; k--) {
+              const nestedScrubber = (currentScrubber.groupped_scrubbers || [])[k];
+              scrubberStack.push({
+                scrubber: nestedScrubber,
+                keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
+                durationCalculation: () => Math.max(Math.round((nestedScrubber.width / getPixelsPerSecond()) * FPS), 1)
+              });
+            }
+          } else {
+            // Create media content for non-grouped scrubber
+            const mediaContent = createMediaContent(currentScrubber);
+            if (mediaContent) {
+              transitionSeriesElements.push(
+                <TransitionSeries.Sequence
+                  key={keyPrefix}
+                  durationInFrames={durationCalculation()}
+                >
+                  {mediaContent}
+                </TransitionSeries.Sequence>
+              );
+            }
           }
         }
       }
