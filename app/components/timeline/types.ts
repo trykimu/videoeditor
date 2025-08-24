@@ -9,6 +9,7 @@ export interface BaseScrubber {
 
   text: TextProperties | null;
   groupped_scrubbers: ScrubberState[] | null; // null for not grouped
+  //  groupped_scrubber_transitions: Transition[] | null; // null for no transitions / not groupped scrubbers [this is written to help with deepcopy]
 
   // transitions are managed using the right transition id, as in what to add to the right. Convenient to think of. Left one is for the initial transition, first scrubber intro. we won't use it anywhere else.
   // for a middle transition, you will only see its information in the left scrubber.

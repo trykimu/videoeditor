@@ -75,21 +75,6 @@ export default function MediaBin() {
     handleCloseContextMenu 
   } = useOutletContext<MediaBinProps>();
 
-  const getMediaIcon = (mediaType: string) => {
-    switch (mediaType) {
-      case "video":
-        return <FileVideo className="h-4 w-4" />;
-      case "image":
-        return <FileImage className="h-4 w-4" />;
-      case "text":
-        return <Type className="h-4 w-4" />;
-      case "audio":
-        return <Music className="h-4 w-4" />;
-      default:
-        return <FileImage className="h-4 w-4" />;
-    }
-  };
-
   const renderThumbnail = (item: MediaBinItem) => {
     const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
     

@@ -390,6 +390,17 @@ export const useTimeline = () => {
     []
   );
 
+  // Helper function to recursively generate new UUIDs for grouped scrubbers
+  const generateNewUUIDsForGroupedScrubbers = useCallback((scrubbers: ScrubberState[] | null): ScrubberState[] | null => {
+    if (!scrubbers) return null;
+
+    return scrubbers.map((scrubber) => ({
+      ...scrubber,
+      id: generateUUID(),
+      groupped_scrubbers: generateNewUUIDsForGroupedScrubbers(scrubber.groupped_scrubbers),
+    }));
+  }, []);
+
   const handleDropOnTrack = useCallback(
     (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
       console.log(
@@ -431,6 +442,11 @@ export const useTimeline = () => {
           ? Math.max(80, (item.text?.fontSize || 48) * 1.5)
           : item.media_height;
 
+      // Generate new UUIDs for grouped scrubbers to prevent collisions when ungrouping
+      const processedGroupedScrubbers = item.mediaType === "groupped_scrubber"
+        ? generateNewUUIDsForGroupedScrubbers(item.groupped_scrubbers)
+        : item.groupped_scrubbers;
+
       const newScrubber: ScrubberState = {
         id: generateUUID(),
         left: dropLeftPx,
@@ -444,7 +460,7 @@ export const useTimeline = () => {
         media_width: item.media_width,
         media_height: item.media_height,
         text: item.text,
-        groupped_scrubbers: item.groupped_scrubbers,
+        groupped_scrubbers: processedGroupedScrubbers,
         sourceMediaBinId: item.id,
 
         // the following are the properties of the scrubber in <Player>
@@ -468,7 +484,7 @@ export const useTimeline = () => {
 
       handleAddScrubberToTrack(trackId, newScrubber);
     },
-    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond]
+    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond, generateNewUUIDsForGroupedScrubbers]
   );
 
   const handleSplitScrubberAtRuler = useCallback((rulerPositionPx: number, selectedScrubberId: string | null) => {

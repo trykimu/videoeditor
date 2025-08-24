@@ -55,6 +55,7 @@ export default function RenderComposition() {
                 setSelectedItem: () => { },
                 timeline: { tracks: [] },
                 handleUpdateScrubber: () => { },
+                getPixelsPerSecond: () => 100,
             }}
         />
     )
