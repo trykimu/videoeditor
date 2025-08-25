@@ -1,9 +1,14 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
-class TextProperties(BaseModel):
+class BaseSchema(BaseModel):
+    # Ignore extra fields to stay compatible with richer frontend objects
+    model_config = ConfigDict(extra="ignore")
+
+
+class TextProperties(BaseSchema):
     textContent: str = Field(description="The text content to display")
     fontSize: int = Field(description="Font size in pixels")
     fontFamily: str = Field(description="Font family name")
@@ -12,9 +17,9 @@ class TextProperties(BaseModel):
     fontWeight: Literal["normal", "bold"] = Field(description="Font weight")
 
 
-class BaseScrubber(BaseModel):
+class BaseScrubber(BaseSchema):
     id: str = Field(description="Unique identifier for the scrubber")
-    mediaType: Literal["video", "image", "text"] = Field(description="Type of media")
+    mediaType: Literal["video", "image", "audio", "text"] = Field(description="Type of media")
     mediaUrlLocal: str | None = Field(description="Local URL for the media file", default=None)
     mediaUrlRemote: str | None = Field(description="Remote URL for the media file", default=None)
     media_width: int = Field(description="Width of the media in pixels")
@@ -40,30 +45,27 @@ class ScrubberState(MediaBinItem):
     is_dragging: bool = Field(description="Whether the scrubber is currently being dragged")
 
 
-class TrackState(BaseModel):
+class TrackState(BaseSchema):
     id: str = Field(description="Unique identifier for the track")
     scrubbers: list[ScrubberState] = Field(description="List of scrubbers on this track")
 
 
-class TimelineState(BaseModel):
+class TimelineState(BaseSchema):
     tracks: list[TrackState] = Field(description="List of tracks in the timeline")
 
 
-class LLMAddScrubberToTimelineArgs(BaseModel):
+class LLMAddScrubberToTimelineArgs(BaseSchema):
     function_name: Literal["LLMAddScrubberToTimeline"] = Field(
         description="The name of the function to call"
     )
     scrubber_id: str = Field(
         description="The id of the scrubber to add to the timeline"
     )
-    timeline_id: str = Field(
-        description="The id of the timeline to add the scrubber to"
-    )
     track_id: str = Field(description="The id of the track to add the scrubber to")
     drop_left_px: int = Field(description="The left position of the scrubber in pixels")
 
 
-class LLMMoveScrubberArgs(BaseModel):
+class LLMMoveScrubberArgs(BaseSchema):
     function_name: Literal["LLMMoveScrubber"] = Field(
         description="The name of the function to call"
     )
@@ -73,10 +75,25 @@ class LLMMoveScrubberArgs(BaseModel):
     )
     new_track_number: int = Field(description="The new track number of the scrubber")
     pixels_per_second: int = Field(description="The number of pixels per second")
-    timeline_id: str = Field(
-        description="The id of the timeline to move the scrubber in"
+
+
+class LLMAddScrubberByNameArgs(BaseSchema):
+    function_name: Literal["LLMAddScrubberByName"] = Field(
+        description="The name of the function to call"
     )
+    scrubber_name: str = Field(description="The partial or full name of the media to add")
+    track_number: int = Field(description="1-based track number to add to")
+    position_seconds: float = Field(description="Timeline time in seconds to place the media at")
+    pixels_per_second: int = Field(description="Pixels per second to convert time to pixels")
 
 
-class FunctionCallResponse(BaseModel):
-    function_call: LLMAddScrubberToTimelineArgs | LLMMoveScrubberArgs
+class LLMDeleteScrubbersInTrackArgs(BaseSchema):
+    function_name: Literal["LLMDeleteScrubbersInTrack"] = Field(
+        description="The name of the function to call"
+    )
+    track_number: int = Field(description="1-based track number whose scrubbers will be removed")
+
+
+class FunctionCallResponse(BaseSchema):
+    function_call: LLMAddScrubberToTimelineArgs | LLMMoveScrubberArgs | LLMAddScrubberByNameArgs | LLMDeleteScrubbersInTrackArgs | None = None
+    assistant_message: str | None = None

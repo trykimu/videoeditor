@@ -19,21 +19,10 @@ export const useTimeline = () => {
   const [timeline, setTimeline] = useState<TimelineState>({
     // id: "main",
     tracks: [
-      {
-        id: "track-1",
-        scrubbers: [],
-        transitions: [],
-      },
-      {
-        id: "track-2",
-        scrubbers: [],
-        transitions: [],
-      },
-      {
-        id: "track-3",
-        scrubbers: [],
-        transitions: [],
-      },
+      { id: "track-1", scrubbers: [], transitions: [] },
+      { id: "track-2", scrubbers: [], transitions: [] },
+      { id: "track-3", scrubbers: [], transitions: [] },
+      { id: "track-4", scrubbers: [], transitions: [] },
     ],
   });
 

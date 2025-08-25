@@ -11,7 +11,7 @@ export function ThemeProvider({
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem={true}
       themes={["light", "dark"]}
       value={{

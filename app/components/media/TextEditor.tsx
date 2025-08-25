@@ -14,6 +14,13 @@ import {
   Type,
   Plus,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 interface TextEditorProps {
   onAddText: (
@@ -39,6 +46,15 @@ export default function TextEditor() {
   );
   const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
 
+  const availableFonts = [
+    { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+    { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+    { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+    { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
+    { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+    { label: "Impact", value: "Impact, Charcoal, sans-serif" },
+  ];
+
   const handleAddText = () => {
     if (textContent.trim()) {
       onAddText(
@@ -49,7 +65,7 @@ export default function TextEditor() {
         textAlign,
         fontWeight
       );
-      navigate("/media-bin");
+      navigate("/editor/media-bin");
     }
   };
 
@@ -90,18 +106,31 @@ export default function TextEditor() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Font</Label>
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="w-full h-8 px-2 text-sm bg-muted/50 border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                >
-                  <option value="Arial">Arial</option>
-                  <option value="Helvetica">Helvetica</option>
-                  <option value="Times New Roman">Times</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="Verdana">Verdana</option>
-                  <option value="Impact">Impact</option>
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full h-8 px-2 text-sm bg-muted/50 border border-border rounded-md text-foreground justify-between hover:bg-muted/70"
+                      style={{ fontFamily: fontFamily }}
+                      aria-label="Select font"
+                    >
+                      <span className="truncate">{availableFonts.find(f => f.value === fontFamily)?.label || fontFamily}</span>
+                      <ChevronDown className="h-3.5 w-3.5 ml-2 opacity-70" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="rounded-md p-1 min-w-[12rem]">
+                    {availableFonts.map((font) => (
+                      <DropdownMenuItem
+                        key={font.label}
+                        onSelect={() => setFontFamily(font.value)}
+                        className="cursor-pointer"
+                        style={{ fontFamily: font.value }}
+                      >
+                        {font.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 

@@ -1,7 +1,7 @@
 <samp>
   
-<h1>Open-Source Video Editor</h1>
-<p>Not your ordinary Video Editor Application using React, Remotion & TypeScript.</p>
+<h1>Kimu</h1>
+<p>Copilot for Video Editing.</p>
 <br />
 
 > [!NOTE]  
@@ -21,7 +21,6 @@
 - 🔀Multi-track Support
 - 👀Live Preview
 - 📤Export Video
-- 📜Licensed under MIT
 
 ## 🐋Deployment
 
@@ -53,4 +52,4 @@ We would love your contributions! ❤️ Check the [contribution guide](CONTRIBU
 
 ## 📜License
 
-This project is licensed under the MIT License. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
+This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
