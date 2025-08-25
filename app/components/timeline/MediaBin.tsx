@@ -316,7 +316,6 @@ export default function MediaBin() {
       text: maybeSort(text),
     };
   }, [mediaBinItems, sortBy]);
-
   const renderThumbnail = (item: MediaBinItem) => {
     const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
     
@@ -538,13 +537,10 @@ export default function MediaBin() {
                       >
                         {item.isUploading ? "uploading" : item.mediaType}
                       </Badge>
-
-                      {(item.mediaType === "video" || item.mediaType === "audio") && item.durationInSeconds > 0 && !item.isUploading && (
-                        <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                          <Clock className="h-2.5 w-2.5" />
-                          {item.durationInSeconds.toFixed(1)}s
-                        </div>
-                      )}
+                  {(item.mediaType === "video" || item.mediaType === "audio" || item.mediaType === "groupped_scrubber") && item.durationInSeconds > 0 && !item.isUploading && (
+                    <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                      <Clock className="h-2.5 w-2.5" />
+                      {item.durationInSeconds.toFixed(1)}s
                     </div>
                   </div>
                 </div>

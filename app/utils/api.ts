@@ -1,6 +1,9 @@
+// Set to true for production, false for development
+const isProduction = false;
 // Dynamic environment detection using Vite
 // @ts-ignore
-const isProduction: boolean = typeof import.meta !== "undefined" && import.meta.env ? !!import.meta.env.PROD : process.env.NODE_ENV === "production";
+
+//   const isProduction: boolean = typeof import.meta !== "undefined" && import.meta.env ? !!import.meta.env.PROD : process.env.NODE_ENV === "production";
 
 export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = false): string => {
   // In development, point directly to local services

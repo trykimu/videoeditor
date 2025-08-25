@@ -140,6 +140,7 @@ export const useTimeline = () => {
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
+          groupped_scrubbers: scrubber.groupped_scrubbers,
         });
       }
     }
@@ -210,6 +211,16 @@ export const useTimeline = () => {
 
   const getAllScrubbers = useCallback(() => {
     return timeline.tracks.flatMap((track) => track.scrubbers);
+  }, [timeline]);
+
+  const getAllTransitions = useCallback(() => {
+    const transitions: { [id: string]: Transition } = {};
+    for (const track of timeline.tracks) {
+      for (const transition of track.transitions) {
+        transitions[transition.id] = transition;
+      }
+    }
+    return transitions;
   }, [timeline]);
 
   const handleUpdateScrubber = useCallback((updatedScrubber: ScrubberState) => {
@@ -378,6 +389,75 @@ export const useTimeline = () => {
     []
   );
 
+  // Helper function to recursively generate new UUIDs for grouped scrubbers and their transitions
+  const generateNewUUIDsForGroupedScrubbers = useCallback((
+    scrubbers: ScrubberState[] | null,
+    allTransitions?: { [id: string]: Transition }
+  ): { scrubbers: ScrubberState[] | null, clonedTransitions: Transition[] } => {
+    if (!scrubbers) return { scrubbers: null, clonedTransitions: [] };
+
+    const transitionIdMapping: { [oldId: string]: string } = {};
+    const scrubberIdMapping: { [oldId: string]: string } = {};
+    const clonedTransitions: Transition[] = [];
+    
+    // First pass: collect all transition IDs and scrubber IDs that need to be cloned
+    const collectIds = (scrubberList: ScrubberState[]) => {
+      for (const scrubber of scrubberList) {
+        scrubberIdMapping[scrubber.id] = generateUUID();
+        
+        if (scrubber.left_transition_id) {
+          transitionIdMapping[scrubber.left_transition_id] = generateUUID();
+        }
+        if (scrubber.right_transition_id) {
+          transitionIdMapping[scrubber.right_transition_id] = generateUUID();
+        }
+        if (scrubber.groupped_scrubbers) {
+          collectIds(scrubber.groupped_scrubbers);
+        }
+      }
+    };
+    
+    collectIds(scrubbers);
+    
+    // Clone transitions with new IDs and updated scrubber references if we have access to all transitions
+    if (allTransitions) {
+      for (const [oldTransitionId, newTransitionId] of Object.entries(transitionIdMapping)) {
+        const originalTransition = allTransitions[oldTransitionId];
+        if (originalTransition) {
+          clonedTransitions.push({
+            ...originalTransition,
+            id: newTransitionId,
+            leftScrubberId: originalTransition.leftScrubberId ? 
+              scrubberIdMapping[originalTransition.leftScrubberId] || originalTransition.leftScrubberId : null,
+            rightScrubberId: originalTransition.rightScrubberId ? 
+              scrubberIdMapping[originalTransition.rightScrubberId] || originalTransition.rightScrubberId : null,
+          });
+        }
+      }
+    }
+
+    // Second pass: update scrubbers with new IDs
+    const updateScrubbers = (scrubberList: ScrubberState[]): ScrubberState[] => {
+      return scrubberList.map((scrubber) => {
+        const result = generateNewUUIDsForGroupedScrubbers(scrubber.groupped_scrubbers, allTransitions);
+        clonedTransitions.push(...result.clonedTransitions);
+        
+        return {
+          ...scrubber,
+          id: scrubberIdMapping[scrubber.id],
+          left_transition_id: scrubber.left_transition_id ? transitionIdMapping[scrubber.left_transition_id] || null : null,
+          right_transition_id: scrubber.right_transition_id ? transitionIdMapping[scrubber.right_transition_id] || null : null,
+          groupped_scrubbers: result.scrubbers,
+        };
+      });
+    };
+
+    return {
+      scrubbers: updateScrubbers(scrubbers),
+      clonedTransitions: clonedTransitions,
+    };
+  }, []);
+
   const handleDropOnTrack = useCallback(
     (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
       console.log(
@@ -392,7 +472,7 @@ export const useTimeline = () => {
 
       const pixelsPerSecond = getPixelsPerSecond();
       let widthPx = item.mediaType === "text" ? 80 : 150;
-      if ((item.mediaType === "video" || item.mediaType === "audio") && item.durationInSeconds) {
+      if ((item.mediaType === "video" || item.mediaType === "audio" || item.mediaType === "groupped_scrubber") && item.durationInSeconds) {
         widthPx = item.durationInSeconds * pixelsPerSecond;
       } else if (item.mediaType === "image") {
         widthPx = 100;
@@ -419,6 +499,15 @@ export const useTimeline = () => {
           ? Math.max(80, (item.text?.fontSize || 48) * 1.5)
           : item.media_height;
 
+      // Generate new UUIDs for grouped scrubbers and their transitions to prevent collisions when ungrouping
+      const allTransitions = getAllTransitions();
+      const groupedResult = item.mediaType === "groupped_scrubber"
+        ? generateNewUUIDsForGroupedScrubbers(item.groupped_scrubbers, allTransitions)
+        : { scrubbers: item.groupped_scrubbers, clonedTransitions: [] };
+      
+      const processedGroupedScrubbers = groupedResult.scrubbers;
+      const clonedTransitions = groupedResult.clonedTransitions;
+
       const newScrubber: ScrubberState = {
         id: generateUUID(),
         left: dropLeftPx,
@@ -432,6 +521,7 @@ export const useTimeline = () => {
         media_width: item.media_width,
         media_height: item.media_height,
         text: item.text,
+        groupped_scrubbers: processedGroupedScrubbers,
         sourceMediaBinId: item.id,
 
         // the following are the properties of the scrubber in <Player>
@@ -453,9 +543,26 @@ export const useTimeline = () => {
         right_transition_id: null,
       };
 
-      handleAddScrubberToTrack(trackId, newScrubber);
+      // Add scrubber and transitions to track
+      if (clonedTransitions.length > 0) {
+        // Use a more comprehensive approach to add both scrubber and transitions
+        setTimeline((prev) => ({
+          ...prev,
+          tracks: prev.tracks.map((track) =>
+            track.id === trackId
+              ? { 
+                  ...track, 
+                  scrubbers: [...track.scrubbers, newScrubber],
+                  transitions: [...track.transitions, ...clonedTransitions]
+                }
+              : track
+          ),
+        }));
+      } else {
+        handleAddScrubberToTrack(trackId, newScrubber);
+      }
     },
-    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond]
+    [timeline.tracks, handleAddScrubberToTrack, getPixelsPerSecond, generateNewUUIDsForGroupedScrubbers, getAllTransitions]
   );
 
   const handleSplitScrubberAtRuler = useCallback((rulerPositionPx: number, selectedScrubberId: string | null) => {
@@ -711,6 +818,12 @@ export const useTimeline = () => {
       return;
     }
 
+    // Validate grouped scrubbers
+    if (leftScrubber?.mediaType === "groupped_scrubber" || rightScrubber?.mediaType === "groupped_scrubber") {
+      toast.error("Grouped scrubbers cannot have transitions");
+      return;
+    }
+
     // Update transition with scrubber IDs
     const updatedTransition: Transition = {
       ...transition,
@@ -792,11 +905,35 @@ export const useTimeline = () => {
 
   const handleDeleteTransition = useCallback((transitionId: string) => {
     setTimeline(prev => {
-      const updatedTracks = prev.tracks.map(track => {
-        // Find the transition being deleted
-        const transitionToDelete = track.transitions.find(t => t.id === transitionId);
-        if (!transitionToDelete) return track;
+      // First, find which track contains the transition
+      let transitionToDelete: Transition | null = null;
+      let targetTrackId: string | null = null;
+      
+      for (const track of prev.tracks) {
+        const foundTransition = track.transitions.find(t => t.id === transitionId);
+        if (foundTransition) {
+          transitionToDelete = foundTransition;
+          targetTrackId = track.id;
+          break;
+        }
+      }
+      
+      // If transition not found in any track, return unchanged timeline
+      if (!transitionToDelete || !targetTrackId) {
+        console.warn(`Transition with ID ${transitionId} not found in any track`);
+        return prev;
+      }
 
+      // Calculate movement parameters for the track that contains the transition
+      let movementDistance = 0;
+      let rightScrubberNewLeft = 0;
+      let shouldRestorePosition = false;
+      let rightScrubber: ScrubberState | null = null;
+      let leftScrubber: ScrubberState | null = null;
+
+      // Find the target track to get scrubber movement information
+      const targetTrack = prev.tracks.find(track => track.id === targetTrackId);
+      if (targetTrack && transitionToDelete) {
         // Calculate the overlap distance to restore
         const pixelsPerSecond = getPixelsPerSecond();
         const transitionWidthPx = (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
@@ -805,12 +942,8 @@ export const useTimeline = () => {
         const SNAP_DISTANCE = 10;
 
         // Find the right scrubber and calculate its movement
-        const rightScrubber = track.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId);
-        const leftScrubber = track.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId);
-
-        let movementDistance = 0;
-        let rightScrubberNewLeft = 0;
-        let shouldRestorePosition = false;
+        rightScrubber = targetTrack.scrubbers.find(s => s.id === transitionToDelete.rightScrubberId) || null;
+        leftScrubber = targetTrack.scrubbers.find(s => s.id === transitionToDelete.leftScrubberId) || null;
 
         if (rightScrubber && leftScrubber) {
           // Check if the scrubbers were originally close enough to be moved together
@@ -826,20 +959,25 @@ export const useTimeline = () => {
           }
           // If originalGap > SNAP_DISTANCE, the right scrubber was never moved, so don't move it back
         }
+      }
 
+      const updatedTracks = prev.tracks.map(track => {
+        const isTargetTrack = track.id === targetTrackId;
+        
         return {
           ...track,
-          transitions: track.transitions.filter(t => t.id !== transitionId),
+          // Only remove transition from the track that contains it
+          transitions: isTargetTrack ? track.transitions.filter(t => t.id !== transitionId) : track.transitions,
           scrubbers: track.scrubbers.map(scrubber => {
-            // Reset transition references
+            // Reset transition references across ALL tracks
             const baseScrubber = {
               ...scrubber,
               left_transition_id: scrubber.left_transition_id === transitionId ? null : scrubber.left_transition_id,
               right_transition_id: scrubber.right_transition_id === transitionId ? null : scrubber.right_transition_id,
             };
 
-            // Only move scrubbers if they were originally moved during transition creation
-            if (shouldRestorePosition) {
+            // Only apply movement logic to scrubbers in the target track
+            if (isTargetTrack && shouldRestorePosition && transitionToDelete) {
               // If this scrubber was the right scrubber in the deleted transition, move it back
               if (scrubber.id === transitionToDelete.rightScrubberId) {
                 return { ...baseScrubber, left: rightScrubberNewLeft };
@@ -1057,6 +1195,192 @@ export const useTimeline = () => {
     }
   }, [getConnectedElements, timeline, getAllScrubbers, handleUpdateScrubber, handleCollisionDetection, timelineWidth, hasTransitionBetween]);
 
+  // Group multiple scrubbers into a single grouped scrubber
+  const handleGroupScrubbers = useCallback((scrubberIds: string[]) => {
+    if (scrubberIds.length < 2) return;
+
+    setTimeline((prev) => {
+      // Find all scrubbers to group and their tracks
+      const scrubbersToGroup: ScrubberState[] = [];
+      let targetTrackIndex = -1;
+
+      for (const track of prev.tracks) {
+        for (const scrubber of track.scrubbers) {
+          if (scrubberIds.includes(scrubber.id)) {
+            scrubbersToGroup.push(scrubber);
+            if (targetTrackIndex === -1) {
+              targetTrackIndex = prev.tracks.indexOf(track);
+            }
+          }
+        }
+      }
+
+      scrubbersToGroup.sort((a, b) => a.left - b.left);
+
+      // Calculate grouped scrubber bounds
+      const leftmost = Math.min(...scrubbersToGroup.map(s => s.left));
+      const rightmost = Math.max(...scrubbersToGroup.map(s => s.left + s.width));
+      const topmost = Math.min(...scrubbersToGroup.map(s => s.y || 0));
+
+      // Create grouped scrubber
+      const groupedScrubber: ScrubberState = {
+        id: generateUUID(),
+        mediaType: "groupped_scrubber",
+        mediaUrlLocal: null,
+        mediaUrlRemote: null,
+        media_width: rightmost - leftmost,
+        media_height: 60,
+        text: null,
+        groupped_scrubbers: scrubbersToGroup,
+        left_transition_id: null,
+        right_transition_id: null,
+        name: `Group: ${scrubbersToGroup.map(scrubber => scrubber.name).join(' + ')}`,
+        durationInSeconds: (rightmost - leftmost) / (PIXELS_PER_SECOND * zoomLevel),
+        uploadProgress: null,
+        isUploading: false,
+        left: leftmost,
+        y: topmost,
+        width: rightmost - leftmost,
+        sourceMediaBinId: generateUUID(),
+        left_player: 0,
+        top_player: 0,
+        width_player: 0,
+        height_player: 0,
+        is_dragging: false,
+        trimBefore: null,
+        trimAfter: null,
+      };
+
+      // Remove individual scrubbers and add grouped scrubber
+      return {
+        ...prev,
+        tracks: prev.tracks.map((track, index) => {
+          if (index === targetTrackIndex) {
+            return {
+              ...track,
+              scrubbers: [
+                ...track.scrubbers.filter(s => !scrubberIds.includes(s.id)),
+                groupedScrubber
+              ]
+            };
+          } else {
+            return {
+              ...track,
+              scrubbers: track.scrubbers.filter(s => !scrubberIds.includes(s.id))
+            };
+          }
+        }),
+      };
+    });
+  }, [zoomLevel]);
+
+  // Ungroup a grouped scrubber back into individual scrubbers
+  const handleUngroupScrubber = useCallback((groupedScrubberId: string) => {
+    setTimeline((prev) => {
+      // Find the grouped scrubber
+      let groupedScrubber: ScrubberState | null = null;
+      let trackIndex = -1;
+
+      for (let i = 0; i < prev.tracks.length; i++) {
+        const found = prev.tracks[i].scrubbers.find(s => s.id === groupedScrubberId);
+        if (found) {
+          groupedScrubber = found;
+          trackIndex = i;
+          break;
+        }
+      }
+
+      if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber" || !groupedScrubber.groupped_scrubbers) {
+        return prev;
+      }
+
+      // Calculate the original bounds when the scrubbers were grouped
+      const groupedIds = groupedScrubber.groupped_scrubbers || [];
+      const originalLeftmost = Math.min(...groupedIds.map(s => s.left));
+      const originalRightmost = Math.max(...groupedIds.map(s => s.left + s.width));
+      const originalTopmost = Math.min(...groupedIds.map(s => s.y || 0));
+      const originalGroupWidth = originalRightmost - originalLeftmost;
+
+      // Calculate scaling based on current grouped scrubber vs original bounds
+      const topOffset = groupedScrubber.y - originalTopmost;
+      const widthScale = originalGroupWidth > 0 ? groupedScrubber.width / originalGroupWidth : 1;
+
+      const individualScrubbers: ScrubberState[] = groupedIds.map((id, _) => ({
+        id: id.id,
+        mediaType: id.mediaType,
+        mediaUrlLocal: id.mediaUrlLocal,
+        mediaUrlRemote: id.mediaUrlRemote,
+        media_width: id.media_width,
+        media_height: id.media_height,
+        text: id.text,
+        groupped_scrubbers: id.groupped_scrubbers,
+        left_transition_id: id.left_transition_id,
+        right_transition_id: id.right_transition_id,
+        name: id.name,
+        durationInSeconds: id.durationInSeconds,
+        uploadProgress: id.uploadProgress,
+        isUploading: id.isUploading,
+        // Scale relative positions and adjust based on current grouped scrubber position
+        left: groupedScrubber.left + (id.left - originalLeftmost) * widthScale,
+        y: id.y + topOffset,
+        width: id.width * widthScale, // Adjust width according to how the group has been scaled
+        sourceMediaBinId: id.sourceMediaBinId,
+        left_player: id.left_player,
+        top_player: id.top_player,
+        width_player: id.width_player,
+        height_player: id.height_player,
+        is_dragging: id.is_dragging,
+        trimBefore: id.trimBefore,
+        trimAfter: id.trimAfter,
+      }));
+
+      // Replace grouped scrubber with individual scrubbers
+      return {
+        ...prev,
+        tracks: prev.tracks.map((track, index) => {
+          if (index === trackIndex) {
+            return {
+              ...track,
+              scrubbers: [
+                ...track.scrubbers.filter(s => s.id !== groupedScrubberId),
+                ...individualScrubbers
+              ]
+            };
+          }
+          return track;
+        }),
+      };
+    });
+  }, []);
+
+  // Move a grouped scrubber to media bin and remove from timeline
+  const handleMoveGroupToMediaBin = useCallback((groupedScrubberId: string, addToMediaBin: (scrubber: ScrubberState, pixelsPerSecond: number) => void) => {
+    // Find the grouped scrubber
+    const allScrubbers = getAllScrubbers();
+    const groupedScrubber = allScrubbers.find(s => s.id === groupedScrubberId);
+
+    if (!groupedScrubber || groupedScrubber.mediaType !== "groupped_scrubber") {
+      toast.error("Invalid grouped scrubber");
+      return;
+    }
+
+    // Add to media bin first with current pixels per second for correct duration calculation
+    addToMediaBin(groupedScrubber, getPixelsPerSecond());
+
+    // Then remove from timeline (similar to handleDeleteScrubber)
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.filter(
+          (scrubber) => scrubber.id !== groupedScrubberId
+        ),
+      }))
+    }));
+
+    toast.success("Moved grouped scrubber to media bin");
+  }, [getAllScrubbers, getPixelsPerSecond]);
+
   return {
     timeline,
     timelineWidth,
@@ -1076,6 +1400,9 @@ export const useTimeline = () => {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    handleGroupScrubbers,
+    handleUngroupScrubber,
+    handleMoveGroupToMediaBin,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,

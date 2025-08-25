@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import axios from "axios"
-import { type MediaBinItem } from "~/components/timeline/types"
+import { type MediaBinItem, type ScrubberState } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
 import { useEffect } from "react"
@@ -227,6 +227,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         uploadProgress: 0,
         left_transition_id: null,
         right_transition_id: null,
+        groupped_scrubbers: null,
       };
       setMediaBinItems(prev => [...prev, newItem]);
 
@@ -308,21 +309,23 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         color,
         textAlign,
         fontWeight,
+        template: null,       // for now, maybe we can also allow text to have a template (same ones from captions)
       },
       mediaUrlLocal: null,
       mediaUrlRemote: null,
-      durationInSeconds: 0,
+      durationInSeconds: 0,     // interesting code. i wish i remembered why i did this. maybe there's a better way.
       isUploading: false,
       uploadProgress: null,
       left_transition_id: null,
       right_transition_id: null,
+      groupped_scrubbers: null,
     };
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);
 
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
     try {
-      if (item.mediaType === "text") {
+      if (item.mediaType === "text" || item.mediaType === "groupped_scrubber") {
         setMediaBinItems(prev => prev.filter(binItem => binItem.id !== item.id));
 
         // Also remove any scrubbers from the timeline that use this media
@@ -391,6 +394,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         uploadProgress: null,
         left_transition_id: null,
         right_transition_id: null,
+        groupped_scrubbers: null,
       };
 
       // Add the audio item to the media bin
@@ -431,6 +435,34 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     setContextMenu(null);
   }, []);
 
+  const handleAddGroupToMediaBin = useCallback((groupedScrubber: ScrubberState, currentPixelsPerSecond: number) => {
+    // Calculate the actual duration in seconds by dividing the current pixel width
+    // by the current zoom-adjusted pixels per second - this gives us the true duration
+    // regardless of zoom level
+    const actualDurationInSeconds = groupedScrubber.width / currentPixelsPerSecond;
+    
+    // Create a new media bin item from the grouped scrubber
+    const newItem: MediaBinItem = {
+      id: groupedScrubber.id,
+      name: groupedScrubber.name || "Grouped Media",
+      mediaType: "groupped_scrubber",
+      mediaUrlLocal: null,
+      mediaUrlRemote: null,
+      durationInSeconds: actualDurationInSeconds,
+      media_width: groupedScrubber.media_width || 0,
+      media_height: groupedScrubber.media_height || 0,
+      text: null,
+      isUploading: false,
+      uploadProgress: null,
+      left_transition_id: null,
+      right_transition_id: null,
+      groupped_scrubbers: groupedScrubber.groupped_scrubbers,
+    };
+    
+    setMediaBinItems(prev => [...prev, newItem]);
+    console.log("Added grouped scrubber to media bin:", newItem.name);
+  }, []);
+
   return {
     mediaBinItems,
     isMediaLoading,
@@ -438,6 +470,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     handleAddTextToBin,
     handleDeleteMedia,
     handleSplitAudio,
+    handleAddGroupToMediaBin,
     contextMenu,
     handleContextMenu,
     handleDeleteFromContext,
