@@ -20,6 +20,8 @@ export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = fa
     return `${window.location.origin}/api`;
   } else if (typeof window !== "undefined" && fastapi) {
     return `${window.location.origin}/ai/api`;
+  } else if (typeof window !== "undefined" && betterauth) {
+    return `${window.location.origin}/api/auth`;
   }
 
   // Fallback for SSR or other environments
@@ -29,5 +31,6 @@ export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = fa
 export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: boolean = false): string => {
   const baseUrl = getApiBaseUrl(fastapi, betterauth);
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  console.log(`endpoint: ${endpoint} -> ${baseUrl}${cleanEndpoint}\nfastapi: ${fastapi}\nbetterauth: ${betterauth}`);
   return `${baseUrl}${cleanEndpoint}`;
 };

@@ -2,6 +2,9 @@ import type { Route } from "./+types/api.auth.$";
 import { auth } from "~/lib/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
+  console.log(`\n\n\n\n=====================loader=================\n\n\n\n`);
+  console.log(request);
+  console.log(`\n\n\n\n=====================loader=================\n\n\n\n`);
   // Forward the request to Better Auth; it handles all subpaths
   const url = new URL(request.url);
   const isCallback = url.pathname.includes("/api/auth/callback/");
