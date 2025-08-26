@@ -72,6 +72,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       width: r.width,
       height: r.height,
       duration_seconds: r.duration_seconds,
+      durationInSeconds: r.duration_seconds, // camelCase for frontend
       created_at: r.created_at,
       mediaUrlRemote: `/api/assets/${r.id}/raw`,
       fullUrl: `http://localhost:8000/media/${encodeURIComponent(r.storage_key)}`,

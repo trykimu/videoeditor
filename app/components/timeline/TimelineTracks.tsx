@@ -22,6 +22,7 @@ interface TimelineTracksProps {
   onDeleteTrack: (trackId: string) => void;
   onUpdateScrubber: (updatedScrubber: ScrubberState) => void;
   onDeleteScrubber?: (scrubberId: string) => void;
+  onBeginScrubberTransform?: () => void;
   onDropOnTrack: (
     item: MediaBinItem,
     trackId: string,
@@ -50,6 +51,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onDeleteTrack,
   onUpdateScrubber,
   onDeleteScrubber,
+  onBeginScrubberTransform,
   onDropOnTrack,
   onDropTransitionOnTrack,
   onDeleteTransition,
@@ -291,6 +293,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     snapConfig={{ enabled: true, distance: 10 }}
                     trackCount={timeline.tracks.length}
                     pixelsPerSecond={pixelsPerSecond}
+                    onBeginTransform={onBeginScrubberTransform}
                   />
                 );
               })}

@@ -57,7 +57,8 @@ import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
 import { FPS, type Transition } from "~/components/timeline/types";
-import { useNavigate } from "react-router";
+import { Save as SaveIcon, ChevronRight, CornerUpLeft, CornerUpRight } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { useAuth } from "~/hooks/useAuth";
@@ -108,10 +109,23 @@ export default function TimelineEditor() {
   const { resolvedTheme } = useTheme();
 
   const navigate = useNavigate();
+  const params = useParams();
+  const projectId = params?.id as string | undefined;
+  const [projectName, setProjectName] = useState<string>("");
 
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
   const [isAutoSize, setIsAutoSize] = useState<boolean>(false);
+  // Text fields for width/height to allow clearing while typing
+  const [widthInput, setWidthInput] = useState<string>("1920");
+  const [heightInput, setHeightInput] = useState<string>("1080");
+  const widthInputRef = useRef<HTMLInputElement>(null);
+  const heightInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep inputs in sync if width/height change elsewhere
+  useEffect(() => { setWidthInput(String(width)); }, [width]);
+  useEffect(() => { setHeightInput(String(height)); }, [height]);
+
   const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -129,6 +143,7 @@ export default function TimelineEditor() {
     zoomLevel,
     getPixelsPerSecond,
     getTimelineData,
+    getTimelineState,
     expandTimeline,
     handleAddTrack,
     handleDeleteTrack,
@@ -146,11 +161,20 @@ export default function TimelineEditor() {
     handleDeleteTransition,
     getConnectedElements,
     handleUpdateScrubberWithLocking,
+    setTimelineFromServer,
+    // undo/redo
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    snapshotTimeline,
   } = useTimeline();
 
   const {
     mediaBinItems,
     isMediaLoading,
+    getMediaBinItems,
+    setTextItems,
     handleAddMediaToBin,
     handleAddTextToBin,
     contextMenu,
@@ -199,6 +223,171 @@ export default function TimelineEditor() {
   const handleAddMediaClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  // Hydrate project name and timeline from API
+  useEffect(() => {
+    (async () => {
+      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+      if (!id) return;
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, { credentials: 'include' });
+      if (!res.ok) {
+        navigate('/projects');
+        return;
+      }
+      const j = await res.json();
+      setProjectName(j.project?.name || "Project");
+      if (j.timeline) setTimelineFromServer(j.timeline);
+      // Use saved textBinItems if present, else extract from timeline
+      try {
+        if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
+          const textItems: typeof mediaBinItems = j.textBinItems.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            mediaType: 'text' as const,
+            media_width: Number(t.media_width) || 0,
+            media_height: Number(t.media_height) || 0,
+            text: t.text || null,
+            mediaUrlLocal: null,
+            mediaUrlRemote: null,
+            durationInSeconds: Number(t.durationInSeconds) || 0,
+            isUploading: false,
+            uploadProgress: null,
+            left_transition_id: null,
+            right_transition_id: null,
+          }));
+          setTextItems(textItems);
+        } else {
+          const perTrack = (j.timeline?.tracks || []).flatMap((t: any) => t.scrubbers || []);
+          const allScrubbers: any[] = Array.isArray(j.timeline?.scrubbers)
+            ? (j.timeline.scrubbers as any[]).concat(perTrack)
+            : perTrack;
+          const textItems: typeof mediaBinItems = (allScrubbers || [])
+            .filter((s: any) => s && s.mediaType === 'text' && s.text)
+            .map((s: any) => ({
+              id: s.sourceMediaBinId || s.id,
+              name: s.text?.textContent || 'Text',
+              mediaType: 'text' as const,
+              media_width: s.media_width || 0,
+              media_height: s.media_height || 0,
+              text: s.text || null,
+              mediaUrlLocal: null,
+              mediaUrlRemote: null,
+              durationInSeconds: s.durationInSeconds || 0,
+              isUploading: false,
+              uploadProgress: null,
+              left_transition_id: null,
+              right_transition_id: null,
+            }));
+          if (textItems.length) setTextItems(textItems);
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Re-link scrubbers to remote asset URLs after assets hydrate
+  // Ensures images/videos/audios render after refresh (when local blob URLs are gone)
+  useEffect(() => {
+    if (isMediaLoading) return;
+    if (!mediaBinItems || mediaBinItems.length === 0) return;
+
+    const current = getTimelineState();
+    let changed = false;
+
+    const assetsByName = new Map(
+      mediaBinItems
+        .filter((i) => i.mediaType !== 'text' && i.mediaUrlRemote)
+        .map((i) => [i.name, i])
+    );
+
+    const newTracks = current.tracks.map((track) => ({
+      ...track,
+      scrubbers: track.scrubbers.map((s) => {
+        if (s.mediaType === 'text') return s;
+        if (!s.mediaUrlRemote) {
+          const match = assetsByName.get(s.name);
+          if (match && match.mediaUrlRemote) {
+            changed = true;
+            return {
+              ...s,
+              mediaUrlRemote: match.mediaUrlRemote,
+              sourceMediaBinId: match.id,
+              media_width: match.media_width || s.media_width,
+              media_height: match.media_height || s.media_height,
+            };
+          }
+        }
+        return s;
+      }),
+    }));
+
+    if (changed) {
+      setTimelineFromServer({ ...current, tracks: newTracks });
+    }
+  }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
+
+  
+
+  // Save timeline to server
+  const handleSaveTimeline = useCallback(async () => {
+    try {
+      toast.info("Saving state of the project...");
+      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+      if (!id) {
+        toast.error("No project ID");
+        return;
+      }
+      const timelineState = getTimelineState();
+      // persist current text items alongside timeline
+      const textItemsPayload = getMediaBinItems().filter(i => i.mediaType === 'text');
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeline: timelineState, textBinItems: textItemsPayload })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast.success("Timeline saved");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save");
+    }
+  }, [getTimelineState, projectId]);
+
+  // Global Ctrl/Cmd+S to save timeline (registered after handler is defined)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isInputEl = ((e.target as HTMLElement)?.tagName || "").match(/^(INPUT|TEXTAREA)$/) || (e.target as HTMLElement)?.isContentEditable;
+      if (isInputEl) return;
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && key === 's') {
+        e.preventDefault(); e.stopPropagation();
+        handleSaveTimeline();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && key === 'z' && !e.shiftKey) {
+        e.preventDefault(); e.stopPropagation();
+        undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && key === 'z' && e.shiftKey) {
+        e.preventDefault(); e.stopPropagation();
+        redo();
+        return;
+      }
+      // Delete selected item from Player (not just timeline scrubber)
+      if (key === 'delete') {
+        if (selectedItem) {
+          e.preventDefault(); e.stopPropagation();
+          handleDeleteScrubber(selectedItem);
+          setSelectedItem(null);
+          return;
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { capture: true } as AddEventListenerOptions);
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true } as AddEventListenerOptions);
+  }, [handleSaveTimeline, undo, redo, selectedItem, handleDeleteScrubber, setSelectedItem]);
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,6 +462,20 @@ export default function TimelineEditor() {
   const handleHeightChange = useCallback((newHeight: number) => {
     setHeight(newHeight);
   }, []);
+
+  const commitWidth = useCallback(() => {
+    const parsed = Number(widthInput);
+    const safe = !isFinite(parsed) || parsed <= 0 ? 1920 : parsed;
+    setWidth(safe);
+    setWidthInput(String(safe));
+  }, [widthInput]);
+
+  const commitHeight = useCallback(() => {
+    const parsed = Number(heightInput);
+    const safe = !isFinite(parsed) || parsed <= 0 ? 1080 : parsed;
+    setHeight(safe);
+    setHeightInput(String(safe));
+  }, [heightInput]);
 
   const handleAutoSizeChange = useCallback((auto: boolean) => {
     setIsAutoSize(auto);
@@ -468,9 +671,25 @@ export default function TimelineEditor() {
           <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
 
+        {/* Center project name */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <span className="text-xs leading-none text-muted-foreground font-mono">{projectName || "Project"}</span>
+        </div>
+
         <div className="flex items-center gap-1">
 
-          {/* Import/Export */}
+          {/* Save / Import / Export */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSaveTimeline}
+            className="h-7 px-2 text-xs"
+            title="Save timeline (Ctrl/Cmd+S)"
+          >
+            <SaveIcon className="h-3 w-3 mr-1" />
+            Save
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -543,22 +762,24 @@ export default function TimelineEditor() {
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
-                        value={width}
-                        onChange={(e) =>
-                          handleWidthChange(Number(e.target.value))
-                        }
+                        value={widthInput}
+                        onChange={(e) => { setWidthInput(e.target.value); const n = Number(e.target.value); if (isFinite(n) && n > 0) setWidth(n); }}
+                        onBlur={commitWidth}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { commitWidth(); (e.currentTarget as HTMLInputElement).blur(); } }}
                         disabled={isAutoSize}
                         className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                        ref={widthInputRef}
                       />
                       <span>×</span>
                       <Input
                         type="number"
-                        value={height}
-                        onChange={(e) =>
-                          handleHeightChange(Number(e.target.value))
-                        }
+                        value={heightInput}
+                        onChange={(e) => { setHeightInput(e.target.value); const n = Number(e.target.value); if (isFinite(n) && n > 0) setHeight(n); }}
+                        onBlur={commitHeight}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { commitHeight(); (e.currentTarget as HTMLInputElement).blur(); } }}
                         disabled={isAutoSize}
                         className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                        ref={heightInputRef}
                       />
                     </div>
                   </div>
@@ -656,6 +877,26 @@ export default function TimelineEditor() {
                     >
                       {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={undo}
+                      disabled={!canUndo}
+                      className="h-6 w-6 p-0"
+                      title="Undo (Ctrl/Cmd+Z)"
+                    >
+                      <CornerUpLeft className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={redo}
+                      disabled={!canRedo}
+                      className="h-6 w-6 p-0"
+                      title="Redo (Ctrl/Cmd+Shift+Z)"
+                    >
+                      <CornerUpRight className="h-3 w-3" />
+                    </Button>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="flex items-center">
@@ -748,6 +989,7 @@ export default function TimelineEditor() {
                   pixelsPerSecond={getPixelsPerSecond()}
                   selectedScrubberId={selectedScrubberId}
                   onSelectScrubber={setSelectedScrubberId}
+                  onBeginScrubberTransform={snapshotTimeline}
                 />
               </div>
             </ResizablePanel>

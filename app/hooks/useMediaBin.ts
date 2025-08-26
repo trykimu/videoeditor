@@ -139,6 +139,12 @@ const getMediaMetadata = (file: File, mediaType: "video" | "image" | "audio"): P
 export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: string) => void) => {
   const [mediaBinItems, setMediaBinItems] = useState<MediaBinItem[]>([])
   const [isMediaLoading, setIsMediaLoading] = useState<boolean>(true)
+  const projectId = (() => {
+    try {
+      const m = window.location.pathname.match(/\/project\/([^/]+)/);
+      return m ? m[1] : null;
+    } catch { return null; }
+  })();
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -149,7 +155,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
   useEffect(() => {
     const loadAssets = async () => {
       try {
-        const res = await fetch(apiUrl('/api/assets', false, true), { credentials: 'include' });
+        const url = projectId ? `/api/assets?projectId=${encodeURIComponent(projectId)}` : '/api/assets';
+        const res = await fetch(apiUrl(url, false, true), { credentials: 'include' });
         if (!res.ok) return;
         const json = await res.json();
         const assets = (json.assets || []) as Array<{
@@ -170,7 +177,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
             if (/(jpg|jpeg|png|gif|bmp|webp)$/.test(ext)) return 'image';
             return 'image';
           })(),
-          mediaUrlLocal: null,
+          mediaUrlLocal: null, // restored assets will use remote URL; local may be null
           mediaUrlRemote: a.mediaUrlRemote,
           durationInSeconds: a.durationInSeconds ?? 0,
           media_width: a.width ?? 0,
@@ -181,7 +188,11 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           left_transition_id: null,
           right_transition_id: null,
         }));
-        setMediaBinItems(items);
+        // Merge: keep existing text items, replace non-text items with fetched assets
+        setMediaBinItems(prev => {
+          const textItems = prev.filter(i => i.mediaType === 'text');
+          return [...textItems, ...items];
+        });
       } catch (e) {
         console.error('Failed to load assets', e);
       } finally {
@@ -189,7 +200,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       }
     };
     loadAssets();
-  }, []);
+  }, [projectId]);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
@@ -240,6 +251,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           'x-media-width': String(metadata.width ?? ''),
           'x-media-height': String(metadata.height ?? ''),
           'x-media-duration': String(metadata.durationInSeconds ?? ''),
+          ...(projectId ? { 'x-project-id': projectId } : {}),
         },
         withCredentials: true,
         onUploadProgress: (progressEvent) => {
@@ -318,6 +330,22 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       right_transition_id: null,
     };
     setMediaBinItems(prev => [...prev, newItem]);
+  }, []);
+
+  const getMediaBinItems = useCallback(() => mediaBinItems, [mediaBinItems]);
+
+  const setTextItems = useCallback((textItems: MediaBinItem[]) => {
+    setMediaBinItems(prev => {
+      const withoutText = prev.filter(i => i.mediaType !== 'text');
+      return [...withoutText, ...textItems.map(t => ({
+        ...t,
+        mediaType: 'text',
+        mediaUrlLocal: null,
+        mediaUrlRemote: null,
+        isUploading: false,
+        uploadProgress: null,
+      }))];
+    });
   }, []);
 
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
@@ -434,6 +462,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
   return {
     mediaBinItems,
     isMediaLoading,
+    getMediaBinItems,
+    setTextItems,
     handleAddMediaToBin,
     handleAddTextToBin,
     handleDeleteMedia,
