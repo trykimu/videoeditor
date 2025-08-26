@@ -16,12 +16,12 @@ export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = fa
   }
 
   // In production, go through the reverse proxy paths
-  if (typeof window !== "undefined" && !fastapi) {
+  if (typeof window !== "undefined" && betterauth) {
+    return `${window.location.origin}/api/auth`;
+  } else if (typeof window !== "undefined" && !fastapi) {
     return `${window.location.origin}/api`;
   } else if (typeof window !== "undefined" && fastapi) {
     return `${window.location.origin}/ai/api`;
-  } else if (typeof window !== "undefined" && betterauth) {
-    return `${window.location.origin}/api/auth`;
   }
 
   // Fallback for SSR or other environments
