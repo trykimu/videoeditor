@@ -219,7 +219,7 @@ export function useAuth(): UseAuthResult {
         try {
           const result = await authClient.signIn.social({
             provider: "google",
-            callbackURL: "/editor"
+            callbackURL: "/editor",
           });
           console.log("🔐 Sign-in response:", result);
           return;
