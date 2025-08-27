@@ -239,11 +239,7 @@ export function useAuth(): UseAuthResult {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Poll less frequently to avoid noisy logs
-    const interval = setInterval(() => {
-      if (!isMounted) return;
-      Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
-    }, 15000);
+    // Removed periodic polling per request; rely on SSR + focus/visibility
 
     // Subscribe to Better Auth state changes (if available)
     let unsubscribe: (() => void) | undefined;
@@ -259,7 +255,7 @@ export function useAuth(): UseAuthResult {
       isMounted = false;
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(interval);
+      // no interval to clear
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, [user]);
