@@ -1,15 +1,12 @@
-import type { Route } from "./+types/projects";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { useNavigate } from "react-router";
+import { useNavigate, type LoaderFunctionArgs } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
-import type { LoaderFunctionArgs } from "react-router";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Plus, ChevronDown, ArrowUpDown, CalendarClock, ArrowDownAZ, ArrowUpAZ, Check, Trash2, MoreVertical, Edit3, Wand2, Clapperboard } from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
-import { useMemo } from "react";
 import { Modal } from "~/components/ui/modal";
 import { Input } from "~/components/ui/input";
 import { auth } from "~/lib/auth.server";
@@ -164,9 +161,17 @@ export default function Projects() {
         </div>
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <Card key={i} className="h-28 animate-pulse" />
-            ))}
+            {[
+              <Card key="loading-1" className="h-28 animate-pulse" />,
+              <Card key="loading-2" className="h-28 animate-pulse" />,
+              <Card key="loading-3" className="h-28 animate-pulse" />,
+              <Card key="loading-4" className="h-28 animate-pulse" />,
+              <Card key="loading-5" className="h-28 animate-pulse" />,
+              <Card key="loading-6" className="h-28 animate-pulse" />,
+              <Card key="loading-7" className="h-28 animate-pulse" />,
+              <Card key="loading-8" className="h-28 animate-pulse" />,
+              <Card key="loading-9" className="h-28 animate-pulse" />,
+            ]}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -275,7 +280,7 @@ export default function Projects() {
           }, 950);
           // chime (like landing)
           try {
-            const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
             const ctx = new AudioCtx();
             const make = (freq: number, delay: number, dur: number) => {
               const osc = ctx.createOscillator();
@@ -291,7 +296,7 @@ export default function Projects() {
             make(659.25, 0, 0.25);
             make(783.99, 0.08, 0.22);
             make(987.77, 0.16, 0.18);
-          } catch {}
+          } catch { /* ignore audio errors */ }
         }}
       >
         <KimuLogo id="kimu-mascot" opacity={0.2} className="h-8 w-8 text-foreground drop-shadow-md cursor-pointer" style={{ animation: 'kimu-float 3.5s ease-in-out infinite' }} animated />

@@ -10,7 +10,9 @@ async function run() {
     const u = new URL(rawDbUrl);
     u.search = "";
     connectionString = u.toString();
-  } catch {}
+  } catch {
+    // ignore
+  }
 
   const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   const client = await pool.connect();

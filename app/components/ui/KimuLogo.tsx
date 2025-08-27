@@ -27,7 +27,7 @@ export const KimuLogo: React.FC<KimuLogoProps> = ({
           ? " animate-float-icon transition-all duration-700"
           : "")
       }
-      style={{ color, opacity, ...(style as any) }}
+      style={{ color, opacity, ...(style) }}
       {...rest}
       aria-label="Kimu Logo"
     >

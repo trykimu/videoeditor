@@ -27,31 +27,14 @@ import {
   Layers,
   Sparkles,
   Wand2,
-  Clock,
-  Users,
   ArrowRight,
   Github,
-  Twitter,
-  ExternalLink,
   Monitor,
-  Edit,
   Zap,
   Heart,
-  Globe,
   Shield,
-  Mail,
-  ArrowDown,
-  PlayCircle,
-  ChevronRight,
-  ChevronDown,
   Bot,
   User,
-  Send,
-  ChevronLeft,
-  MessageCircle,
-  Lock,
-  Box,
-  Search,
   Cloud,
 } from "lucide-react";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
@@ -62,6 +45,12 @@ import { FollowerPointerCard } from "../components/ui/following-pointer";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 // @ts-ignore
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
 
 async function getIp() {
   try {
@@ -315,7 +304,7 @@ export default function Landing() {
     setLogoSpinning(true);
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
       const createTone = (freq: number, startTime: number, duration: number) => {
         const oscillator = audioContext.createOscillator();
@@ -513,7 +502,7 @@ export default function Landing() {
                       <div className="bg-background/25 backdrop-blur-sm border border-border/20 rounded-xl p-4 shadow-md flex flex-col gap-3 opacity-25">
                         {[{ icon: Video, name: "Vibe_Coding.mp4", duration: "2:34", color: "text-blue-500" }, { icon: Music, name: "Lo_Fi_Beats.mp3", duration: "1:45", color: "text-green-500" }, { icon: Image, name: "Code_Editor.png", duration: "", color: "text-purple-500" }, { icon: Type, name: "Title_Card.txt", duration: "", color: "text-orange-500" }].map((item, i) => (
                           <motion.div
-                            key={i}
+                            key={item.name}
                             className="flex items-center gap-3 p-2 rounded bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -614,8 +603,8 @@ export default function Landing() {
                               </p>
                             </div>
                             <div className="flex flex-wrap items-center justify-center gap-3 w-full min-h-[48px] mt-6">
-                              {activeAsset.badges.map((badge, i) => (
-                                <Badge key={i} className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
+                              {activeAsset.badges.map((badge) => (
+                                <Badge key={badge} className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
                                   {badge}
                                 </Badge>
                               ))}
@@ -676,9 +665,9 @@ export default function Landing() {
                           { icon: Copy, label: "Copy" },
                           { icon: Undo, label: "Undo" },
                           { icon: Redo, label: "Redo" },
-                        ].map((tool, i) => (
+                        ].map((tool) => (
                           <button
-                            key={i}
+                            key={tool.label}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
                             title={tool.label}
                           >
@@ -695,9 +684,9 @@ export default function Landing() {
                           { icon: Sparkles, label: "Effects" },
                           { icon: Type, label: "Text" },
                           { icon: Wand2, label: "AI Tools" },
-                        ].map((tool, i) => (
+                        ].map((tool) => (
                           <button
-                            key={i}
+                            key={tool.label}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
                             title={tool.label}
                           >
@@ -722,7 +711,7 @@ export default function Landing() {
                           {/* Ruler */}
                           <div className="absolute top-0 left-0 right-0 h-4 bg-muted/5 border-b border-border/20 flex text-xs">
                             {Array.from({ length: 8 }, (_, i) => (
-                              <div key={i} className="flex-1 border-r border-border/20 px-1 text-muted-foreground">
+                              <div key={`ruler-${i}`} className="flex-1 border-r border-border/20 px-1 text-muted-foreground">
                                 {i * 20}s
                               </div>
                             ))}
@@ -735,7 +724,7 @@ export default function Landing() {
                               const width = `${widthPercent}%`;
                               return (
                                 <motion.div
-                                  key={i}
+                                  key={asset.label}
                                   className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border overflow-hidden ${asset.color}`}
                                   style={{ width, minWidth: 0 }}
                                   initial={{ width: 0 }}
@@ -811,7 +800,7 @@ export default function Landing() {
                             🎉 We'll notify you when it's ready!
                           </motion.div>
                         )}
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
+                        <p className="text-xs leading-relaxed mt-3 text-white/20 relative z-20">
                           Get notified when Kimu launches. No spam, just updates on the future of video editing.
                         </p>
                       </div>
@@ -900,7 +889,7 @@ export default function Landing() {
                   description: "Private by design: Strong auth, scoped access, and server‑enforced ownership for every asset and project.",
                 },
               ].map((item, i) => (
-                <li key={i} className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}>
+                <li key={item.title} className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}>
                   <div className="relative h-full rounded-2xl border p-2 md:rounded-3xl md:p-3">
                     <GlowingEffect
                       spread={40}
@@ -951,7 +940,7 @@ export default function Landing() {
                     { icon: <Download className='w-3.5 h-3.5' />, name: 'Pipelines', sub: 'Export + publish', on: true },
                     { icon: <Type className='w-3.5 h-3.5' />, name: 'Motion Titles', sub: 'Presets', on: false },
                   ].map((p, i) => (
-                    <div key={i} className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between">
+                    <div key={p.name} className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="h-7 w-7 grid place-items-center rounded-md bg-muted/30 border border-border/20 text-muted-foreground">{p.icon}</div>
                         <div>
@@ -1004,7 +993,7 @@ export default function Landing() {
               <p className="text-muted-foreground mb-6 max-w-prose">Extend Kimu without forking the editor. Install community plugins or build your own for effects, automations, and export pipelines — powered by a simple, sandboxed API.</p>
               <div className="grid sm:grid-cols-3 gap-4">
                 {[{ t: 'Effects & generators', d: 'Transitions, LUTs, titles, overlays, audio FX.' }, { t: 'Automations', d: 'Silence removal, transcript edits, batch cut, templates.' }, { t: 'Pipelines', d: 'Export hooks, captions, upload/publish flows.' }].map((c, i) => (
-                  <div key={i} className="rounded-xl border border-border/20 p-4 bg-muted/10">
+                  <div key={c.t} className="rounded-xl border border-border/20 p-4 bg-muted/10">
                     <h4 className="text-sm font-semibold text-foreground mb-1">{c.t}</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
                   </div>
@@ -1111,29 +1100,29 @@ export default function Landing() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-background [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
               <ul className="flex gap-3 py-3 whitespace-nowrap animate-[tickerX_28s_linear_infinite]">
                 {[
-                  { i: '⚡', t: 'Zero‑lag scrubbing' },
-                  { i: '⌘', t: 'Pro shortcuts' },
-                  { i: '🏷️', t: 'Templates' },
-                  { i: '🗂️', t: 'Bins & tags' },
-                  { i: '💬', t: 'Inline comments' },
-                  { i: '🧪', t: 'Version history' },
-                  { i: '🎚️', t: 'Audio ducking' },
-                  { i: '🎛️', t: 'LUTs & FX' },
-                  { i: '🤖', t: 'Smart captions' },
-                  { i: '🔌', t: 'Plugin API' },
+                  { id: '1', i: '⚡', t: 'Zero‑lag scrubbing' },
+                  { id: '2', i: '⌘', t: 'Pro shortcuts' },
+                  { id: '3', i: '🏷️', t: 'Templates' },
+                  { id: '4', i: '🗂️', t: 'Bins & tags' },
+                  { id: '5', i: '💬', t: 'Inline comments' },
+                  { id: '6', i: '🧪', t: 'Version history' },
+                  { id: '7', i: '🎚️', t: 'Audio ducking' },
+                  { id: '8', i: '🎛️', t: 'LUTs & FX' },
+                  { id: '9', i: '🤖', t: 'Smart captions' },
+                  { id: '10', i: '🔌', t: 'Plugin API' },
                 ].concat([
-                  { i: '⚡', t: 'Zero‑lag scrubbing' },
-                  { i: '⌘', t: 'Pro shortcuts' },
-                  { i: '🏷️', t: 'Templates' },
-                  { i: '🗂️', t: 'Bins & tags' },
-                  { i: '💬', t: 'Inline comments' },
-                  { i: '🧪', t: 'Version history' },
-                  { i: '🎚️', t: 'Audio ducking' },
-                  { i: '🎛️', t: 'LUTs & FX' },
-                  { i: '🤖', t: 'Smart captions' },
-                  { i: '🔌', t: 'Plugin API' },
-                ]).map((chip, idx) => (
-                  <li key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90">
+                  { id: '11', i: '⚡', t: 'Zero‑lag scrubbing' },
+                  { id: '12', i: '⌘', t: 'Pro shortcuts' },
+                  { id: '13', i: '🏷️', t: 'Templates' },
+                  { id: '14', i: '🗂️', t: 'Bins & tags' },
+                  { id: '15', i: '💬', t: 'Inline comments' },
+                  { id: '16', i: '🧪', t: 'Version history' },
+                  { id: '17', i: '🎚️', t: 'Audio ducking' },
+                  { id: '18', i: '🎛️', t: 'LUTs & FX' },
+                  { id: '19', i: '🤖', t: 'Smart captions' },
+                  { id: '20', i: '🔌', t: 'Plugin API' },
+                ]).map((chip) => (
+                  <li key={chip.id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90">
                     <span>{chip.i}</span>
                     <span>{chip.t}</span>
                   </li>
@@ -1150,7 +1139,7 @@ export default function Landing() {
               }, {
                 h: 'One‑click exports', d: 'Presets for socials, captions baked‑in, pipelines for publish.'
               }].map((c, i) => (
-                <div key={i} className="rounded-xl border border-border/20 p-4 bg-background/60">
+                <div key={c.h} className="rounded-xl border border-border/20 p-4 bg-background/60">
                   <h4 className="text-sm font-semibold text-foreground mb-1">{c.h}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
                 </div>
@@ -1181,6 +1170,14 @@ export default function Landing() {
 }
 
 // Add prop types for MobileTimelinePlayground
+type MotionVariant = {
+  opacity?: number;
+  scale?: number;
+  y?: number;
+  x?: number;
+  rotate?: number;
+};
+
 interface MobileTimelinePlaygroundProps {
   timelineAssets: Array<{
     label: string;
@@ -1193,7 +1190,11 @@ interface MobileTimelinePlaygroundProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: any;
+    animation: {
+      initial: MotionVariant;
+      animate: MotionVariant;
+      exit: MotionVariant;
+    };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
@@ -1213,7 +1214,11 @@ interface MobileVideoEditorProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: any;
+    animation: {
+      initial: MotionVariant;
+      animate: MotionVariant;
+      exit: MotionVariant;
+    };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
@@ -1397,7 +1402,7 @@ function MobileVideoEditorPreview({
                       const trackOffset = `${(trackStart / totalDuration) * 100}%`;
 
                       return (
-                        <div key={i} className="flex items-center h-8">
+                        <div key={asset.label} className="flex items-center h-8">
                           {/* Track Label */}
                           <div className={`w-20 h-full ${isActive ? 'bg-blue-500/20' : 'bg-muted/20'} border-r border-border/20 flex items-center px-2`}>
                             <span className={`text-xs font-medium ${isActive ? 'text-blue-400' : 'text-foreground'} truncate`}>Track {i + 1}</span>
@@ -1501,7 +1506,7 @@ function MobileVideoEditorPreview({
                   🎉 We'll notify you when it's ready!
                 </motion.div>
               )}
-              <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
+              <p className="text-xs leading-relaxed mt-3 text-white/20 relative z-20">
                 Get notified when Kimu launches. No spam, just updates on the future of video editing.
               </p>
             </div>

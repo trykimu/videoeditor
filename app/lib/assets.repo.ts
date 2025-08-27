@@ -84,7 +84,7 @@ export async function listAssetsByUser(userId: string, projectId: string | null)
         ? `select * from assets where user_id = $1 and project_id is null and deleted_at is null order by created_at desc`
         : `select * from assets where user_id = $1 and project_id = $2 and deleted_at is null order by created_at desc`;
     const params = projectId === null ? [userId] : [userId, projectId];
-    const { rows } = await client.query<AssetRecord>(query, params as any);
+    const { rows } = await client.query<AssetRecord>(query, params);
     return rows;
   } finally {
     client.release();

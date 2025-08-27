@@ -10,7 +10,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   // If already authenticated, redirect to projects
   try {
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = (session as any)?.user?.id || (session as any)?.session?.user?.id || (session as any)?.userId;
+    const uid: string | undefined = (session as unknown as {user?: {id: string}})?.user?.id || (session as unknown as {session?: {user: {id: string}}})?.session?.user?.id || (session as unknown as {userId?: string})?.userId;
     if (uid) return new Response(null, { status: 302, headers: { Location: "/projects" } });
   } catch {/* ignore */}
   return null;

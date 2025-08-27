@@ -43,12 +43,14 @@ export function ProfileMenu({
           setUsedBytes(Number.isFinite(u) ? u : 0);
           setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [limitBytes]);
 
   function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";

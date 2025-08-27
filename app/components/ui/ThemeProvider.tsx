@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
 
 // Enhanced ThemeProvider for clean monochrome theming
 export function ThemeProvider({
@@ -26,7 +26,7 @@ export function ThemeProvider({
 }
 
 export function useTheme() {
-  const context = React.useContext(NextThemesProvider as any);
+  const context = React.useContext(NextThemesProvider as React.Context<ThemeProviderProps>);
   if (context === undefined) {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
