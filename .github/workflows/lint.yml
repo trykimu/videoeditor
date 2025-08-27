@@ -20,10 +20,10 @@ jobs:
           node-version: 'lts/*'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable corepack and prepare pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
