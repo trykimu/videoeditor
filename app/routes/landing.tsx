@@ -60,10 +60,13 @@ import { AnimatePresence, motion as m } from "framer-motion";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
-// Vite env type for TS
+// Vite envs for Supabase
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 
 async function getIp() {
   try {
@@ -77,7 +80,9 @@ async function getIp() {
 
 async function getWaitlistCount() {
   try {
-    const res = await fetch("https://<SUPABASE_URL>.supabase.co/rest/v1/waitlist?select=count", {
+    const base = SUPABASE_URL || "";
+    const url = `${base.replace(/\/$/, "")}/rest/v1/waitlist?select=count`;
+    const res = await fetch(url, {
       method: "HEAD",
       headers: {
         apikey: SUPABASE_ANON_KEY,

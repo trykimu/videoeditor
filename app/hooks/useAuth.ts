@@ -56,19 +56,6 @@ export function useAuth(): UseAuthResult {
 
   useEffect(() => {
     let isMounted = true;
-    // Hydrate from SSR data to avoid client flicker and extra fetch
-    try {
-      const initialUser = (window as any).__AUTH_USER__;
-      if (initialUser && !user) {
-        setUser({
-          id: String(initialUser.id ?? initialUser.userId ?? ""),
-          email: initialUser.email ?? null,
-          name: initialUser.name ?? null,
-          image: initialUser.image ?? initialUser.avatarUrl ?? null,
-        });
-        setIsLoading(false);
-      }
-    } catch {}
     const extractUser = (data: unknown): AuthUser | null => {
       if (!data || typeof data !== 'object') return null;
 
@@ -103,8 +90,13 @@ export function useAuth(): UseAuthResult {
             Accept: "application/json",
           },
         });
+        console.log("fetchRestSession")
+        console.log("🔍 Fetching session from:", sessionUrl);
+        console.log("🔍 API response status:", res.status);
+        console.log("🔍 API response:", res);
         if (res.ok) {
           const json = await res.json();
+          console.log("🔍 API response JSON:", json);
           return extractUser(json);
         }
         if (res.status === 404) return null;
@@ -265,20 +257,20 @@ export function useAuth(): UseAuthResult {
     try {
       console.log("🔐 Starting Google sign-in...");
 
-      // Try using Better Auth client's signIn method first
-      if (authClient.signIn) {
-        console.log("🔐 Using Better Auth client signIn");
-        try {
-          const result = await authClient.signIn.social({
-            provider: "google",
-            callbackURL: "/projects"
-          });
-          console.log("🔐 Sign-in response:", result);
-          return;
-        } catch (clientError) {
-          console.log("🔐 Client signIn failed, falling back to REST API:", clientError);
-        }
-      }
+      // // Try using Better Auth client's signIn method first
+      // if (authClient.signIn) {
+      //   console.log("🔐 Using Better Auth client signIn");
+      //   try {
+      //     const result = await authClient.signIn.social({
+      //       provider: "google",
+      //       callbackURL: "/editor"
+      //     });
+      //     console.log("🔐 Sign-in response:", result);
+      //     return;
+      //   } catch (clientError) {
+      //     console.log("🔐 Client signIn failed, falling back to REST API:", clientError);
+      //   }
+      // }
 
       // Fallback to REST API call with correct endpoint
       console.log("🔐 Using REST API signIn");
@@ -312,14 +304,14 @@ export function useAuth(): UseAuthResult {
     try {
       console.log("🚪 Signing out...");
 
-      // Try using Better Auth client's signOut method first
-      if (authClient.signOut) {
-        console.log("🔐 Using Better Auth client signOut");
-        const result = await authClient.signOut();
-        console.log("✅ Sign-out successful via client");
-        setUser(null);
-        return;
-      }
+      // // Try using Better Auth client's signOut method first
+      // if (authClient.signOut) {
+      //   console.log("🔐 Using Better Auth client signOut");
+      //   const result = await authClient.signOut();
+      //   console.log("✅ Sign-out successful via client");
+      //   setUser(null);
+      //   return;
+      // }
 
       // Fallback to REST API call with correct endpoint
       console.log("🔐 Using REST API signOut");

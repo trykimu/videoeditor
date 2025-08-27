@@ -12,6 +12,7 @@ export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = fa
   }
 
   // In production, go through the reverse proxy paths
+
   if (typeof window !== "undefined") {
     // Better Auth lives under /api/auth on the frontend app → use origin without /api
     if (betterauth) return `${window.location.origin}`;
@@ -36,4 +37,3 @@ export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: b
   }
 
   return path ? `${baseUrl}${path}` : `${baseUrl}`;
-};

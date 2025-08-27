@@ -51,18 +51,20 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   // Force baseURL in development so Google gets the correct redirect_uri
   baseURL: process.env.AUTH_BASE_URL || (process.env.NODE_ENV === "development" ? "http://localhost:5173" : undefined),
+  // Trust proxy headers to detect HTTPS for secure cookies
+  trustProxy: process.env.NODE_ENV === "production",
   // Let Better Auth auto-detect baseURL from the request
   database: new Pool({
     connectionString,
     // Temporarily disable SSL verification for development
     ssl: { rejectUnauthorized: false },
   }),
-  
+
   // Add debugging and callback configuration
   logger: {
     level: "debug",
   },
-  
+
   socialProviders: {
     google: {
       clientId: GOOGLE_CLIENT_ID,
@@ -75,17 +77,21 @@ export const auth = betterAuth({
     // Increase session expiry
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     cookie: {
-      // Ensure cookies work on localhost during development
-      sameSite: "lax",
+      // Use "lax" for same-site requests, "none" only needed for cross-origin
+      sameSite: process.env.NODE_ENV === "production" ? "lax" : "none",
       secure: process.env.NODE_ENV === "production",
+      // In production, pin cookie domain to apex so subdomains (if any) share
+      // Set via env if provided, else let browser infer from host header
+      ...(process.env.AUTH_COOKIE_DOMAIN
+        ? { domain: process.env.AUTH_COOKIE_DOMAIN }
+        : {}),
       path: "/",
     },
   },
-  
   // Trusted origins for CORS and cookies
   trustedOrigins,
 });
-
 // Schema is managed via CLI migrations.
+
 
 
