@@ -1,11 +1,11 @@
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel, ConfigDict
-from typing import Any
 
 from schema import FunctionCallResponse, MediaBinItem, TimelineState
 
