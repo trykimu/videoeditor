@@ -21,7 +21,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Prefer Better Auth runtime API to avoid SSR fetch cookie issues
     // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.userId || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (!uid) return new Response(null, { status: 302, headers: { Location: "/login" } });
   } catch {
     return new Response(null, { status: 302, headers: { Location: "/login" } });
@@ -299,5 +299,3 @@ export default function Projects() {
     </div>
   );
 }
-
-

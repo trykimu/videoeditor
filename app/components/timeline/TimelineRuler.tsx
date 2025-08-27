@@ -37,10 +37,10 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
     const milliseconds = totalMs % 1000;
 
     return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
+        .toString()
       .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds
-      .toString()
-      .padStart(3, "0")}`;
+        .toString()
+        .padStart(3, "0")}`;
   };
 
   // Format ruler marks to mm:ss or HH:MM:SS, centered on major ticks
@@ -342,43 +342,43 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                 length: Math.floor(
                   timelineWidth / (MICRO_SECONDS * pixelsPerSecond)
                 ) + 1,
-              },
-              (_, index) => index
-            ).map((tick) => {
+            },
+            (_, index) => index
+          ).map((tick) => {
               const timeValue = tick * MICRO_SECONDS;
               const isMinorTick = timeValue % MINOR_SECONDS === 0;
               const isMajorTick = timeValue % majorSeconds === 0;
               if (isMinorTick || isMajorTick) return null;
               const x = tick * MICRO_SECONDS * pixelsPerSecond;
               const showLabel = pixelsPerSecond * MICRO_SECONDS >= 140; // label at very high zoom
-              return (
-                <div
+            return (
+              <div
                   key={`micro-mark-${tick}`}
-                  className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
+                className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
                   style={{ left: `${x}px` }}
-                >
+              >
                   {showLabel ? (
                     <span className="text-[9px] text-muted-foreground/70 -translate-x-1/2 mt-0.5 bg-background/70 px-1 py-0.5 rounded-sm border border-border/20 font-mono">
                       {formatSubSecondLabel(timeValue, MICRO_SECONDS)}
-                    </span>
+                </span>
                   ) : (
                     <span className="sr-only">{formatSubSecondLabel(timeValue, MICRO_SECONDS)}</span>
                   )}
                   <div className="w-px bg-border/30 h-2 mt-auto" />
-                </div>
-              );
-            })}
+              </div>
+            );
+          })}
 
           {/* Micro 0.25s ticks */}
           {showMicroQuarter &&
             Array.from(
-              {
+            {
                 length: Math.floor(
                   timelineWidth / (MICRO_QUARTER_SECONDS * pixelsPerSecond)
                 ) + 1,
-              },
-              (_, index) => index
-            ).map((tick) => {
+            },
+            (_, index) => index
+          ).map((tick) => {
               const timeValue = tick * MICRO_QUARTER_SECONDS;
               const isHigherTick =
                 timeValue % MICRO_SECONDS === 0 ||
@@ -387,8 +387,8 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               if (isHigherTick) return null;
               const x = tick * MICRO_QUARTER_SECONDS * pixelsPerSecond;
               const showLabel = pixelsPerSecond * MICRO_QUARTER_SECONDS >= 160;
-              return (
-                <div
+            return (
+              <div
                   key={`micro-quarter-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
                   style={{ left: `${x}px` }}
@@ -401,9 +401,9 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                     <span className="sr-only">{formatSubSecondLabel(timeValue, MICRO_QUARTER_SECONDS)}</span>
                   )}
                   <div className="w-px bg-border/20 h-2 mt-auto" />
-                </div>
-              );
-            })}
+              </div>
+            );
+          })}
 
           {/* Micro 0.1s ticks */}
           {showMicroTenth &&
@@ -411,7 +411,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               {
                 length: Math.floor(
                   timelineWidth / (MICRO_TENTH_SECONDS * pixelsPerSecond)
-                ) + 1,
+                  ) + 1,
               },
               (_, index) => index
             ).map((tick) => {
