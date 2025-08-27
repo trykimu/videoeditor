@@ -1,10 +1,12 @@
 export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = false): string => {
+  const isProduction = process.env.NODE_ENV === "production";
+
   if (betterauth) {
-    return "http://localhost:5173";
+    return isProduction ? "https://trykimu.com" : "http://localhost:5173";  // frontend  NOTE: this will be deleted, it is repeating logic. It'll be the default.
   } else if (fastapi) {
-    return "http://127.0.0.1:3000";
+    return isProduction ? "https://trykimu.com/ai/api" : "http://127.0.0.1:3000";  // fastapi backend
   } else {
-    return "http://localhost:8000";
+    return isProduction ? "https://trykimu.com/render" : "http://localhost:8000";   // remotion render server
   }
 };
 
