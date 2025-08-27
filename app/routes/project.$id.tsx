@@ -8,9 +8,8 @@ import { loadTimeline } from "~/lib/timeline.store";
 export async function loader({ request, params }: Route.LoaderArgs) {
   // SSR gate: verify auth
   try {
-    // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.userId || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (!uid) return new Response(null, { status: 302, headers: { Location: "/login" } });
   } catch {
     return new Response(null, { status: 302, headers: { Location: "/login" } });
@@ -25,7 +24,7 @@ export default function ProjectEditorRoute() {
   const params = useParams();
   const navigate = useNavigate();
   const id = params.id as string;
-  const data = useLoaderData() as { timeline?: any };
+  const data = useLoaderData() as { timeline?: unknown };
 
   useEffect(() => {
     // Lightweight guard: verify project ownership before showing editor

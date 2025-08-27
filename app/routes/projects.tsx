@@ -76,7 +76,7 @@ export default function Projects() {
   }, []);
 
   const create = async (projectName?: string) => {
-    let name = (projectName || newProjectName || "Untitled Project").trim().slice(0, 120);
+    const name = (projectName || newProjectName || "Untitled Project").trim().slice(0, 120);
     setCreating(true);
     try {
       const res = await fetch("/api/projects", {

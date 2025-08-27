@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     // Query the materialized view user_storage to get total_storage_bytes for this user
     // Create a transient Pool to avoid coupling to repo internals
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";

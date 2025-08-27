@@ -1,9 +1,8 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import axios from "axios"
 import { type MediaBinItem } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
-import { useEffect } from "react"
 
 // Delete media file from server
 export const deleteMediaFile = async (filename: string): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -297,7 +296,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
       throw new Error(`Failed to add media: ${errorMessage}`);
     }
-  }, []);
+  }, [projectId]);
 
   const handleAddTextToBin = useCallback((
     textContent: string,
@@ -344,7 +343,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         mediaUrlRemote: null,
         isUploading: false,
         uploadProgress: null,
-      }))];
+      }) as MediaBinItem)];
     });
   }, []);
 

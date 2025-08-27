@@ -11,7 +11,9 @@ function getPool(): Pool {
       const u = new URL(rawDbUrl);
       u.search = "";
       connectionString = u.toString();
-    } catch {}
+    } catch {
+      // Ignore URL parsing errors, use raw connection string
+    }
     pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
   return pool;
@@ -72,7 +74,7 @@ export async function deleteProjectById(id: string, userId: string): Promise<boo
       `delete from projects where id = $1 and user_id = $2`,
       [id, userId]
     );
-    return rowCount > 0;
+    return (rowCount ?? 0) > 0;
   } finally {
     client.release();
   }

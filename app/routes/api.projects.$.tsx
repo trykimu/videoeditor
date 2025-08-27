@@ -127,7 +127,7 @@ export async function action({ request }: Route.ActionArgs) {
     // simple update
     // inline update using pg (reuse pool via repo)
     // quick import avoided; execute with small query here
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";
