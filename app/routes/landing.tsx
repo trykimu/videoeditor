@@ -49,8 +49,16 @@ import {
   User,
   Send,
   ChevronLeft,
+  MessageCircle,
+  Lock,
+  Box,
+  Search,
+  Cloud,
 } from "lucide-react";
+import { TbBrandDiscord } from "react-icons/tb";
 import { AnimatePresence, motion as m } from "framer-motion";
+import { GlowingEffect } from "~/components/ui/glowing-effect";
+import { FollowerPointerCard } from "../components/ui/following-pointer";
 
 // Vite env type for TS
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -110,22 +118,14 @@ export default function Landing() {
   const [countLoading, setCountLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [showNavbarLogo, setShowNavbarLogo] = useState(false);
   const [gitHubStars, setGitHubStars] = useState<number>(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const heroSection = document.getElementById('hero-section');
-      if (heroSection) {
-        const rect = heroSection.getBoundingClientRect();
-        // Show navbar logo when hero section is mostly out of view
-        setShowNavbarLogo(rect.bottom < 100);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const gifMaskStyle: React.CSSProperties = {
+    // backgroundImage: "url('https://i1.wp.com/68.media.tumblr.com/7c6a7e8721763add9fd8138e1a95880b/tumblr_ove0utGygC1uzwgsuo1_400.gif')",
+    backgroundImage: "url('https://cdn.dribbble.com/userupload/24426263/file/original-52cf3a971cd1054bf2985d8f34a9a056.gif')",
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center",
+  };
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -137,7 +137,7 @@ export default function Landing() {
     
     const fetchGitHubStars = async () => {
       try {
-        const res = await fetch("https://api.github.com/repos/robinroy03/videoeditor");
+        const res = await fetch("https://api.github.com/repos/trykimu/videoeditor");
         const data = await res.json();
         setGitHubStars(data.stargazers_count || 0);
       } catch (error) {
@@ -403,77 +403,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
-      {/* Navbar with Conditional Logo */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Conditional Logo in Navbar */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ 
-                opacity: showNavbarLogo ? 1 : 0,
-                x: showNavbarLogo ? 0 : -20
-              }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-3"
-            >
-              <motion.div
-                onClick={handleLogoClick}
-                animate={{ rotate: logoSpinning ? 360 : 0 }}
-                transition={{ duration: 1, ease: "easeInOut" }}
-                className="cursor-pointer"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <KimuLogo className="w-8 h-8 text-foreground" />
-              </motion.div>
-              <span className="text-xl font-bold text-foreground">Kimu</span>
-            </motion.div>
-            
-            <div className="flex items-center gap-6">
-              <a
-                href="https://github.com/robinroy03/videoeditor"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200 border-2 border-border/50 rounded-lg px-3 py-2 hover:border-foreground/30 hover:bg-muted/10"
-              >
-                <Github className="w-5 h-5" />
-                {gitHubStars > 0 && (
-                  <span className="text-xs bg-foreground/10 text-foreground px-2 py-1 rounded-full font-medium border border-border/30">
-                    {gitHubStars}
-                  </span>
-                )}
-              </a>
-              <a
-                href="https://twitter.com/trykimu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a
-                href="https://discord.gg/24Mt5DGcbx"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title="Join our Discord"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 12a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"></path>
-                  <path d="M14 12a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"></path>
-                  <path d="M15.5 17c0 1 1.5 3 2 3c1.5 0 2.833 -1.667 3.5 -3c0.667 -1.667 0.5 -5.833 -1.5 -11.5c-1.457 -1.015 -3 -1.34 -4.5 -1.5l-0.972 1.923a11.913 11.913 0 0 0 -4.053 0l-0.975 -1.923c-1.5 0.16 -3.043 0.485 -4.5 1.5c-2 5.667 -2.167 9.833 -1.5 11.5c0.667 1.333 2 3 3.5 3c0.5 0 2 -2 2 -3"></path>
-                  <path d="M7 16.5c3.5 1 6.5 1 10 0"></path>
-                </svg>
-              </a>
-              {/* Roadmap link removed per request */}
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
-      <div className="hidden sm:block pt-20">
+      <div className="pt-20">
         {/* Logo and Title Section - Left Aligned */}
         <section id="hero-section" className="py-12 relative">
           {/* Decorative background */}
@@ -500,9 +431,13 @@ export default function Landing() {
               </motion.div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground">Kimu</h1>
             </motion.div>
-            <div className="mt-4 max-w-2xl">
-              <p className="text-lg md:text-xl text-muted-foreground">
-                Edit less. Create more. The playful, zero‑latency, AI‑powered editor for creators.
+            <div className="mt-4 max-w-4xl">
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-foreground">
+                <span className="block bg-clip-text text-transparent" style={gifMaskStyle}>Supercharging</span>
+                <span className="block bg-clip-text text-transparent" style={gifMaskStyle}>Creator Productivity</span>
+              </h2>
+              <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl">
+                Kimu is a playful, zero‑latency video editor with an AI copilot. Create, upload and edit at the speed of thought.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link to="/login">
@@ -514,49 +449,9 @@ export default function Landing() {
                 {/* Roadmap CTA removed per request */}
                 {gitHubStars > 0 && (
                   <div className="ml-1 text-xs text-muted-foreground border border-border/30 rounded-full px-3 py-1">
-                    {gitHubStars.toLocaleString()} GitHub stars
+                    {gitHubStars} GitHub stars
                   </div>
                 )}
-              </div>
-
-              {/* Quick stats / value props */}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                {formattedCreatorCount && (
-                  <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {formattedCreatorCount} creators joined
-                  </span>
-                )}
-                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-blue-400" /> Instant preview
-                </span>
-                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
-                  <Wand2 className="w-3 h-3 text-purple-400" /> AI Copilot
-                </span>
-                <span className="text-xs bg-white/5 text-foreground/90 border border-border/30 rounded-full px-3 py-1 inline-flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Privacy-first
-                </span>
-              </div>
-
-              {/* Soft marquee */}
-              <div className="mt-8 relative overflow-hidden rounded-lg border border-border/20 bg-background/40">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-background z-10" style={{ maskImage: 'linear-gradient(90deg, transparent, black 15%, black 85%, transparent)' }} />
-                <div className="whitespace-nowrap py-3 text-sm text-muted-foreground flex items-center" style={{ animation: 'marquee 30s linear infinite' }}>
-                  <span className="mx-6 inline-flex items-center gap-2"><Video className="w-4 h-4 text-blue-400" /> Multi‑track timeline</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Scissors className="w-4 h-4" /> Smart cuts</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-400" /> One‑click polish</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Wand2 className="w-4 h-4 text-purple-400" /> Style‑aware prompts</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Layers className="w-4 h-4" /> Dynamic overlays</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Type className="w-4 h-4" /> Motion titles</span>
-                  {/* repeat for seamless loop */}
-                  <span className="mx-6 inline-flex items-center gap-2"><Video className="w-4 h-4 text-blue-400" /> Multi‑track timeline</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Scissors className="w-4 h-4" /> Smart cuts</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-yellow-400" /> One‑click polish</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Wand2 className="w-4 h-4 text-purple-400" /> Style‑aware prompts</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Layers className="w-4 h-4" /> Dynamic overlays</span>
-                  <span className="mx-6 inline-flex items-center gap-2"><Type className="w-4 h-4" /> Motion titles</span>
-                </div>
-                <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
               </div>
             </div>
           </div>
@@ -564,15 +459,17 @@ export default function Landing() {
 
         {/* Video Editor Interface Section */}
         <section className="py-8 relative">
-          <div className="max-w-[85vw] mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-0">
+            <div className="relative">
+              {/* removed bg gradient per request */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1 }}
-              className="bg-background/80 backdrop-blur-sm border border-border/20 rounded-xl overflow-hidden outline outline-2 outline-white/10 relative"
+                className="bg-background/80 backdrop-blur-sm border border-border/20 rounded-xl overflow-hidden z-10"
             >
                             {/* Top Menu Bar */}
-              <div className="h-12 bg-muted/10 border-b border-border/20 flex items-center px-6 text-sm relative z-10">
+              <div className="h-12 bg-muted/10 border-b border-border/20 hidden sm:flex items-center px-6 text-sm relative z-10">
                 <div className="flex items-center gap-2 mr-8">
                   <KimuLogo className="w-5 h-5 text-foreground" />
                   <span className="font-medium">Kimu Studio</span>
@@ -588,11 +485,26 @@ export default function Landing() {
  
               </div>
 
-              {/* Main Editor Layout - Smaller Height */}
-              <div className="hidden sm:flex h-[650px] lg:h-[700px]">
+              {/* Mobile player (standalone) */}
+              <div className="sm:hidden w-full">
+                <MobileVideoEditorPreview 
+                  timelineAssets={timelineAssets}
+                  handleLogoClick={handleLogoClick}
+                  logoSpinning={logoSpinning}
+                  email={email}
+                  setEmail={setEmail}
+                  loading={loading}
+                  success={success}
+                  handleSubmit={handleSubmit}
+                  waitlistCount={waitlistCount}
+                />
+              </div>
+
+              {/* Main Editor Layout - Desktop/tablet only */}
+              <div className="hidden sm:flex flex-col sm:flex-row h-auto sm:h-[650px] lg:h-[700px]">
                 
                 {/* Left Sidebar - Media Bin with Much More Translucent Elements */}
-                <div className="hidden xl:flex ipadmini:hidden w-56 bg-background/25 backdrop-blur-sm border-r border-border/20 flex-col gap-6 p-4 h-full min-w-0">
+                <div className="hidden md:flex xl:flex ipadmini:hidden w-full sm:w-56 bg-background/25 backdrop-blur-sm sm:border-r border-border/20 flex-col gap-6 p-4 sm:h-full min-w-0">
                   <div className="h-10 bg-background/60 backdrop-blur-sm border-b border-border/20 flex items-center px-3 text-xs font-medium rounded-xl opacity-25 mb-3">
                     <Folder className="w-4 h-4 mr-2 text-blue-500" />
                     Media Library
@@ -628,10 +540,24 @@ export default function Landing() {
                 </div>
 
                 {/* Center Content */}
-                <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex-1 flex flex-col min-w-0 order-first sm:order-none">
                   
-                  {/* Preview Window - Better */}
-                  <div className="flex-1 bg-black/90 relative flex flex-col items-center justify-center w-full h-full min-h-[300px] min-w-0 ipadmini:min-w-0 ipadmini:w-full">
+                  {/* Mobile Player (replaces desktop preview on small screens) */}
+                  <div className="sm:hidden w-full">
+                    <MobileVideoEditorPreview 
+                      timelineAssets={timelineAssets}
+                      handleLogoClick={handleLogoClick}
+                      logoSpinning={logoSpinning}
+                      email={email}
+                      setEmail={setEmail}
+                      loading={loading}
+                      success={success}
+                      handleSubmit={handleSubmit}
+                      waitlistCount={waitlistCount}
+                    />
+                  </div>
+                  {/* Desktop Preview Window */}
+                  <div className="hidden sm:flex flex-1 bg-black/90 relative flex-col items-center justify-center w-full h-full min-h-[300px] min-w-0">
                     {/* Main Content - Strictly centered, with reserved space for play bar */}
                     <div className="flex-1 flex flex-col justify-center items-center text-center px-2 md:px-6 lg:px-12 pt-8 pb-20 w-full h-full overflow-hidden">
                       <AnimatePresence mode="wait" initial={false}>
@@ -670,7 +596,7 @@ export default function Landing() {
                             <m.p
                               key={activeAssetIndex + '-desc'}
                               initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                              animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
                               transition={{ delay: 0.25, duration: 0.7 }}
                               className="text-lg md:text-xl text-zinc-200 text-center max-w-2xl font-semibold mb-6"
@@ -685,15 +611,15 @@ export default function Landing() {
                             </p>
                             <p className="text-sm md:text-base text-zinc-400 text-center max-w-xl font-normal" style={{ fontFamily: 'Inter, system-ui, Arial, sans-serif' }}>
                               {activeAsset.subtext2}
-                          </p>
-                        </div>
+                            </p>
+                          </div>
                           <div className="flex flex-wrap items-center justify-center gap-3 w-full min-h-[48px] mt-6">
                             {activeAsset.badges.map((badge, i) => (
                               <Badge key={i} className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
                                 {badge}
-                          </Badge>
+                              </Badge>
                             ))}
-                        </div>
+                          </div>
                         </m.div>
                       </AnimatePresence>
                     </div>
@@ -805,18 +731,25 @@ export default function Landing() {
                         {/* Single Video Track with multiple assets */}
                         <div className="absolute top-4 left-0 right-0 h-12 border-b border-border/20 p-1 flex items-center" style={{ gap: '8px' }}>
                           {timelineAssets.map((asset, i) => {
-                            const width = `${(asset.duration / totalDuration) * 100}%`;
+                            const widthPercent = (asset.duration / totalDuration) * 100;
+                            const width = `${widthPercent}%`;
                             return (
                               <m.div
                                 key={i}
-                                className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border ${asset.color}`}
+                                className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border overflow-hidden ${asset.color}`}
                                 style={{ width, minWidth: 0 }}
-                            initial={{ width: 0 }}
+                                initial={{ width: 0 }}
                                 animate={{ width }}
                                 transition={{ duration: 1, delay: 0.8 + i * 0.1 }}
                               >
+                                <div className="flex items-center gap-1 min-w-0 w-full">
                                 {asset.icon}
-                                <span className={`text-xs ${asset.color.split(' ')[2]}`}>{asset.label}</span>
+                                  {widthPercent > 5 && (
+                                    <span className={`text-xs ${asset.color.split(' ')[2]} truncate`} title={typeof asset.label === 'string' ? asset.label : ''}>
+                                      {asset.label}
+                                    </span>
+                                  )}
+                                </div>
                               </m.div>
                             );
                           })}
@@ -840,47 +773,47 @@ export default function Landing() {
                   {/* Waitlist Card with reduced white glow */}
                   <div className="px-3 py-2">
                   <div className="bg-background/40 backdrop-blur-sm border border-border/20 rounded-xl p-6 shadow-md relative w-full mb-4" style={{ boxShadow: '0 0 12px 2px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.10)' }}>
-                      {/* White gradient border for extra glow */}
-                      <div className="pointer-events-none absolute inset-0 rounded-xl z-10" style={{boxShadow: '0 0 16px 4px rgba(255,255,255,0.12)'}} />
-                      <div className="flex items-center justify-between mb-2 relative z-20">
-                        <h3 className="text-md font-semibold text-foreground">Join the waitlist !</h3>
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
+                    {/* White gradient border for extra glow */}
+                    <div className="pointer-events-none absolute inset-0 rounded-xl z-10" style={{boxShadow: '0 0 16px 4px rgba(255,255,255,0.12)'}} />
+                    <div className="flex items-center justify-between mb-2 relative z-20">
+                      <h3 className="text-md font-semibold text-foreground">Join the waitlist !</h3>
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
                     {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
                       <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2 relative z-20">
                         {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
-                        </div>
-                      )}
-                      <form onSubmit={handleSubmit} className="space-y-3 relative z-20">
-                        <Input
-                          type="email"
-                          placeholder="your@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
-                          required
-                        />
-                        <Button
-                          type="submit"
-                          disabled={loading || success || !email}
-                          className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
-                        >
-                          {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
-                        </Button>
-                      </form>
-                      {success && (
-                        <motion.div
-                          className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2 relative z-20"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.5 }}
-                        >
-                          🎉 We'll notify you when it's ready!
-                        </motion.div>
-                      )}
-                      <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
-                        Get notified when Kimu launches. No spam, just updates on the future of video editing.
-                      </p>
+                      </div>
+                    )}
+                    <form onSubmit={handleSubmit} className="space-y-3 relative z-20">
+                      <Input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
+                        required
+                      />
+                      <Button
+                        type="submit"
+                        disabled={loading || success || !email}
+                        className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
+                      >
+                        {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+                      </Button>
+                    </form>
+                    {success && (
+                      <motion.div
+                        className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2 relative z-20"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        🎉 We'll notify you when it's ready!
+                      </motion.div>
+                    )}
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
+                      Get notified when Kimu launches. No spam, just updates on the future of video editing.
+                    </p>
                     </div>
                     </div>
 
@@ -920,133 +853,330 @@ export default function Landing() {
                 </div>
               </div>
             </motion.div>
+            </div>
           </div>
         </section>
-            </div>
 
-      {/* Mobile Only View */}
-      <div className="sm:hidden">
-        <MobileVideoEditorPreview 
-          timelineAssets={timelineAssets} 
-          handleLogoClick={handleLogoClick} 
-          logoSpinning={logoSpinning}
-          email={email}
-          setEmail={setEmail}
-          loading={loading}
-          success={success}
-          handleSubmit={handleSubmit}
-          waitlistCount={waitlistCount}
-        />
+        {/* Feature Sections — Bento grid using GlowingEffect */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-8 flex items-end justify-between gap-6 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Built for flow</p>
+                <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">Everything you need to cut faster</h3>
+              </div>
+      </div>
+
+            <ul className="grid grid-cols-1 grid-rows-none gap-4 md:grid-cols-12 md:grid-rows-3 lg:gap-4 xl:max-h-[34rem] xl:grid-rows-2">
+              {[
+                {
+                  area: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
+                  icon: <Monitor className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  title: "Web‑based, zero‑install",
+                  description: "Runs in your browser with instant preview — no downloads, no setup.",
+                },
+                {
+                  area: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
+                  icon: <Github className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  title: "OSS — open and community‑built",
+                  description: "Completely open‑source. Built with and for the community. Fork, extend, and make it yours.",
+                },
+                {
+                  area: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
+                  icon: <Sparkles className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  title: "AI Copilot built‑in",
+                  description: "Cut silence, add fades, place assets, generate titles — all with prompts.",
+                },
+                {
+                  area: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
+                  icon: <Cloud className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  title: "Everything, On the Cloud",
+                  description: "All your assets, timelines and projects are stored securely in the cloud — access them anywhere, any device.",
+                },
+                {
+                  area: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
+                  icon: <Shield className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  title: "Security built‑in",
+                  description: "Private by design: Strong auth, scoped access, and server‑enforced ownership for every asset and project.",
+                },
+              ].map((item, i) => (
+                <li key={i} className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}>
+                  <div className="relative h-full rounded-2xl border p-2 md:rounded-3xl md:p-3">
+                    <GlowingEffect
+                      spread={40}
+                      glow={true}
+                      disabled={false}
+                      proximity={64}
+                      inactiveZone={0.01}
+                      borderWidth={2}
+                      hoverBorderWidth={4}
+                    />
+                    <div className="relative flex h-full flex-col justify-between gap-4 md:gap-6 overflow-hidden rounded-xl p-4 md:p-6 border border-border/20 bg-background/60">
+                      <div className="relative flex flex-1 flex-col justify-between gap-3">
+                        <div className="w-fit rounded-lg border border-border/40 p-2">
+                          {item.icon}
+      </div>
+                        <div className="space-y-2 md:space-y-3">
+                          <h4 className="font-sans text-lg md:text-2xl font-semibold text-foreground">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs md:text-base text-muted-foreground leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-      {/* Sleek Modern Footer */}
-      <footer className="bg-background border-t border-border/10">
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="flex flex-col lg:flex-row justify-between gap-12">
-            
-            {/* Left Side - Brand */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <KimuLogo className="w-8 h-8 text-foreground opacity-90" />
-                <span className="text-2xl font-bold text-foreground">Kimu</span>
-              </div>
-              <p className="text-muted-foreground max-w-md">
-                If editing drains you — Kimu gives your time back. Focus on what matters.
-              </p>
-              <div className="flex items-center gap-4">
-                <a 
-                  href="https://github.com/robinroy03/videoeditor" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all border border-border/20 hover:border-border/40"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  {gitHubStars > 0 && (
-                    <span className="text-xs bg-foreground/10 px-1 py-0.5 rounded font-medium">{gitHubStars}</span>
-                  )}
-                </a>
-                <a 
-                  href="https://twitter.com/trykimu" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-muted/20 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                </a>
-                <a 
-                  href="https://discord.gg/24Mt5DGcbx" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-muted/20 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all"
-                  title="Join our Discord"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                  </svg>
-                </a>
-              </div>
-            </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
-            {/* Center - Navigation */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">Product</h4>
-                <div className="space-y-2">
-                  {/* Roadmap link removed per request */}
-                  <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Privacy Policy
-                  </Link>
-                  <a href="#" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Changelog
-                  </a>
+        {/* Plugin ecosystem (coming soon) with pill and custom items */}
+        <section className="py-16 border-y border-border/10 bg-background/60">
+          <div className="max-w-7xl mx-auto px-6 relative grid md:grid-cols-2 gap-10 items-stretch">
+            {/* Left: cleaner mock plugin window */}
+            <div className="rounded-2xl border border-border/20 bg-background p-0 overflow-hidden relative">
+              <div className="h-10 border-b border-border/20 flex items-center px-4 gap-3">
+                <div className="text-xs text-muted-foreground">Kimu • Plugins</div>
+              </div>
+              {/* content */}
+              <div className="grid sm:grid-cols-2">
+                {/* list */}
+                <div className="border-r border-border/20 p-4 space-y-2">
+                  {[
+                    {icon: <Sparkles className='w-3.5 h-3.5' />, name:'LUTs & FX', sub:'Color + glow', on:true},
+                    {icon: <Bot className='w-3.5 h-3.5' />, name:'Auto‑edit', sub:'Silence + transcript', on:false},
+                    {icon: <Download className='w-3.5 h-3.5' />, name:'Pipelines', sub:'Export + publish', on:true},
+                    {icon: <Type className='w-3.5 h-3.5' />, name:'Motion Titles', sub:'Presets', on:false},
+                  ].map((p,i)=> (
+                    <div key={i} className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 grid place-items-center rounded-md bg-muted/30 border border-border/20 text-muted-foreground">{p.icon}</div>
+                        <div>
+                          <div className="text-sm font-medium text-foreground">{p.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{p.sub}</div>
+                        </div>
+                      </div>
+                      <div className={`h-5 w-9 rounded-full border border-border/30 ${p.on? 'bg-foreground':'bg-background'}`}>
+                        <div className={`h-4 w-4 mt-0.5 rounded-full bg-background transition ${p.on? 'ml-4':'ml-1'}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* preview */}
+                <div className="p-4">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Preview</div>
+                  {/* 3D stacked preview */}
+                  <div className="rounded-lg border border-border/20 h-40 bg-muted/10 relative overflow-hidden [perspective:900px]">
+                    <div className="absolute inset-0 grid place-items-center [transform-style:preserve-3d]">
+                      {/* back glow */}
+                      <div className="absolute w-60 h-60 rounded-full bg-gradient-to-tr from-blue-500/10 via-purple-500/10 to-emerald-500/10 blur-2xl" />
+                      {/* stack */}
+                      <div className="relative w-56 h-24">
+                        <div className="absolute inset-0 rounded-xl border border-border/30 bg-background shadow-xl [transform:rotateX(16deg)_rotateY(-8deg)_translateZ(-40px)]" />
+                        <div className="absolute inset-0 rounded-xl border border-border/40 bg-background shadow-xl [transform:rotateX(16deg)_rotateY(-8deg)_translateZ(-20px)]" />
+                        <div className="absolute inset-0 rounded-xl border border-border/60 bg-background/90 shadow-2xl [transform:rotateX(16deg)_rotateY(-8deg)_translateZ(0)]" />
+                        {/* nodes on top card */}
+                        <div className="absolute inset-0 p-3 flex items-center gap-3">
+                          <div className="h-2 w-16 bg-border/50 rounded" />
+                          <div className="h-6 w-6 rounded-md border border-border/40 bg-background" />
+                          <div className="flex-1 h-2 bg-border/50 rounded" />
+                          <div className="h-8 w-8 rounded-md border border-border/40 bg-background" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-[11px] text-muted-foreground">Plugins can add nodes, effects, and exporters into your pipeline.</div>
                 </div>
               </div>
-              
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">Community</h4>
-                <div className="space-y-2">
-                  <a href="https://github.com/robinroy03/videoeditor" target="_blank" rel="noopener noreferrer" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    GitHub
-                  </a>
-                  <a href="https://twitter.com/trykimu" target="_blank" rel="noopener noreferrer" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Twitter
-                  </a>
-                  <a href="https://discord.gg/24Mt5DGcbx" target="_blank" rel="noopener noreferrer" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Discord
-                  </a>
-                </div>
-              </div>
-              
+              {/* (Removed) Overlap preview across columns */}
             </div>
 
-            {/* Right Side - CTA */}
-            <div className="space-y-4 lg:text-right">
-              <h4 className="font-semibold text-foreground">Ready to transform your editing?</h4>
-              <Button 
-                className="bg-foreground text-background hover:bg-foreground/90 px-6 py-2"
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  setTimeout(() => {
-                    const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement;
-                    emailInput?.focus();
-                  }, 800);
-                }}
-              >
-                Join Waitlist
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <p className="text-xs text-muted-foreground lg:max-w-xs">
-                Join thousands of creators who are reimagining video editing
-              </p>
+            {/* Right: copy */}
+            <div className="">
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Coming soon</span>
+              <div className="flex items-center gap-3 mb-2 mt-3">
+                <h3 className="text-2xl font-bold text-foreground">Plugin ecosystem</h3>
+                
+              </div>
+              <p className="text-muted-foreground mb-6 max-w-prose">Extend Kimu without forking the editor. Install community plugins or build your own for effects, automations, and export pipelines — powered by a simple, sandboxed API.</p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[{t:'Effects & generators',d:'Transitions, LUTs, titles, overlays, audio FX.'},{t:'Automations',d:'Silence removal, transcript edits, batch cut, templates.'},{t:'Pipelines',d:'Export hooks, captions, upload/publish flows.'}].map((c,i)=> (
+                  <div key={i} className="rounded-xl border border-border/20 p-4 bg-muted/10">
+                    <h4 className="text-sm font-semibold text-foreground mb-1">{c.t}</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 text-sm text-muted-foreground">Want early access to the API? <a href="mailto:hello@trykimu.com" className="underline">Get in touch</a>.</div>
             </div>
           </div>
+        </section>
+
+        {/* Multiplayer editing (coming soon) section */}
+        <section className="py-16 border-b border-border/10">
+  <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
+    {/* Left: copy */}
+    <div>
+      <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Coming soon</span>
+      <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">Realtime multiplayer editing</h3>
+      <p className="mt-3 text-muted-foreground max-w-prose">
+        Invite teammates and edit together in realtime. See cursors, selections and changes instantly — perfect for teams, reviews and pair-editing.
+      </p>
+    </div>
+
+    {/* Right: Multiplayer 3D Scene with pointer-follow */}
+    <FollowerPointerCard title="you" className="rounded-2xl border border-border/20 bg-background/90 p-6 relative overflow-hidden shadow-2xl">
+      <style>{`
+        @keyframes playhead { 0%{ left:8%; } 50%{ left:92%; } 100%{ left:8%; } }
+        @keyframes pulse { 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
+        @keyframes float { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+        @keyframes glow { 0%,100%{ filter:drop-shadow(0 0 4px currentColor);} 50%{ filter:drop-shadow(0 0 10px currentColor);} }
+      `}</style>
+
+      {/* Teal ambient glow */}
+      <div className="absolute -top-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.25),rgba(16,185,129,0)_70%)] blur-3xl" />
+
+      <div className="relative h-72 [transform:perspective(1200px)_rotateX(12deg)_rotateY(-6deg)]">
+        
+        {/* Toolbar */}
+        <div className="h-10 flex items-center justify-between px-4 rounded-md border border-border/30 bg-black/40 shadow-sm mb-4">
+          <div className="text-[11px] text-muted-foreground">🎬 Teaser.mp4 • Project Kimu</div>
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]" />
+            <span className="text-muted-foreground">synced</span>
+          </div>
+        </div>
+
+        {/* Timeline layers with depth */}
+        <div className="relative space-y-5">
+          {[0,1,2].map((i)=> (
+            <div 
+              key={i} 
+              className="relative h-12 rounded-md border border-border/40 bg-black/40 shadow-lg overflow-hidden"
+              style={{ transform: `translateZ(-${i*30}px)` }}
+            >
+              {/* clips */}
+              {i===0 && (
+                <div className="absolute left-[12%] top-1/2 -translate-y-1/2 h-7 w-[38%] rounded bg-gradient-to-r from-blue-500/20 to-blue-400/10 border border-blue-400/60 shadow-sm" />
+              )}
+              {i===1 && (
+                <div className="absolute left-[30%] top-1/2 -translate-y-1/2 h-7 w-[22%] rounded bg-gradient-to-r from-emerald-500/20 to-emerald-400/10 border border-emerald-400/60 shadow-sm" />
+              )}
+              {i===2 && (
+                <div className="absolute left-[55%] top-1/2 -translate-y-1/2 h-7 w-[28%] rounded bg-gradient-to-r from-purple-500/20 to-purple-400/10 border border-purple-400/60 shadow-sm" />
+              )}
+              </div>
+          ))}
+            </div>
+
+        {/* Playhead across layers */}
+        <div className="absolute top-10 bottom-2 w-[2px] bg-emerald-400/80 animate-[playhead_9s_linear_infinite]" />
+
+        {/* Multiplayer cursors */}
+        <div className="absolute left-[20%] top-16 flex items-center gap-1 animate-[float_4s_ease-in-out_infinite]">
+          <div className="w-3 h-3 rotate-45 bg-blue-400 animate-[glow_2s_infinite]" />
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/40">sreecha</span>
+                </div>
+        <div className="absolute left-[58%] top-28 flex items-center gap-1 animate-[float_5s_ease-in-out_infinite]">
+          <div className="w-3 h-3 rotate-45 bg-emerald-400 animate-[glow_2.5s_infinite]" />
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">robin</span>
+              </div>
+        <div className="absolute left-[75%] top-40 flex items-center gap-1 animate-[float_6s_ease-in-out_infinite]">
+          <div className="w-3 h-3 rotate-45 bg-purple-400 animate-[glow_3s_infinite]" />
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-400/40">lee</span>
+        </div>
+      </div>
+    </FollowerPointerCard>
+  </div>
+</section>
+
+
+        {/* And much more */}
+        <section className="py-16">
+          <style>{`
+            @keyframes tickerX { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+          `}</style>
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-6">
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">And much more</span>
+              <h3 className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight">Little things that add up to flow</h3>
+              <p className="mt-2 text-sm text-muted-foreground">A fast editor is about details. Here are a few we obsess over.</p>
+                </div>
+
+            {/* Feature ticker */}
+            <div className="relative overflow-hidden rounded-xl border border-border/20 bg-background/60">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-background [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
+              <ul className="flex gap-3 py-3 whitespace-nowrap animate-[tickerX_28s_linear_infinite]">
+                {[
+                  {i:'⚡', t:'Zero‑lag scrubbing'},
+                  {i:'⌘', t:'Pro shortcuts'},
+                  {i:'🏷️', t:'Templates'},
+                  {i:'🗂️', t:'Bins & tags'},
+                  {i:'💬', t:'Inline comments'},
+                  {i:'🧪', t:'Version history'},
+                  {i:'🎚️', t:'Audio ducking'},
+                  {i:'🎛️', t:'LUTs & FX'},
+                  {i:'🤖', t:'Smart captions'},
+                  {i:'🔌', t:'Plugin API'},
+                ].concat([
+                  {i:'⚡', t:'Zero‑lag scrubbing'},
+                  {i:'⌘', t:'Pro shortcuts'},
+                  {i:'🏷️', t:'Templates'},
+                  {i:'🗂️', t:'Bins & tags'},
+                  {i:'💬', t:'Inline comments'},
+                  {i:'🧪', t:'Version history'},
+                  {i:'🎚️', t:'Audio ducking'},
+                  {i:'🎛️', t:'LUTs & FX'},
+                  {i:'🤖', t:'Smart captions'},
+                  {i:'🔌', t:'Plugin API'},
+                ]).map((chip, idx) => (
+                  <li key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90">
+                    <span>{chip.i}</span>
+                    <span>{chip.t}</span>
+                  </li>
+                ))}
+              </ul>
+              </div>
+              
+            {/* Teaser cards */}
+            <div className="mt-6 grid sm:grid-cols-3 gap-4">
+              {[{
+                h:'Comments & reviews', d:'Drop pins on the timeline, mention teammates and resolve threads.'
+              },{
+                h:'Share links, not files', d:'View‑only links with watermarking and expiring access.'
+              },{
+                h:'One‑click exports', d:'Presets for socials, captions baked‑in, pipelines for publish.'
+              }].map((c,i)=> (
+                <div key={i} className="rounded-xl border border-border/20 p-4 bg-background/60">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">{c.h}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
+            </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        
+
+        {/* Bottom CTA (clean, no container gradients) */}
+        <section className="py-14 text-center">
+          <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">Ready to get started?</h3>
+          <p className="mt-3 text-muted-foreground">Edit less. Create more. A fast, friendly editor that keeps up with you.</p>
+          <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
+            <Link to="/login"><Button className="bg-foreground text-background hover:bg-foreground/90">Start editing</Button></Link>
+                            <a href="https://github.com/trykimu/videoeditor" target="_blank" rel="noreferrer" className="text-sm underline text-muted-foreground hover:text-foreground">View on GitHub</a>
+            </div>
+        </section>
+          </div>
+
+
+      {/* Footers are now injected globally from root via MarketingFooter */}
+
 
         </div>
-      </footer>
-    </div>
   );
 } 
 
@@ -1152,8 +1282,8 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
         </p>
-            </div>
-          </div>
+      </div>
+    </div>
   );
 } 
 
@@ -1204,7 +1334,7 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
                  style={{ borderBottom: '4px solid #222' }}>
               <div className="w-10 h-2 bg-muted/40 rounded absolute left-3 top-2 rotate-[-10deg]" />
               <div className="w-3 h-2 bg-muted/60 rounded absolute right-2 top-2 rotate-[10deg]" />
-        </div>
+            </div>
             <div className="w-16 h-10 bg-background rounded-b-md flex items-center justify-center border-x border-b border-border/30">
               <KimuLogo className="w-8 h-8 text-foreground" />
             </div>
@@ -1323,18 +1453,6 @@ function MobileVideoEditorPreview({
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [playing, setPlaying] = React.useState(true); // Auto-play by default
   const [currentTime, setCurrentTime] = React.useState(0);
-  const [showNavbarLogo, setShowNavbarLogo] = React.useState(false);
-
-  // Scroll detection for logo placement
-  React.useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setShowNavbarLogo(scrollTop > 300); // Increased threshold to hide navbar logo when main logo is visible
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Auto-play through sections with looping - Much faster
   React.useEffect(() => {
@@ -1368,86 +1486,30 @@ function MobileVideoEditorPreview({
   return (
     <div className="w-full min-h-screen bg-background text-foreground">
       {/* Main Content */}
-      <div className="pt-20">
-        {/* Kimu Logo and Title Section - Center Aligned */}
-        <div className="px-4 py-6 text-center">
-          <motion.div
-            onClick={handleLogoClick}
-            animate={{ rotate: logoSpinning ? 360 : 0 }}
-            transition={{ duration: 1, ease: "easeInOut" }}
-            className="cursor-pointer inline-block mb-3"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <KimuLogo className="w-16 h-16 text-foreground mx-auto" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Kimu</h1>
-          <p className="text-sm text-muted-foreground">The playful, modern video editor for creators</p>
-        </div>
+      <div className="">
+        
 
         {/* Desktop-style Waitlist Card for Mobile */}
-        <div className="w-full px-4 py-8">
-          <div className="max-w-sm mx-auto">
-            <div className="bg-background/80 border border-border/20 rounded-xl shadow-lg p-6 relative">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold text-foreground">Join the waitlist</h3>
-                <Sparkles className="w-5 h-5 text-muted-foreground" />
-              </div>
-              {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
-                <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2">
-                  {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-3">
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
-                required
-              />
-              <Button
-                type="submit"
-                disabled={loading || success || !email}
-                  className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
-              >
-                {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
-              </Button>
-            </form>
-            {success && (
-              <motion.div
-                  className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                🎉 We'll notify you when it's ready!
-              </motion.div>
-            )}
-              <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
-              Get notified when Kimu launches. No spam, just updates on the future of video editing.
-            </p>
-          </div>
-        </div>
-              </div>
+        
 
         {/* Video Editor App Window */}
         <div className="px-4 py-6">
-          <div className="max-w-sm mx-auto bg-background/95 border border-border/20 rounded-xl shadow-xl overflow-hidden">
+          <div className="relative max-w-sm mx-auto">
+            {/* removed mobile bg gradient per request */}
+            <div className="bg-background/95 border border-border/20 rounded-xl shadow-xl overflow-hidden">
             {/* App Header - Thinner */}
             <div className="h-8 bg-muted/10 border-b border-border/20 flex items-center px-4">
               <div className="flex items-center gap-2">
                 <KimuLogo className="w-4 h-4 text-foreground" />
                 <span className="text-xs font-semibold text-foreground">Kimu Studio</span>
-          </div>
+              </div>
               <div className="flex-1" />
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>File</span>
                 <span>Edit</span>
                 <span>View</span>
-        </div>
-          </div>
+              </div>
+            </div>
 
             {/* Preview Window - Vertically Bigger */}
             <div className="w-full h-64 bg-black/90 relative flex items-center justify-center">
@@ -1613,14 +1675,59 @@ function MobileVideoEditorPreview({
             </div>
           </div>
         </div>
-
-        {/* Bottom Info */}
-        <div className="px-4 pb-6">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Kimu: Edit less. Create more.</p>
+          </div>
+        <div className="w-full px-4 py-8">
+          <div className="max-w-sm mx-auto">
+            <div className="bg-background/80 border border-border/20 rounded-xl shadow-lg p-6 relative">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-foreground">Join the waitlist</h3>
+                <Sparkles className="w-5 h-5 text-muted-foreground" />
+        </div>
+              {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
+                <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2">
+                  {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
+      </div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                  className="h-9 text-xs bg-background/60 border-white/20 text-foreground placeholder-muted-foreground focus:border-white focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
+                required
+              />
+              <Button
+                type="submit"
+                disabled={loading || success || !email}
+                  className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
+              >
+                {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+              </Button>
+            </form>
+            {success && (
+              <motion.div
+                  className="text-xs text-white bg-white/20 rounded px-2 py-1 border border-white/30 mt-2"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                🎉 We'll notify you when it's ready!
+              </motion.div>
+            )}
+              <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
+              Get notified when Kimu launches. No spam, just updates on the future of video editing.
+            </p>
           </div>
         </div>
+              </div>
+
       </div>
+      {/* Mobile outer outline */}
+      {/* <svg className="pointer-events-none absolute -inset-[8px] w-[calc(100%+16px)] h-[calc(100%+16px)]" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <rect x="12" y="12" width="976" height="976" rx="24" ry="24" fill="none" stroke="#60a5fa" strokeOpacity="0.18" strokeWidth="5" className="[stroke-dasharray:180_4200] animate-[kimu-dash-slow_20s_linear_infinite]" />
+        <rect x="12" y="12" width="976" height="976" rx="24" ry="24" fill="none" stroke="#9ae6ff" strokeWidth="2" className="[stroke-dasharray:80_4300] animate-[kimu-dash-slow_20s_linear_infinite]" />
+      </svg> */}
     </div>
   );
-} 
+}

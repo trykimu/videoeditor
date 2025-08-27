@@ -21,7 +21,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Prefer Better Auth runtime API to avoid SSR fetch cookie issues
     // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.userId || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (!uid) return new Response(null, { status: 302, headers: { Location: "/login" } });
   } catch {
     return new Response(null, { status: 302, headers: { Location: "/login" } });
@@ -168,14 +168,9 @@ export default function Projects() {
               <Card key={i} className="h-28 animate-pulse" />
             ))}
           </div>
-        ) : projects.length === 0 ? (
-          <Card className="p-10 text-center">
-            <div className="text-sm text-muted-foreground">No projects yet.</div>
-            <div className="text-xs text-muted-foreground mt-1">Create your first project to get started.</div>
-          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Create new project tile */}
+            {/* Create new project tile - always visible */}
             <Card
               className="p-6 border-dashed border-2 cursor-pointer hover:bg-accent/30 flex items-center justify-center bg-gradient-to-br from-background/80 to-muted/40 transition-transform hover:scale-[1.02]"
               onClick={() => { setNewProjectName(""); setShowCreateModal(true); }}
@@ -190,44 +185,51 @@ export default function Projects() {
                 </div>
               </div>
             </Card>
-            {sortedProjects.map((p) => (
-              <Card key={p.id} className="p-4 border-border/60 bg-card group h-28 flex flex-col justify-between">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0 cursor-pointer flex gap-2" onClick={() => navigate(`/project/${p.id}`)}>
-                    <div className="h-8 w-8 rounded-md border border-border/50 flex items-center justify-center shrink-0">
-                      <Clapperboard className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate" title={p.name}>{p.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleString()}</div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="opacity-70 hover:opacity-100 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="text-xs gap-2" onClick={(e) => {
-                        e.stopPropagation();
-                        setRenameProjectId(p.id);
-                        setRenameValue(p.name);
-                      }}>
-                        <Edit3 className="h-3.5 w-3.5" /> Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={async (e) => {
-                        e.stopPropagation();
-                        const res = await fetch(`/api/projects/${encodeURIComponent(p.id)}`, { method: 'DELETE', credentials: 'include' });
-                        if (res.ok) setProjects(prev => prev.filter(x => x.id !== p.id));
-                      }}>
-                        <Trash2 className="h-3.5 w-3.5" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+            {projects.length === 0 ? (
+              <Card className="p-10 text-center col-span-1 sm:col-span-2 lg:col-span-3">
+                <div className="text-sm text-muted-foreground">No projects yet.</div>
+                <div className="text-xs text-muted-foreground mt-1">Create your first project to get started.</div>
               </Card>
-            ))}
+            ) : (
+              sortedProjects.map((p) => (
+                <Card key={p.id} className="p-4 border-border/60 bg-card group h-28 flex flex-col justify-between">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0 cursor-pointer flex gap-2" onClick={() => navigate(`/project/${p.id}`)}>
+                      <div className="h-8 w-8 rounded-md border border-border/50 flex items-center justify-center shrink-0">
+                        <Clapperboard className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate" title={p.name}>{p.name}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{new Date(p.created_at).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="opacity-70 hover:opacity-100 text-muted-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="text-xs gap-2" onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameProjectId(p.id);
+                          setRenameValue(p.name);
+                        }}>
+                          <Edit3 className="h-3.5 w-3.5" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs gap-2 text-destructive focus:text-destructive" onClick={async (e) => {
+                          e.stopPropagation();
+                          const res = await fetch(`/api/projects/${encodeURIComponent(p.id)}`, { method: 'DELETE', credentials: 'include' });
+                          if (res.ok) setProjects(prev => prev.filter(x => x.id !== p.id));
+                        }}>
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         )}
       </main>
@@ -297,5 +299,3 @@ export default function Projects() {
     </div>
   );
 }
-
-

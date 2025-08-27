@@ -6,13 +6,18 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useLocation,
+  useMatches,
 } from "react-router";
+import { useEffect, useState } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ui/ThemeProvider";
 import { auth } from "~/lib/auth.server";
+import { Navbar } from "~/components/ui/Navbar";
+import { MarketingFooter } from "~/components/ui/MarketingFooter";
 
 
 export const links: Route.LinksFunction = () => [
@@ -63,6 +68,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const data = useLoaderData<typeof loader>() as { user: any };
+  const location = useLocation();
+  const matches = useMatches();
+  const [showBrand, setShowBrand] = useState(true);
+  const isNotFound = (matches[matches.length - 1]?.id || "").includes("NotFound");
+  const hideNavbar = isNotFound || location.pathname === "/projects" || location.pathname.startsWith("/project/");
+  const hideFooter = isNotFound || location.pathname === "/projects" || location.pathname.startsWith("/project/");
+
+  useEffect(() => {
+    // Only apply hero intersection logic on the landing page
+    if (location.pathname === "/") {
+      const hero = document.getElementById("hero-section");
+      if (!hero) {
+        setShowBrand(true);
+        return;
+      }
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const e = entries[0];
+          setShowBrand(!e.isIntersecting);
+        },
+        { root: null, threshold: 0.25 }
+      );
+      observer.observe(hero);
+      return () => observer.disconnect();
+    } else {
+      // On other pages, always show the brand
+      setShowBrand(true);
+    }
+  }, [location.pathname]);
+
   return (
     <>
       {/* Expose initial auth user to the client to avoid extra roundtrips/flicker */}
@@ -71,7 +106,9 @@ export default function App() {
           __html: `window.__AUTH_USER__ = ${JSON.stringify(data?.user ?? null)};`,
         }}
       />
+      {!hideNavbar && <Navbar showBrand={showBrand} />}
       <Outlet />
+      {!hideFooter && <MarketingFooter />}
     </>
   );
 }
