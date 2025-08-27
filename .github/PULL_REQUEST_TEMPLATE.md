@@ -12,6 +12,7 @@
 <!--Attach images or short videos/GIFs showcasing changes. -->
 
 ## Related Issues
+<!-- Link to any relevant issues. Use "Closes #<issue_number>" to automatically close an issue when this PR is merged. -->
 Closes #
 Refs #
 
