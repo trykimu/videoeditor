@@ -75,7 +75,7 @@ async def process_ai_message(request: Message) -> FunctionCallResponse:
         )
         print(response)
 
-        return response.parsed
+        return FunctionCallResponse.model_validate(response.parsed)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
