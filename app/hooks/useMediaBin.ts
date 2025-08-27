@@ -1,9 +1,8 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import axios from "axios"
 import { type MediaBinItem } from "~/components/timeline/types"
 import { generateUUID } from "~/utils/uuid"
 import { apiUrl } from "~/utils/api"
-import { useEffect } from "react"
 
 // Delete media file from server
 export const deleteMediaFile = async (filename: string): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -337,14 +336,17 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
   const setTextItems = useCallback((textItems: MediaBinItem[]) => {
     setMediaBinItems(prev => {
       const withoutText = prev.filter(i => i.mediaType !== 'text');
-      return [...withoutText, ...textItems.map(t => ({
-        ...t,
-        mediaType: 'text',
-        mediaUrlLocal: null,
-        mediaUrlRemote: null,
-        isUploading: false,
-        uploadProgress: null,
-      }))];
+      return [
+        ...withoutText,
+        ...textItems.map((t): MediaBinItem => ({
+          ...t,
+          mediaType: 'text' as const,
+          mediaUrlLocal: null,
+          mediaUrlRemote: null,
+          isUploading: false,
+          uploadProgress: null,
+        })),
+      ];
     });
   }, []);
 

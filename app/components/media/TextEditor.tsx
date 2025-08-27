@@ -11,6 +11,7 @@ import {
   AlignCenter,
   AlignRight,
   Bold,
+  ChevronDown,
   Type,
   Plus,
 } from "lucide-react";
@@ -20,7 +21,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
 
 interface TextEditorProps {
   onAddText: (

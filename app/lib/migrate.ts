@@ -10,7 +10,11 @@ async function run() {
     const u = new URL(rawDbUrl);
     u.search = "";
     connectionString = u.toString();
-  } catch {}
+  } catch {
+    console.error("Invalid database URL");
+    process.exitCode = 1;
+    return;
+  }
 
   const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   const client = await pool.connect();

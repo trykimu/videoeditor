@@ -1,7 +1,6 @@
-import type { Route } from "./+types/api.storage.$";
 import { auth } from "~/lib/auth.server";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
@@ -12,7 +11,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       const session = await auth.api?.getSession?.({ headers: req.headers });
       const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
       if (userId) return String(userId);
-    } catch {}
+    } catch {
+      console.error("Failed to get session");
+    }
 
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:5173";
     const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
@@ -21,9 +22,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     const res = await fetch(`${base}/api/auth/session`, {
       headers: { Cookie: cookie, Accept: "application/json" },
       method: "GET",
-    });
+    }); 
     if (!res.ok) throw new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
-    const json = await res.json().catch(() => ({} as any));
+    const json = await res.json().catch(() => ({}));
     const uid: string | undefined = json?.user?.id || json?.user?.userId || json?.session?.user?.id || json?.session?.userId || json?.data?.user?.id || json?.data?.user?.userId;
     if (!uid) throw new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
     return String(uid);
@@ -34,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     // Query the materialized view user_storage to get total_storage_bytes for this user
     // Create a transient Pool to avoid coupling to repo internals
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+     
     // @ts-ignore
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";
@@ -43,7 +44,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       const u = new URL(rawDbUrl);
       u.search = "";
       connectionString = u.toString();
-    } catch {}
+    } catch {
+      console.error("Invalid database URL");
+    }
     const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 
     let usedBytes = 0;

@@ -1,22 +1,19 @@
-import type { Route } from "./+types/projects";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { useNavigate } from "react-router";
+import { useNavigate, type LoaderFunctionArgs } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
-import type { LoaderFunctionArgs } from "react-router";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Plus, ChevronDown, ArrowUpDown, CalendarClock, ArrowDownAZ, ArrowUpAZ, Check, Trash2, MoreVertical, Edit3, Wand2, Clapperboard } from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "~/components/ui/dropdown-menu";
-import { useMemo } from "react";
 import { Modal } from "~/components/ui/modal";
 import { Input } from "~/components/ui/input";
 import { auth } from "~/lib/auth.server";
 
 type Project = { id: string; name: string; created_at: string };
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: { request: Request }) {
   try {
     // Prefer Better Auth runtime API to avoid SSR fetch cookie issues
     // @ts-ignore
@@ -76,7 +73,7 @@ export default function Projects() {
   }, []);
 
   const create = async (projectName?: string) => {
-    let name = (projectName || newProjectName || "Untitled Project").trim().slice(0, 120);
+    const name = (projectName || newProjectName || "Untitled Project").trim().slice(0, 120);
     setCreating(true);
     try {
       const res = await fetch("/api/projects", {
@@ -275,7 +272,10 @@ export default function Projects() {
           }, 950);
           // chime (like landing)
           try {
-            const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+            const AudioCtx: typeof AudioContext | undefined =
+              (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ||
+              (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (!AudioCtx) throw new Error('AudioContext not supported');
             const ctx = new AudioCtx();
             const make = (freq: number, delay: number, dur: number) => {
               const osc = ctx.createOscillator();
@@ -291,7 +291,9 @@ export default function Projects() {
             make(659.25, 0, 0.25);
             make(783.99, 0.08, 0.22);
             make(987.77, 0.16, 0.18);
-          } catch {}
+          } catch {
+            console.error('Kimu mascot chime failed');
+          }
         }}
       >
         <KimuLogo id="kimu-mascot" opacity={0.2} className="h-8 w-8 text-foreground drop-shadow-md cursor-pointer" style={{ animation: 'kimu-float 3.5s ease-in-out infinite' }} animated />

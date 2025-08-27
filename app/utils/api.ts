@@ -37,3 +37,4 @@ export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: b
   }
 
   return path ? `${baseUrl}${path}` : `${baseUrl}`;
+};

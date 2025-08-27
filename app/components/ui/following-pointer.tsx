@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-
-import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, MotionValue } from "framer-motion";
 import { cn } from "~/lib/utils";
 
 export const FollowerPointerCard = ({
@@ -61,8 +60,8 @@ export const FollowPointer = ({
   y,
   title,
 }: {
-  x: any;
-  y: any;
+  x: MotionValue<number>;
+  y: MotionValue<number>;
   title?: string | React.ReactNode;
 }) => {
   const pillColor = "#fb7185"; // rose-400 (lighter)
@@ -84,7 +83,7 @@ export const FollowPointer = ({
         width="1em"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path d="M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"></path>
+        <path d="M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z" />
       </svg>
       <motion.div
         style={{ backgroundColor: pillColor, position: "absolute", left: 10, top: -8 }}

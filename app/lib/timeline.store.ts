@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import type { MediaBinItem, TimelineState } from "~/components/timeline/types";
 
 const TIMELINE_DIR = process.env.TIMELINE_DIR || path.resolve("project_data");
 
@@ -13,11 +14,11 @@ function getFilePath(projectId: string): string {
 }
 
 export type ProjectStateFile = {
-  timeline: any;
-  textBinItems: any[];
+  timeline: TimelineState;
+  textBinItems: MediaBinItem[];
 };
 
-function defaultTimeline(): any {
+function defaultTimeline(): TimelineState {
   return {
     tracks: [
       { id: "track-1", scrubbers: [], transitions: [] },
@@ -52,12 +53,12 @@ export async function saveProjectState(projectId: string, state: ProjectStateFil
 }
 
 // Backwards-compatible helpers
-export async function loadTimeline(projectId: string): Promise<any> {
+export async function loadTimeline(projectId: string): Promise<TimelineState> {
   const state = await loadProjectState(projectId);
   return state.timeline;
 }
 
-export async function saveTimeline(projectId: string, timeline: any): Promise<void> {
+export async function saveTimeline(projectId: string, timeline: TimelineState): Promise<void> {
   const prev = await loadProjectState(projectId);
   await saveProjectState(projectId, { timeline, textBinItems: prev.textBinItems });
 }

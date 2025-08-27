@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, type TargetAndTransition } from "framer-motion";
 
 export const TextHoverEffect = ({
   text,
@@ -56,7 +56,7 @@ export const TextHoverEffect = ({
           gradientUnits="userSpaceOnUse"
           r="20%"
           initial={{ cx: "50%", cy: "50%" }}
-          animate={maskPosition as any}
+          animate={maskPosition as TargetAndTransition}
           transition={{ duration: duration ?? 0, ease: "easeOut" }}
         >
           <stop offset="0%" stopColor="white" />
