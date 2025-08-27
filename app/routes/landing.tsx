@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, motion as m, type TargetAndTransition } from "framer-motion";
 import { KimuLogo } from "../components/ui/KimuLogo";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -56,15 +56,14 @@ import {
   Cloud,
 } from "lucide-react";
 import { TbBrandDiscord } from "react-icons/tb";
-import { AnimatePresence, motion as m } from "framer-motion";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
 // Vite envs for Supabase
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+ 
 // @ts-ignore
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+ 
 // @ts-ignore
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 
@@ -318,10 +317,12 @@ export default function Landing() {
 
   const handleLogoClick = () => {
     setLogoSpinning(true);
-    
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
+      // Use AudioContext with proper feature detection, no 'window as any'
+      const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) throw new Error("Web Audio API not supported");
+      const audioContext = new AudioCtx();
+
       const createTone = (freq: number, startTime: number, duration: number) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
@@ -692,7 +693,7 @@ export default function Landing() {
                       ))}
                     </div>
                     
-                    <div className="w-px h-6 bg-border/30 mx-2"></div>
+                    <div className="w-px h-6 bg-border/30 mx-2" />
                     
                     <div className="flex items-center gap-1">
                       {[
@@ -766,7 +767,7 @@ export default function Landing() {
                           animate={{ left: `${progress}%` }}
                           transition={{ type: 'spring', stiffness: 120, damping: 18 }}
                         >
-                          <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rotate-45"></div>
+                          <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rotate-45" />
                         </m.div>
                       </div>
                     </div>
@@ -1198,7 +1199,7 @@ interface MobileTimelinePlaygroundProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: any;
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
@@ -1282,7 +1283,7 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
           </Button>
         </form>
         <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
-          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${exporting ? 'w-full' : 'w-0'}`}></div>
+          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${exporting ? 'w-full' : 'w-0'}`} />
         </div>
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
@@ -1305,7 +1306,7 @@ interface MobileStoryboardLandingProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: any;
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
@@ -1401,7 +1402,7 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
           </Button>
         </form>
         <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
-          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${submitted ? 'w-full' : 'w-0'}`}></div>
+          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${submitted ? 'w-full' : 'w-0'}`} />
         </div>
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
@@ -1432,7 +1433,7 @@ interface MobileVideoEditorProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: any;
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
