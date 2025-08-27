@@ -6,7 +6,7 @@
 - Any notable design/architecture decisions?
 
 ## Testing
-<!--Testing done to enure it works as intended-->
+<!--Testing done to ensure it works as intended-->
 
 ## Screenshots / Recordings (if UI)
 <!--Attach images or short videos/GIFs showcasing changes. -->
