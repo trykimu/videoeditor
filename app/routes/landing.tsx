@@ -1,6 +1,6 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence, motion as m, type TargetAndTransition } from "framer-motion";
 import { KimuLogo } from "../components/ui/KimuLogo";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -37,12 +37,15 @@ import {
   User,
   Cloud,
 } from "lucide-react";
+
+import { TbBrandDiscord } from "react-icons/tb";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
 // Vite envs for Supabase
 // @ts-ignore
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
 // @ts-ignore
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 
@@ -302,9 +305,11 @@ export default function Landing() {
 
   const handleLogoClick = () => {
     setLogoSpinning(true);
-
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      // Use AudioContext with proper feature detection, no 'window as any'
+      const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) throw new Error("Web Audio API not supported");
+      const audioContext = new AudioCtx();
 
       const createTone = (freq: number, startTime: number, duration: number) => {
         const oscillator = audioContext.createOscillator();
@@ -657,24 +662,44 @@ export default function Landing() {
                       </div>
                     </div>
 
-                    {/* Tools Panel */}
-                    <div className="h-12 bg-muted/10 border-y border-border/20 flex items-center px-4 gap-2">
-                      <div className="flex items-center gap-1">
-                        {[
-                          { icon: Scissors, label: "Cut" },
-                          { icon: Copy, label: "Copy" },
-                          { icon: Undo, label: "Undo" },
-                          { icon: Redo, label: "Redo" },
-                        ].map((tool) => (
-                          <button
-                            key={tool.label}
-                            className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
-                            title={tool.label}
-                          >
-                            <tool.icon className="w-4 h-4" />
-                          </button>
-                        ))}
-                      </div>
+                  {/* Tools Panel */}
+                  <div className="h-12 bg-muted/10 border-y border-border/20 flex items-center px-4 gap-2">
+                    <div className="flex items-center gap-1">
+                      {[
+                        { icon: Scissors, label: "Cut" },
+                        { icon: Copy, label: "Copy" },
+                        { icon: Undo, label: "Undo" },
+                        { icon: Redo, label: "Redo" },
+                      ].map((tool, i) => (
+                        <button
+                          key={i}
+                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
+                          title={tool.label}
+                        >
+                          <tool.icon className="w-4 h-4" />
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div className="w-px h-6 bg-border/30 mx-2" />
+                    
+                    <div className="flex items-center gap-1">
+                      {[
+                        { icon: Layers, label: "Layers" },
+                        { icon: Sparkles, label: "Effects" },
+                        { icon: Type, label: "Text" },
+                        { icon: Wand2, label: "AI Tools" },
+                      ].map((tool, i) => (
+                        <button
+                          key={i}
+                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
+                          title={tool.label}
+                        >
+                          <tool.icon className="w-4 h-4" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                       <div className="w-px h-6 bg-border/30 mx-2" />
 
@@ -1167,16 +1192,114 @@ export default function Landing() {
 
     </div>
   );
-}
+} 
 
 // Add prop types for MobileTimelinePlayground
-type MotionVariant = {
-  opacity?: number;
-  scale?: number;
-  y?: number;
-  x?: number;
-  rotate?: number;
-};
+interface MobileTimelinePlaygroundProps {
+  timelineAssets: Array<{
+    label: string;
+    color: string;
+    icon: React.ReactNode;
+    heading: React.ReactNode;
+    desc: string;
+    subtext: string;
+    subtext2: string;
+    badges: string[];
+    start: number;
+    duration: number;
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
+  }>;
+  handleLogoClick: () => void;
+  logoSpinning: boolean;
+}
+
+function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinning }: MobileTimelinePlaygroundProps) {
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const [exporting, setExporting] = React.useState(false);
+  // Simulate export progress
+  React.useEffect(() => {
+    if (exporting) {
+      const t = setTimeout(() => setExporting(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [exporting]);
+
+  return (
+    <div className="w-full flex flex-col items-start px-4 pt-8 gap-8">
+      {/* Sleek Timeline Bar */}
+      <div className="relative w-full mb-4">
+        <div className="absolute left-0 right-0 top-1/2 h-2 bg-muted/40 rounded-full -translate-y-1/2 z-0" />
+        <div className="flex gap-4 overflow-x-auto pb-2 w-full snap-x snap-mandatory relative z-10">
+          {timelineAssets.map((asset: MobileTimelinePlaygroundProps['timelineAssets'][number], i: number) => (
+            <button
+              key={i}
+              onClick={() => setActiveIdx(i)}
+              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${activeIdx === i ? 'ring-2 ring-blue-400 scale-105' : 'hover:scale-105'} ${activeIdx === i ? 'z-20' : 'z-10'}`}
+              style={{ opacity: activeIdx === i ? 1 : 0.7 }}
+            >
+              <span className="text-2xl mb-1">{asset.icon}</span>
+              <span className="text-xs font-semibold text-foreground text-center whitespace-nowrap">{asset.label}</span>
+            </button>
+          ))}
+        </div>
+        {/* Playhead */}
+        <div className="absolute top-0 bottom-0 left-0 flex items-center pointer-events-none" style={{ left: `calc(${(activeIdx / (timelineAssets.length - 1)) * 100}% - 8px)` }}>
+          <div className="w-4 h-4 bg-blue-500 rounded-full shadow-lg border-2 border-background" />
+        </div>
+      </div>
+      {/* Editor Canvas - Modern Card */}
+      <div className="w-full bg-gradient-to-br from-background/95 to-muted/60 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative min-h-[200px]">
+        {/* Mascot and Playful Animation */}
+        <div className="flex items-center gap-3 mb-2">
+          <div onClick={handleLogoClick} className="cursor-pointer select-none" style={{ display: 'inline-block' }}>
+            <KimuLogo className={`w-10 h-10 text-foreground ${logoSpinning ? 'animate-spin' : ''}`} />
+          </div>
+          <span className="text-lg font-bold text-foreground">Kimu Editor</span>
+        </div>
+        {/* Animated Feature Preview */}
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-xl font-bold text-foreground mb-1 flex items-center gap-2">{timelineAssets[activeIdx].heading}</span>
+          <span className="text-base text-muted-foreground mb-1">{timelineAssets[activeIdx].desc}</span>
+          <span className="text-sm text-muted-foreground mb-1">{timelineAssets[activeIdx].subtext}</span>
+          <span className="text-xs text-muted-foreground mb-2">{timelineAssets[activeIdx].subtext2}</span>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {timelineAssets[activeIdx].badges.map((badge: string, j: number) => (
+              <span key={j} className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm">{badge}</span>
+            ))}
+          </div>
+        </div>
+        {/* Playful micro-animation: e.g., a fake playhead, a sparkle, a cut, etc. */}
+        <div className="absolute right-6 bottom-6 flex items-center gap-2">
+          {activeIdx === 0 && <Video className="w-7 h-7 text-blue-400 animate-pulse" />}
+          {activeIdx === 1 && <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />}
+          {activeIdx === 2 && <Zap className="w-7 h-7 text-blue-400 animate-pulse" />}
+          {activeIdx === 3 && <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />}
+          {activeIdx === 4 && <Heart className="w-7 h-7 text-pink-400 animate-pulse" />}
+          {activeIdx === 5 && <Scissors className="w-7 h-7 text-foreground animate-bounce" />}
+        </div>
+      </div>
+      {/* Waitlist as Export Project - Sleek Modern */}
+      <div className="w-full max-w-xs bg-gradient-to-br from-background/95 to-muted/60 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col items-start gap-3 mb-4 mt-6">
+        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-blue-400" /> Export Project</span>
+        <form className="w-full flex flex-row items-center gap-2" onSubmit={e => { e.preventDefault(); setExporting(true); }}>
+          <div className="flex-1 flex items-center bg-background/80 border border-border/30 rounded-lg px-2 py-1 shadow-inner">
+            <Video className="w-4 h-4 text-blue-400 mr-2" />
+            <input type="email" placeholder="your@email.com.mp4" className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70" required disabled={exporting} />
+          </div>
+          <Button type="submit" className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all" disabled={exporting}>
+            <Download className="w-4 h-4" />
+          </Button>
+        </form>
+        <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
+          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${exporting ? 'w-full' : 'w-0'}`} />
+        </div>
+        <p className="text-xs text-muted-foreground text-left mt-1">
+          Get notified when Kimu launches. No spam, just creative updates.
+        </p>
+      </div>
+    </div>
+  );
+} 
 
 interface MobileTimelinePlaygroundProps {
   timelineAssets: Array<{
@@ -1190,16 +1313,119 @@ interface MobileTimelinePlaygroundProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: {
-      initial: MotionVariant;
-      animate: MotionVariant;
-      exit: MotionVariant;
-    };
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
 }
 
+function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning }: MobileStoryboardLandingProps) {
+  const [showTagline, setShowTagline] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
+
+  // Animation for ticket
+  React.useEffect(() => {
+    if (submitted) {
+      const t = setTimeout(() => setSubmitted(false), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [submitted]);
+
+  return (
+    <div className="w-full min-h-screen bg-background text-foreground flex flex-col items-stretch">
+      {/* Director's Slate */}
+      <div className="flex flex-col items-start px-6 pt-8 pb-4">
+        <div className="relative flex items-center gap-3 mb-2">
+          <div
+            onClick={() => { setShowTagline((v) => !v); handleLogoClick(); }}
+            className="cursor-pointer select-none flex flex-col items-center"
+            style={{ width: 64 }}
+          >
+            {/* Clapperboard */}
+            <div className={`w-16 h-6 bg-muted/80 rounded-t-md flex items-center justify-center relative transition-transform duration-300 ${logoSpinning || showTagline ? 'rotate-[-20deg]' : ''}`}
+                 style={{ borderBottom: '4px solid #222' }}>
+              <div className="w-10 h-2 bg-muted/40 rounded absolute left-3 top-2 rotate-[-10deg]" />
+              <div className="w-3 h-2 bg-muted/60 rounded absolute right-2 top-2 rotate-[10deg]" />
+            </div>
+            <div className="w-16 h-10 bg-background rounded-b-md flex items-center justify-center border-x border-b border-border/30">
+              <KimuLogo className="w-8 h-8 text-foreground" />
+            </div>
+          </div>
+          <span className="text-xl font-bold text-foreground ml-2">Kimu Studio</span>
+        </div>
+        {showTagline && (
+          <div className="text-sm text-muted-foreground mt-2 animate-fade-in-left">Edit less. Create more. 🎬</div>
+        )}
+      </div>
+      {/* Storyboard Scenes */}
+      <div className="flex flex-col gap-6 px-4 pb-6">
+        {timelineAssets.map((asset: MobileStoryboardLandingProps['timelineAssets'][number], i: number) => (
+          <div
+            key={i}
+            className="w-full bg-background/95 border border-border/20 rounded-xl shadow-lg p-5 flex flex-col gap-2 relative overflow-hidden animate-slide-up"
+            style={{ borderLeft: `6px solid ${asset.color.split(' ')[2].replace('text-', '') || '#3b82f6'}` }}
+          >
+            <div className="flex items-center gap-3 mb-1">
+              <span className="text-2xl">{asset.icon}</span>
+              <span className="text-lg font-bold text-foreground">{asset.heading}</span>
+            </div>
+            <div className="text-base font-semibold text-foreground mb-1">{asset.desc}</div>
+            <div className="text-sm text-muted-foreground mb-1">{asset.subtext}</div>
+            <div className="text-xs text-muted-foreground mb-2">{asset.subtext2}</div>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {asset.badges.map((badge: string, j: number) => (
+                <span key={j} className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm">{badge}</span>
+              ))}
+            </div>
+            {/* Animated accent: playhead, sparkle, cut, etc. */}
+            <div className="absolute right-4 bottom-4 flex items-center gap-2 opacity-70">
+              {i === 0 && <Video className="w-7 h-7 text-blue-400 animate-pulse" />}
+              {i === 1 && <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />}
+              {i === 2 && <Zap className="w-7 h-7 text-blue-400 animate-pulse" />}
+              {i === 3 && <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />}
+              {i === 4 && <Heart className="w-7 h-7 text-pink-400 animate-pulse" />}
+              {i === 5 && <Scissors className="w-7 h-7 text-foreground animate-bounce" />}
+            </div>
+            {/* Filmstrip edge */}
+            <div className="absolute left-0 top-0 bottom-0 w-2 bg-muted/30 rounded-l-xl flex flex-col justify-between py-2">
+              <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+              <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+              <div className="w-1 h-1 bg-muted/60 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Waitlist as Movie Ticket */}
+      <div className={`w-full max-w-xs mx-auto bg-background/95 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col items-start gap-3 mb-8 mt-2 relative transition-all duration-500 ${submitted ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-blue-400" /> Join the Cast</span>
+        <form className="w-full flex flex-row items-center gap-2" onSubmit={e => { e.preventDefault(); setSubmitted(true); }}>
+          <div className="flex-1 flex items-center bg-background/80 border border-border/30 rounded-lg px-2 py-1 shadow-inner">
+            <Type className="w-4 h-4 text-blue-400 mr-2" />
+            <input type="email" placeholder="your@email.com" className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70" required disabled={submitted} />
+          </div>
+          <Button type="submit" className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all" disabled={submitted}>
+            <Download className="w-4 h-4" />
+          </Button>
+        </form>
+        <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
+          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${submitted ? 'w-full' : 'w-0'}`} />
+        </div>
+        <p className="text-xs text-muted-foreground text-left mt-1">
+          Get notified when Kimu launches. No spam, just creative updates.
+        </p>
+        {/* Ticket stub edge */}
+        <div className="absolute right-0 top-0 bottom-0 w-2 bg-muted/30 rounded-r-2xl flex flex-col justify-between py-2">
+          <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+          <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+          <div className="w-1 h-1 bg-muted/60 rounded-full" />
+        </div>
+      </div>
+      {/* Minimal Footer */}
+      <div className="w-full text-center text-xs text-muted-foreground pb-4">Made for creators, by creators.</div>
+    </div>
+  );
+} 
 
 // New mobile-only view: Video Editor Preview Playground
 interface MobileVideoEditorProps {
@@ -1214,11 +1440,7 @@ interface MobileVideoEditorProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: {
-      initial: MotionVariant;
-      animate: MotionVariant;
-      exit: MotionVariant;
-    };
+    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;

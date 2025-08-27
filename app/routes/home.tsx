@@ -9,9 +9,13 @@ import {
   Plus,
   Minus,
   Scissors,
-  Save as SaveIcon,
-  CornerUpLeft,
-  CornerUpRight,
+  Star,
+  Bot,
+  LogOut,
+  Save as SaveIcon, 
+  ChevronRight, 
+  CornerUpLeft, 
+  CornerUpRight
 } from "lucide-react";
 
 // Custom video controls
@@ -44,7 +48,7 @@ import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
 
 // Types and constants
-import { FPS, type Transition } from "~/components/timeline/types";
+import { FPS, type MediaBinItem, type TimelineDataItem, type Transition, type TrackState, type ScrubberState } from "~/components/timeline/types";
 import { useNavigate, useParams } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
@@ -196,7 +200,7 @@ export default function TimelineEditor() {
       // Use saved textBinItems if present, else extract from timeline
       try {
         if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
-          const textItems: typeof mediaBinItems = j.textBinItems.map((t: any) => ({
+          const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
             id: t.id,
             name: t.name,
             mediaType: 'text' as const,
@@ -213,13 +217,12 @@ export default function TimelineEditor() {
           }));
           setTextItems(textItems);
         } else {
-          const perTrack = (j.timeline?.tracks || []).flatMap((t: any) => t.scrubbers || []);
-          const allScrubbers: any[] = Array.isArray(j.timeline?.scrubbers)
-            ? (j.timeline.scrubbers as any[]).concat(perTrack)
-            : perTrack;
+          const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
+          const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
+          const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
           const textItems: typeof mediaBinItems = (allScrubbers || [])
-            .filter((s: any) => s && s.mediaType === 'text' && s.text)
-            .map((s: any) => ({
+            .filter((s: ScrubberState) => s && s.mediaType === 'text' && s.text)
+            .map((s: ScrubberState) => ({
               id: s.sourceMediaBinId || s.id,
               name: s.text?.textContent || 'Text',
               mediaType: 'text' as const,
@@ -236,7 +239,9 @@ export default function TimelineEditor() {
             }));
           if (textItems.length) setTextItems(textItems);
         }
-      } catch {}
+      } catch {
+        console.error("Failed to load project");
+      }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);

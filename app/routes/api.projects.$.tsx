@@ -1,10 +1,10 @@
-import type { Route } from "./+types/api.projects.$";
 import { auth } from "~/lib/auth.server";
 import { createProject, getProjectById, listProjectsByUser, deleteProjectById } from "~/lib/projects.repo";
 import { listAssetsByUser, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
-import { loadProjectState, saveProjectState } from "~/lib/timeline.store";
+import { loadTimeline, saveTimeline, loadProjectState, saveProjectState } from "~/lib/timeline.store";
+import type { MediaBinItem, TimelineState } from "~/components/timeline/types";
 
 async function requireUserId(request: Request): Promise<string> {
   try {
@@ -12,7 +12,7 @@ async function requireUserId(request: Request): Promise<string> {
     const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (uid) return String(uid);
   } catch {
-    // ignore
+    console.error("Failed to get session");
   }
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
   const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
@@ -25,7 +25,7 @@ async function requireUserId(request: Request): Promise<string> {
   return String(uid2);
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const userId = await requireUserId(request);
@@ -63,19 +63,19 @@ export async function loader({ request }: Route.LoaderArgs) {
             fs.unlinkSync(filePath);
           }
         } catch {
-          // ignore
+          console.error("Failed to delete asset");
         }
         await softDeleteAsset(a.id, userId);
       }
     } catch {
-      // ignore
+      console.error("Failed to delete assets");
     }
 
     const ok = await deleteProjectById(id, userId);
     if (!ok) return new Response("Not Found", { status: 404 });
     // remove timeline file if exists
     try { await fs.promises.unlink(path.resolve(process.env.TIMELINE_DIR || "project_data", `${id}.json`)); } catch {
-      // ignore
+      console.error("Failed to delete timeline file");
     }
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
@@ -83,7 +83,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return new Response("Not Found", { status: 404 });
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const userId = await requireUserId(request);
@@ -112,12 +112,12 @@ export async function action({ request }: Route.ActionArgs) {
             fs.unlinkSync(filePath);
           }
         } catch {
-          // ignore
+          console.error("Failed to delete asset");
         }
         await softDeleteAsset(a.id, userId);
       }
     } catch {
-      // ignore
+      console.error("Failed to delete assets");
     }
     const ok = await deleteProjectById(id, userId);
     if (!ok) return new Response("Not Found", { status: 404 });
@@ -132,8 +132,8 @@ export async function action({ request }: Route.ActionArgs) {
     if (!proj || proj.user_id !== userId) return new Response("Not Found", { status: 404 });
     const body = await request.json().catch(() => ({}));
     const name: string | undefined = body?.name ? String(body.name).slice(0, 120) : undefined;
-    const timeline: any | undefined = body?.timeline;
-    const textBinItems: any[] | undefined = Array.isArray(body?.textBinItems) ? body.textBinItems : undefined;
+    const timeline: TimelineState | undefined = body?.timeline;
+    const textBinItems: MediaBinItem[] | undefined = Array.isArray(body?.textBinItems) ? body.textBinItems : undefined;
     if (!name && !timeline && !textBinItems) return new Response(JSON.stringify({ error: "No changes" }), { status: 400, headers: { "Content-Type": "application/json" } });
     // simple update
     // inline update using pg (reuse pool via repo)
@@ -143,7 +143,7 @@ export async function action({ request }: Route.ActionArgs) {
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";
     let connectionString = rawDbUrl; try { const u = new URL(rawDbUrl); u.search = ""; connectionString = u.toString(); } catch {
-      // ignore
+      console.error("Invalid database URL");
     }
     const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
     try {

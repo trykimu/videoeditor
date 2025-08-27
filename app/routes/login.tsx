@@ -1,4 +1,3 @@
-import type { Route } from "./+types/login";
 import React from "react";
 import { auth } from "~/lib/auth.server";
 import { useAuth } from "~/hooks/useAuth";
@@ -6,13 +5,15 @@ import { KimuLogo } from "~/components/ui/KimuLogo";
 import { Clapperboard, Wand2, Scissors } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: { request: Request }) {
   // If already authenticated, redirect to projects
   try {
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = (session as unknown as {user?: {id: string}})?.user?.id || (session as unknown as {session?: {user: {id: string}}})?.session?.user?.id || (session as unknown as {userId?: string})?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (uid) return new Response(null, { status: 302, headers: { Location: "/projects" } });
-  } catch {/* ignore */}
+  } catch {
+    console.error('Login failed');
+  }
   return null;
 }
 

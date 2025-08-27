@@ -127,7 +127,7 @@ const AudioPreview = ({ src }: { src: string }) => {
     window.addEventListener('pointerup', onUp, { once: true });
     return () => {
       window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointerup', onUp as EventListener);
     };
   }, [isScrubbing, seekFromClientX]);
 

@@ -44,7 +44,7 @@ export function ProfileMenu({
           setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
         }
       } catch {
-        // ignore
+        console.error('Storage fetch failed');
       }
     })();
     return () => {

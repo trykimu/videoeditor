@@ -1,4 +1,3 @@
-import type { Route } from "./+types/api.assets.$";
 import { auth } from "~/lib/auth.server";
 import { insertAsset, listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
@@ -13,7 +12,9 @@ async function requireUserId(request: Request): Promise<string> {
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
     if (userId) return String(userId);
-  } catch { /* ignore */ }
+  } catch {
+    console.error("Failed to get session");
+  }
 
   // Fallback: call /api/auth/session with forwarded cookies
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
@@ -53,7 +54,7 @@ function inferMediaTypeFromName(name: string, fallback: string = "application/oc
   return fallback;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
@@ -139,7 +140,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return new Response("Not Found", { status: 404 });
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const method = request.method.toUpperCase();
@@ -181,7 +182,8 @@ export async function action({ request }: Route.ActionArgs) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const json = await forwardRes.json() as {filename: string, size: number};
+  
+    const json = await forwardRes.json();
     const filename: string = json.filename;
     const size: number = json.size;
     const mime = inferMediaTypeFromName(filenameFor8000, "application/octet-stream");

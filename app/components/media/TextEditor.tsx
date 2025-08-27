@@ -11,6 +11,7 @@ import {
   AlignCenter,
   AlignRight,
   Bold,
+  ChevronDown,
   Type,
   Plus,
   ChevronDown,

@@ -12,7 +12,7 @@ function getPool(): Pool {
       u.search = "";
       connectionString = u.toString();
     } catch {
-      // Ignore URL parsing errors, use raw connection string
+      throw new Error("Invalid database URL");
     }
     pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
   }
