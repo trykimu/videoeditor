@@ -13,7 +13,7 @@ async function requireUserId(request: Request): Promise<string> {
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
     if (userId) return String(userId);
-  } catch {}
+  } catch { /* ignore */ }
 
   // Fallback: call /api/auth/session with forwarded cookies
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
@@ -33,7 +33,7 @@ async function requireUserId(request: Request): Promise<string> {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const json = await res.json().catch(() => ({} as any));
+  const json = await res.json().catch(() => ({}));
   const uid: string | undefined =
     json?.user?.id || json?.user?.userId || json?.session?.user?.id || json?.session?.userId || json?.data?.user?.id || json?.data?.user?.userId;
   if (!uid) {
@@ -166,7 +166,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Reconstruct a new FormData and forward to 8000 so boundary is correct; faster and streams
     const form = new FormData();
-    const filenameFor8000 = (media as any)?.name || originalNameHeader || "upload.bin";
+    const filenameFor8000 = (media as {name?: string})?.name || originalNameHeader || "upload.bin";
     form.append("media", media, filenameFor8000);
 
     const forwardRes = await fetch("http://localhost:8000/upload", {
@@ -181,7 +181,7 @@ export async function action({ request }: Route.ActionArgs) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const json = await forwardRes.json() as any;
+    const json = await forwardRes.json() as {filename: string, size: number};
     const filename: string = json.filename;
     const size: number = json.size;
     const mime = inferMediaTypeFromName(filenameFor8000, "application/octet-stream");
@@ -218,7 +218,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   // POST /api/assets/register -> register an already-uploaded file from out/
   if (pathname.endsWith("/api/assets/register") && method === "POST") {
-    const body = await request.json().catch(() => ({} as any));
+    const body = await request.json().catch(() => ({}));
     const filename: string | undefined = body.filename;
     const originalName: string | undefined = body.originalName;
     const size: number | undefined = body.size;
