@@ -9,24 +9,44 @@ export async function loader({ request }: { request: Request }) {
     try {
       // @ts-ignore - runtime API may not be typed
       const session = await auth.api?.getSession?.({ headers: req.headers });
-      const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
+      const userId: string | undefined =
+        session?.user?.id ?? session?.session?.userId;
       if (userId) return String(userId);
     } catch {
       console.error("Failed to get session");
     }
 
-    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:5173";
-    const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const host =
+      req.headers.get("x-forwarded-host") ||
+      req.headers.get("host") ||
+      "localhost:5173";
+    const proto =
+      req.headers.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https");
     const base = `${proto}://${host}`;
     const cookie = req.headers.get("cookie") || "";
     const res = await fetch(`${base}/api/auth/session`, {
       headers: { Cookie: cookie, Accept: "application/json" },
       method: "GET",
-    }); 
-    if (!res.ok) throw new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    });
+    if (!res.ok)
+      throw new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     const json = await res.json().catch(() => ({}));
-    const uid: string | undefined = json?.user?.id || json?.user?.userId || json?.session?.user?.id || json?.session?.userId || json?.data?.user?.id || json?.data?.user?.userId;
-    if (!uid) throw new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    const uid: string | undefined =
+      json?.user?.id ||
+      json?.user?.userId ||
+      json?.session?.user?.id ||
+      json?.session?.userId ||
+      json?.data?.user?.id ||
+      json?.data?.user?.userId;
+    if (!uid)
+      throw new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     return String(uid);
   }
 
@@ -35,7 +55,7 @@ export async function loader({ request }: { request: Request }) {
 
     // Query the materialized view user_storage to get total_storage_bytes for this user
     // Create a transient Pool to avoid coupling to repo internals
-     
+
     // @ts-ignore
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";
@@ -47,7 +67,10 @@ export async function loader({ request }: { request: Request }) {
     } catch {
       console.error("Invalid database URL");
     }
-    const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    const pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    });
 
     let usedBytes = 0;
     try {
@@ -57,7 +80,8 @@ export async function loader({ request }: { request: Request }) {
       );
       if (res.rows.length > 0) {
         const val = res.rows[0].total_storage_bytes;
-        usedBytes = typeof val === "string" ? parseInt(val, 10) : Number(val || 0);
+        usedBytes =
+          typeof val === "string" ? parseInt(val, 10) : Number(val || 0);
         if (!Number.isFinite(usedBytes) || usedBytes < 0) usedBytes = 0;
       }
     } finally {
@@ -66,10 +90,10 @@ export async function loader({ request }: { request: Request }) {
 
     const limitBytes = 2 * 1024 * 1024 * 1024; // 2GB default
 
-    return new Response(
-      JSON.stringify({ usedBytes, limitBytes }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ usedBytes, limitBytes }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return new Response("Not Found", { status: 404 });
@@ -78,6 +102,3 @@ export async function loader({ request }: { request: Request }) {
 export async function action() {
   return new Response("Method Not Allowed", { status: 405 });
 }
-
-
-

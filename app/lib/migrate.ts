@@ -16,12 +16,18 @@ async function run() {
     return;
   }
 
-  const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  const pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  });
   const client = await pool.connect();
   try {
     await client.query("begin");
     const dir = path.resolve("migrations");
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
     for (const file of files) {
       const sql = fs.readFileSync(path.join(dir, file), "utf8");
       console.log(`Running migration: ${file}`);
@@ -40,5 +46,3 @@ async function run() {
 }
 
 run();
-
-

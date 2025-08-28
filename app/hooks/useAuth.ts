@@ -57,10 +57,11 @@ export function useAuth(): UseAuthResult {
   useEffect(() => {
     let isMounted = true;
     const extractUser = (data: unknown): AuthUser | null => {
-      if (!data || typeof data !== 'object') return null;
+      if (!data || typeof data !== "object") return null;
 
       const dataObj = data as AuthResponse;
-      const raw = dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
+      const raw =
+        dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
 
       if (raw) {
         return {
@@ -90,7 +91,7 @@ export function useAuth(): UseAuthResult {
             Accept: "application/json",
           },
         });
-        console.log("fetchRestSession")
+        console.log("fetchRestSession");
         console.log("🔍 Fetching session from:", sessionUrl);
         console.log("🔍 API response status:", res.status);
         console.log("🔍 API response:", res);
@@ -106,7 +107,9 @@ export function useAuth(): UseAuthResult {
       }
     };
 
-    const fetchClientSession = async (): Promise<AuthUser | null | undefined> => {
+    const fetchClientSession = async (): Promise<
+      AuthUser | null | undefined
+    > => {
       try {
         const result = await authClient.getSession?.();
         return extractUser(result);
@@ -115,11 +118,14 @@ export function useAuth(): UseAuthResult {
       }
     };
 
-    const reconcileAndSet = (a: AuthUser | null | undefined, b: AuthUser | null | undefined) => {
+    const reconcileAndSet = (
+      a: AuthUser | null | undefined,
+      b: AuthUser | null | undefined
+    ) => {
       if (!isMounted) return;
       // Prefer any non-null user; only set null if both sources are null
       const next = a || b || (a === null && b === null ? null : user);
-      if (next?.id !== user?.id || (!!next !== !!user)) {
+      if (next?.id !== user?.id || !!next !== !!user) {
         setUser(next ?? null);
       }
     };
@@ -135,8 +141,8 @@ export function useAuth(): UseAuthResult {
           headers: {
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
-            Accept: "application/json"
-          }
+            Accept: "application/json",
+          },
         });
 
         console.log("🌐 API response status:", res.status);
@@ -173,14 +179,18 @@ export function useAuth(): UseAuthResult {
 
     // Combined initial check
     const initialCheck = async () => {
-      const [a, b] = await Promise.all([fetchRestSession(), fetchClientSession()]);
+      const [a, b] = await Promise.all([
+        fetchRestSession(),
+        fetchClientSession(),
+      ]);
       reconcileAndSet(a, b);
       if (isMounted) setIsLoading(false);
     };
 
     // Check if we're returning from OAuth (look for common OAuth params)
     const urlParams = new URLSearchParams(window.location.search);
-    const hasOAuthParams = urlParams.has('code') || urlParams.has('state') || urlParams.has('error');
+    const hasOAuthParams =
+      urlParams.has("code") || urlParams.has("state") || urlParams.has("error");
 
     console.log("🔍 Current URL:", window.location.href);
     console.log("🔍 URL params:", Object.fromEntries(urlParams.entries()));
@@ -191,7 +201,10 @@ export function useAuth(): UseAuthResult {
       let attempts = 0;
       const checkWithRetry = async () => {
         attempts++;
-        const [a, b] = await Promise.all([fetchRestSession(), fetchClientSession()]);
+        const [a, b] = await Promise.all([
+          fetchRestSession(),
+          fetchClientSession(),
+        ]);
         reconcileAndSet(a, b);
         if (attempts < 5) {
           setTimeout(checkWithRetry, 800);
@@ -201,11 +214,11 @@ export function useAuth(): UseAuthResult {
       // Clean up URL by removing OAuth params after processing
       setTimeout(() => {
         const url = new URL(window.location.href);
-        url.searchParams.delete('code');
-        url.searchParams.delete('state');
-        url.searchParams.delete('error');
+        url.searchParams.delete("code");
+        url.searchParams.delete("state");
+        url.searchParams.delete("error");
         console.log("🧹 Cleaning up URL:", url.toString());
-        window.history.replaceState({}, '', url.toString());
+        window.history.replaceState({}, "", url.toString());
       }, 5000);
       initialCheck();
     } else {
@@ -217,38 +230,45 @@ export function useAuth(): UseAuthResult {
     const handleFocus = () => {
       if (!isMounted) return;
       console.log("🔍 Window focused, checking session...");
-      Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
+      Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) =>
+        reconcileAndSet(a, b)
+      );
     };
 
     const handleVisibilityChange = () => {
       if (!isMounted || document.hidden) return;
       console.log("🔍 Page became visible, checking session...");
       setTimeout(() => {
-        Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
+        Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) =>
+          reconcileAndSet(a, b)
+        );
       }, 150);
     };
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Removed periodic polling per request; rely on SSR + focus/visibility
 
     // Subscribe to Better Auth state changes (if available)
     let unsubscribe: (() => void) | undefined;
-    if ('onAuthStateChange' in authClient && typeof authClient.onAuthStateChange === 'function') {
+    if (
+      "onAuthStateChange" in authClient &&
+      typeof authClient.onAuthStateChange === "function"
+    ) {
       unsubscribe = authClient.onAuthStateChange((event: unknown) => {
         if (!isMounted) return;
         const nextUser = extractUser(event);
-        if (typeof nextUser !== 'undefined') setUser(nextUser);
+        if (typeof nextUser !== "undefined") setUser(nextUser);
       });
     }
 
     return () => {
       isMounted = false;
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       // no interval to clear
-      if (typeof unsubscribe === 'function') unsubscribe();
+      if (typeof unsubscribe === "function") unsubscribe();
     };
   }, [user]);
 
@@ -281,7 +301,7 @@ export function useAuth(): UseAuthResult {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         // Let Better Auth handle callback at /api/auth/callback/google and then redirect back
-        body: JSON.stringify({ provider: "google" })
+        body: JSON.stringify({ provider: "google" }),
       });
       if (response.ok) {
         const result = await response.json();
@@ -291,7 +311,11 @@ export function useAuth(): UseAuthResult {
           window.location.href = result.url;
         }
       } else {
-        console.error("❌ Sign-in failed:", response.status, await response.text());
+        console.error(
+          "❌ Sign-in failed:",
+          response.status,
+          await response.text()
+        );
       }
     } catch (error) {
       console.error("❌ Sign in error:", error);
@@ -329,7 +353,11 @@ export function useAuth(): UseAuthResult {
         console.log("✅ Sign-out successful");
         setUser(null);
       } else {
-        console.log("❌ Sign out failed:", response.status, await response.text());
+        console.log(
+          "❌ Sign out failed:",
+          response.status,
+          await response.text()
+        );
       }
     } catch (error) {
       console.error("❌ Sign out error:", error);

@@ -27,7 +27,10 @@ export type ProjectRecord = {
   updated_at: string;
 };
 
-export async function createProject(params: { userId: string; name: string }): Promise<ProjectRecord> {
+export async function createProject(params: {
+  userId: string;
+  name: string;
+}): Promise<ProjectRecord> {
   const client = await getPool().connect();
   try {
     const id = crypto.randomUUID();
@@ -41,7 +44,9 @@ export async function createProject(params: { userId: string; name: string }): P
   }
 }
 
-export async function listProjectsByUser(userId: string): Promise<ProjectRecord[]> {
+export async function listProjectsByUser(
+  userId: string
+): Promise<ProjectRecord[]> {
   const client = await getPool().connect();
   try {
     const { rows } = await client.query<ProjectRecord>(
@@ -54,7 +59,9 @@ export async function listProjectsByUser(userId: string): Promise<ProjectRecord[
   }
 }
 
-export async function getProjectById(id: string): Promise<ProjectRecord | null> {
+export async function getProjectById(
+  id: string
+): Promise<ProjectRecord | null> {
   const client = await getPool().connect();
   try {
     const { rows } = await client.query<ProjectRecord>(
@@ -67,7 +74,10 @@ export async function getProjectById(id: string): Promise<ProjectRecord | null> 
   }
 }
 
-export async function deleteProjectById(id: string, userId: string): Promise<boolean> {
+export async function deleteProjectById(
+  id: string,
+  userId: string
+): Promise<boolean> {
   const client = await getPool().connect();
   try {
     const { rowCount } = await client.query(
@@ -79,5 +89,3 @@ export async function deleteProjectById(id: string, userId: string): Promise<boo
     client.release();
   }
 }
-
-

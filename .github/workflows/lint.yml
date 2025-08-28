@@ -23,20 +23,20 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'pnpm'
+          node-version: "lts/*"
+          cache: "pnpm"
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Generate router types
-        run: pnpm run typecheck --noEmit
-
-      - name: TypeScript typecheck (tsc)
+      - name: Generate router types & TS typecheck (tsc)
         run: pnpm run typecheck --noEmit
 
       - name: ESLint
-        run: pnpm eslint . --ext .ts,.tsx
+        run: pnpm eslint . --ext .ts,.tsx --fix
+
+      - name: Prettier format (auto-fix)
+        run: pnpm format
 
   backend:
     name: Backend Ruff and mypy
@@ -65,4 +65,3 @@ jobs:
 
       - name: mypy
         run: uv run mypy .
-

@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./components/ui/button";
-import { ArrowRight, MessageCircle, Play, SkipBack, SkipForward, Volume2, Clapperboard, Scissors, Image, Video, Music, Sparkles, Stars } from "lucide-react";
+import {
+  ArrowRight,
+  MessageCircle,
+  Play,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  Clapperboard,
+  Scissors,
+  Image,
+  Video,
+  Music,
+  Sparkles,
+  Stars,
+} from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { useNavigate } from "react-router";
@@ -465,12 +479,21 @@ export default function NotFound(): React.ReactElement {
             </motion.div>
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-sm font-semibold text-foreground">Kimu</span>
+                <span className="text-sm font-semibold text-foreground">
+                  Kimu
+                </span>
                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               </div>
               <div className="bg-muted/15 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[280px] sm:max-w-xs relative">
                 <div className="absolute -inset-1 rounded-2xl pointer-events-none">
-                  <GlowingEffect disabled={false} spread={36} proximity={64} glow borderWidth={2} hoverBorderWidth={4} />
+                  <GlowingEffect
+                    disabled={false}
+                    spread={36}
+                    proximity={64}
+                    glow
+                    borderWidth={2}
+                    hoverBorderWidth={4}
+                  />
                 </div>
                 <p className="text-sm text-foreground">Hey there! 👋</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -530,14 +553,18 @@ export default function NotFound(): React.ReactElement {
               >
                 <div className="bg-muted/15 rounded-2xl px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[300px] sm:max-w-sm relative">
                   <div className="absolute -inset-1 rounded-2xl pointer-events-none">
-                    <GlowingEffect disabled={false} spread={28} proximity={48} glow borderWidth={2} hoverBorderWidth={4} />
+                    <GlowingEffect
+                      disabled={false}
+                      spread={28}
+                      proximity={48}
+                      glow
+                      borderWidth={2}
+                      hoverBorderWidth={4}
+                    />
                   </div>
                   <p className="text-sm text-foreground mb-2">
                     But hey! 🎬 Need some{" "}
-                    <span className="font-bold">
-                      video editing magic
-                    </span>
-                    ?
+                    <span className="font-bold">video editing magic</span>?
                   </p>
                   <p className="text-sm text-muted-foreground mb-2">
                     I'm your AI-powered creative partner, ready to transform

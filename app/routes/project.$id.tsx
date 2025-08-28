@@ -1,4 +1,9 @@
-import { useParams, useNavigate, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import {
+  useParams,
+  useNavigate,
+  useLoaderData,
+  type LoaderFunctionArgs,
+} from "react-router";
 import React, { useEffect } from "react";
 import TimelineEditor from "./home";
 import { auth } from "~/lib/auth.server";
@@ -10,8 +15,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.session?.userId;
-    if (!uid) return new Response(null, { status: 302, headers: { Location: "/login" } });
+    const uid: string | undefined =
+      session?.user?.id || session?.session?.userId;
+    if (!uid)
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "/login" },
+      });
   } catch {
     return new Response(null, { status: 302, headers: { Location: "/login" } });
   }
@@ -30,7 +40,9 @@ export default function ProjectEditorRoute() {
   useEffect(() => {
     // Lightweight guard: verify project ownership before showing editor
     (async () => {
-      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, { credentials: "include" });
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+        credentials: "include",
+      });
       if (!res.ok) navigate("/projects");
     })();
   }, [id, navigate]);
@@ -38,5 +50,3 @@ export default function ProjectEditorRoute() {
   // Pass through existing editor; it manages state internally. We injected loader for prefetch.
   return <TimelineEditor />;
 }
-
-

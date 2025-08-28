@@ -81,12 +81,12 @@ export default function Privacy() {
               privacy. This Privacy Policy explains how we collect, use,
               disclose, and safeguard your information when you use our video
               editing application and related services.
+            </div>
           </div>
-        </div>
 
-        {/* Document Content */}
-        <div className="prose prose-slate dark:prose-invert max-w-none">
-          <div className="space-y-8 text-foreground leading-relaxed">
+          {/* Document Content */}
+          <div className="prose prose-slate dark:prose-invert max-w-none">
+            <div className="space-y-8 text-foreground leading-relaxed">
               {/* 1. Applicability */}
               <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
@@ -108,13 +108,13 @@ export default function Privacy() {
                     us.
                   </p>
                 </div>
-            </section>
+              </section>
 
               {/* 2. Information Collection */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   2. Information We Collect
-              </h2>
+                </h2>
                 <div className="space-y-6 ml-11">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">
@@ -131,7 +131,7 @@ export default function Privacy() {
                     </ul>
                   </div>
 
-                <div>
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       2.2 Video Content
                     </h3>
@@ -152,10 +152,10 @@ export default function Privacy() {
                         Project metadata (names, timelines, settings) is stored
                         in Supabase.
                       </li>
-                  </ul>
-                </div>
-                
-                <div>
+                    </ul>
+                  </div>
+
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       2.3 Additional Details You May Provide
                     </h3>
@@ -164,27 +164,27 @@ export default function Privacy() {
                       email, phone number, and message contents. During account
                       registration or billing, we may request optional details
                       like company name or address.
-                  </p>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
               {/* 3. Data Processing */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   3. How We Process Your Data
-              </h2>
+                </h2>
                 <div className="space-y-6 ml-11">
-                <div>
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       3.1 Local Processing
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Editing and preview are real-time in your browser. For
                       local projects, media never leaves your device.
-                  </p>
-                </div>
-                <div>
+                    </p>
+                  </div>
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       3.2 Account Management
                     </h3>
@@ -192,9 +192,9 @@ export default function Privacy() {
                       We use your email address solely for account
                       authentication, password recovery, and important service
                       notifications.
-                  </p>
-                </div>
-                <div>
+                    </p>
+                  </div>
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       3.3 Cloud Collaboration
                     </h3>
@@ -202,9 +202,9 @@ export default function Privacy() {
                       Cloud projects are required for multiplayer. Assets are
                       stored securely and only accessible to members granted
                       access.
-                  </p>
-                </div>
-                <div>
+                    </p>
+                  </div>
+                  <div>
                     <h3 className="text-lg font-semibold mb-2">
                       3.4 How We Use Information
                     </h3>
@@ -215,16 +215,16 @@ export default function Privacy() {
                       <li>Develop new functionality</li>
                       <li>Send account-related emails</li>
                       <li>Prevent fraud and abuse</li>
-                  </ul>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
               {/* 4. Data Storage */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   4. Data Storage and Security
-              </h2>
+                </h2>
                 <div className="space-y-6 ml-11">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">
@@ -254,15 +254,15 @@ export default function Privacy() {
                       Uploads are private and secure. Assets violating Terms of
                       Service may be removed and accounts suspended.
                     </p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
               {/* 5. Third-Party Services */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   5. Third-Party Services
-              </h2>
+                </h2>
                 <div className="grid md:grid-cols-4 gap-3 mb-10 ml-6">
                   <div className="relative rounded-lg border border-border/30 bg-muted/5 p-4">
                     <GlowingEffect
@@ -369,15 +369,15 @@ export default function Privacy() {
                       : contact us anytime with privacy concerns.
                     </li>
                   </ul>
-              </div>
-            </section>
+                </div>
+              </section>
 
               {/* Open Source */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   7. Open-Source Transparency
-              </h2>
-              <div className="space-y-4 ml-11">
+                </h2>
+                <div className="space-y-4 ml-11">
                   <p className="text-muted-foreground">
                     Kimu is open-source. Inspect how data flows, audit changes,
                     or contribute. We practice transparent engineering:
@@ -422,32 +422,39 @@ export default function Privacy() {
                     >
                       privacy@trykimu.com
                     </a>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
               {/* Updates */}
-            <section>
+              <section>
                 <h2 className="text-2xl font-bold mb-4 pl-2">
                   9. Privacy Policy Changes
-              </h2>
-              
-              <div className="space-y-4 ml-11">
-                <p className="text-sm text-muted-foreground">We may update this Privacy Policy from time to time. When we do, we will publish an updated version and effective date at the top of this page, unless another type of notice is legally required. Your continued use of Kimu after any change in this Privacy Policy will constitute your acceptance of such change.</p>
-              </div>
-            </section>
-          </div>
-        </div>
+                </h2>
 
-        {/* Document Footer */}
-        <div className="mt-16 pt-6 border-t border-border/20 flex items-center justify-between text-xs md:text-sm">
+                <div className="space-y-4 ml-11">
+                  <p className="text-sm text-muted-foreground">
+                    We may update this Privacy Policy from time to time. When we
+                    do, we will publish an updated version and effective date at
+                    the top of this page, unless another type of notice is
+                    legally required. Your continued use of Kimu after any
+                    change in this Privacy Policy will constitute your
+                    acceptance of such change.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {/* Document Footer */}
+          <div className="mt-16 pt-6 border-t border-border/20 flex items-center justify-between text-xs md:text-sm">
             <div>
               <span className="uppercase tracking-wider text-muted-foreground">
                 Last updated
               </span>{" "}
               <span className="font-medium">{lastUpdated}</span>
             </div>
-            <a 
+            <a
               href="/"
               className="inline-flex items-center gap-2 hover:underline font-medium"
               title="Back to Kimu"
@@ -459,4 +466,4 @@ export default function Privacy() {
       </div>
     </div>
   );
-} 
+}
