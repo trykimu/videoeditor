@@ -6,16 +6,7 @@ import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
-import {
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Bold,
-  ChevronDown,
-  Type,
-  Plus,
-  ChevronDown,
-} from "lucide-react";
+import { AlignLeft, AlignCenter, AlignRight, Bold, ChevronDown, Type, Plus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -30,7 +21,7 @@ interface TextEditorProps {
     fontFamily: string,
     color: string,
     textAlign: "left" | "center" | "right",
-    fontWeight: "normal" | "bold"
+    fontWeight: "normal" | "bold",
   ) => void;
 }
 
@@ -42,9 +33,7 @@ export default function TextEditor() {
   const [fontSize, setFontSize] = useState(48);
   const [fontFamily, setFontFamily] = useState("Arial");
   const [color, setColor] = useState("#ffffff");
-  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
-    "center"
-  );
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("center");
   const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
 
   const availableFonts = [
@@ -58,14 +47,7 @@ export default function TextEditor() {
 
   const handleAddText = () => {
     if (textContent.trim()) {
-      onAddText(
-        textContent,
-        fontSize,
-        fontFamily,
-        color,
-        textAlign,
-        fontWeight
-      );
+      onAddText(textContent, fontSize, fontFamily, color, textAlign, fontWeight);
       navigate("../media-bin");
     }
   };
@@ -113,11 +95,9 @@ export default function TextEditor() {
                       variant="ghost"
                       className="w-full h-8 px-2 text-sm bg-muted/50 border border-border rounded-md text-foreground justify-between hover:bg-muted/70"
                       style={{ fontFamily: fontFamily }}
-                      aria-label="Select font"
-                    >
+                      aria-label="Select font">
                       <span className="truncate">
-                        {availableFonts.find((f) => f.value === fontFamily)
-                          ?.label || fontFamily}
+                        {availableFonts.find((f) => f.value === fontFamily)?.label || fontFamily}
                       </span>
                       <ChevronDown className="h-3.5 w-3.5 ml-2 opacity-70" />
                     </Button>
@@ -128,8 +108,7 @@ export default function TextEditor() {
                         key={font.label}
                         onSelect={() => setFontFamily(font.value)}
                         className="cursor-pointer"
-                        style={{ fontFamily: font.value }}
-                      >
+                        style={{ fontFamily: font.value }}>
                         {font.label}
                       </DropdownMenuItem>
                     ))}
@@ -146,9 +125,7 @@ export default function TextEditor() {
 
               {/* Text Alignment */}
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">
-                  Alignment
-                </Label>
+                <Label className="text-xs text-muted-foreground">Alignment</Label>
                 <div className="flex rounded-md border border-border overflow-hidden">
                   {(
                     [
@@ -163,8 +140,7 @@ export default function TextEditor() {
                       size="sm"
                       onClick={() => setTextAlign(value)}
                       className="flex-1 h-8 rounded-none border-0"
-                      title={label}
-                    >
+                      title={label}>
                       <Icon className="h-3.5 w-3.5" />
                     </Button>
                   ))}
@@ -174,9 +150,7 @@ export default function TextEditor() {
               {/* Font Weight & Color */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    Weight
-                  </Label>
+                  <Label className="text-xs text-muted-foreground">Weight</Label>
                   <div className="flex rounded-md border border-border overflow-hidden">
                     {(["normal", "bold"] as const).map((weight) => (
                       <Button
@@ -185,13 +159,8 @@ export default function TextEditor() {
                         size="sm"
                         onClick={() => setFontWeight(weight)}
                         className="flex-1 h-8 rounded-none border-0 text-xs"
-                        title={weight}
-                      >
-                        {weight === "normal" ? (
-                          "Normal"
-                        ) : (
-                          <Bold className="h-3.5 w-3.5" />
-                        )}
+                        title={weight}>
+                        {weight === "normal" ? "Normal" : <Bold className="h-3.5 w-3.5" />}
                       </Button>
                     ))}
                   </div>
@@ -227,19 +196,13 @@ export default function TextEditor() {
                   fontFamily: fontFamily,
                   fontWeight: fontWeight,
                   color: color,
-                }}
-              >
+                }}>
                 {textContent || "Sample text"}
               </div>
             </div>
 
             {/* Add Button */}
-            <Button
-              onClick={handleAddText}
-              disabled={!textContent.trim()}
-              className="w-full h-9"
-              size="sm"
-            >
+            <Button onClick={handleAddText} disabled={!textContent.trim()} className="w-full h-9" size="sm">
               <Plus className="h-3.5 w-3.5 mr-2" />
               Add Text to Timeline
             </Button>

@@ -56,15 +56,13 @@ export function useAuth(): UseAuthResult {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const navigate = useNavigate();
 
-
   useEffect(() => {
     let isMounted = true;
     const extractUser = (data: unknown): AuthUser | null => {
       if (!data || typeof data !== "object") return null;
 
       const dataObj = data as AuthResponse;
-      const raw =
-        dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
+      const raw = dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
 
       if (raw) {
         return {
@@ -110,9 +108,7 @@ export function useAuth(): UseAuthResult {
       }
     };
 
-    const fetchClientSession = async (): Promise<
-      AuthUser | null | undefined
-    > => {
+    const fetchClientSession = async (): Promise<AuthUser | null | undefined> => {
       try {
         const result = await authClient.getSession?.();
         return extractUser(result);
@@ -121,10 +117,7 @@ export function useAuth(): UseAuthResult {
       }
     };
 
-    const reconcileAndSet = (
-      a: AuthUser | null | undefined,
-      b: AuthUser | null | undefined
-    ) => {
+    const reconcileAndSet = (a: AuthUser | null | undefined, b: AuthUser | null | undefined) => {
       if (!isMounted) return;
       // Prefer any non-null user; only set null if both sources are null
       const next = a || b || (a === null && b === null ? null : user);
@@ -135,18 +128,14 @@ export function useAuth(): UseAuthResult {
 
     // Combined initial check
     const initialCheck = async () => {
-      const [a, b] = await Promise.all([
-        fetchRestSession(),
-        fetchClientSession(),
-      ]);
+      const [a, b] = await Promise.all([fetchRestSession(), fetchClientSession()]);
       reconcileAndSet(a, b);
       if (isMounted) setIsLoading(false);
     };
 
     // Check if we're returning from OAuth (look for common OAuth params)
     const urlParams = new URLSearchParams(window.location.search);
-    const hasOAuthParams =
-      urlParams.has("code") || urlParams.has("state") || urlParams.has("error");
+    const hasOAuthParams = urlParams.has("code") || urlParams.has("state") || urlParams.has("error");
 
     console.log("🔍 Current URL:", window.location.href);
     console.log("🔍 URL params:", Object.fromEntries(urlParams.entries()));
@@ -157,10 +146,7 @@ export function useAuth(): UseAuthResult {
       let attempts = 0;
       const checkWithRetry = async () => {
         attempts++;
-        const [a, b] = await Promise.all([
-          fetchRestSession(),
-          fetchClientSession(),
-        ]);
+        const [a, b] = await Promise.all([fetchRestSession(), fetchClientSession()]);
         reconcileAndSet(a, b);
         if (attempts < 5) {
           setTimeout(checkWithRetry, 800);
@@ -186,18 +172,14 @@ export function useAuth(): UseAuthResult {
     const handleFocus = () => {
       if (!isMounted) return;
       console.log("🔍 Window focused, checking session...");
-      Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) =>
-        reconcileAndSet(a, b)
-      );
+      Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
     };
 
     const handleVisibilityChange = () => {
       if (!isMounted || document.hidden) return;
       console.log("🔍 Page became visible, checking session...");
       setTimeout(() => {
-        Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) =>
-          reconcileAndSet(a, b)
-        );
+        Promise.all([fetchRestSession(), fetchClientSession()]).then(([a, b]) => reconcileAndSet(a, b));
       }, 150);
     };
 
@@ -208,10 +190,7 @@ export function useAuth(): UseAuthResult {
 
     // Subscribe to Better Auth state changes (if available)
     let unsubscribe: (() => void) | undefined;
-    if (
-      "onAuthStateChange" in authClient &&
-      typeof authClient.onAuthStateChange === "function"
-    ) {
+    if ("onAuthStateChange" in authClient && typeof authClient.onAuthStateChange === "function") {
       unsubscribe = authClient.onAuthStateChange((event: unknown) => {
         if (!isMounted) return;
         const nextUser = extractUser(event);
@@ -238,7 +217,7 @@ export function useAuth(): UseAuthResult {
         try {
           const result = await authClient.signIn.social({
             provider: "google",
-            callbackURL: "/editor",
+            callbackURL: "/projects",
           });
           console.log("🔐 Sign-in response:", result);
           return;
@@ -286,11 +265,7 @@ export function useAuth(): UseAuthResult {
         console.log("✅ Sign-out successful via client");
         setUser(null);
       } else {
-        console.log(
-          "❌ Sign out failed:",
-          response.status,
-          await response.text()
-        );
+        console.log("❌ Sign out failed");
       }
 
       // Fallback to REST API call with correct endpoint
