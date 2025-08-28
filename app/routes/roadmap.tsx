@@ -106,7 +106,7 @@ const TimelineTrack: React.FC<{
   delay: number;
 }> = ({ title, items, color, delay }) => {
   // Calculate current implementation progress
-  const calculateProgress = React.useCallback(() => {
+  const calculateProgress = () => {
     let totalProgress = 0;
     let totalWeight = 0;
 
@@ -120,7 +120,7 @@ const TimelineTrack: React.FC<{
     });
 
     return totalWeight > 0 ? (totalProgress / totalWeight) * maxTime : 0;
-  }, [items]);
+  };
 
   const [currentTime, setCurrentTime] = useState(calculateProgress());
   const [isPlaying, setIsPlaying] = useState(false);
@@ -135,7 +135,7 @@ const TimelineTrack: React.FC<{
       setCurrentTime(calculateProgress());
     }
     return () => clearInterval(interval);
-  }, [calculateProgress, isPlaying]);
+  }, [isPlaying]);
 
   return (
     <motion.div

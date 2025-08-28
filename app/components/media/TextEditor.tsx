@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Type,
   Plus,
-  ChevronDown,
 } from "lucide-react";
 import {
   DropdownMenu,

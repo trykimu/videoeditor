@@ -32,8 +32,6 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "google-genai" },
-    { name = "mypy" },
-    { name = "ruff" },
 ]
 
 [package.optional-dependencies]
@@ -46,9 +44,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.13" },
     { name = "google-genai", specifier = ">=1.22.0" },
-    { name = "mypy", specifier = ">=1.16.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8.0" },
-    { name = "ruff", specifier = ">=0.12.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3.0" },
 ]
 provides-extras = ["dev"]

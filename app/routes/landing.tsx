@@ -19,6 +19,7 @@ import {
   SkipForward,
   Volume2,
   Maximize,
+  Settings,
   Folder,
   Download,
   Scissors,
@@ -32,33 +33,44 @@ import {
   Layers,
   Sparkles,
   Wand2,
+  Clock,
+  Users,
   ArrowRight,
   Github,
+  Twitter,
+  ExternalLink,
   Monitor,
+  Edit,
   Zap,
   Heart,
+  Globe,
   Shield,
+  Mail,
+  ArrowDown,
+  PlayCircle,
+  ChevronRight,
+  ChevronDown,
   Bot,
   User,
+  Send,
+  ChevronLeft,
+  MessageCircle,
+  Lock,
+  Box,
+  Search,
   Cloud,
 } from "lucide-react";
-
 import { TbBrandDiscord } from "react-icons/tb";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
 // Vite envs for Supabase
+
 // @ts-ignore
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // @ts-ignore
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-
-declare global {
-  interface Window {
-    webkitAudioContext?: typeof AudioContext;
-  }
-}
 
 async function getIp() {
   try {
@@ -368,7 +380,7 @@ export default function Landing() {
         gainNode.connect(audioContext.destination);
 
         oscillator.frequency.setValueAtTime(freq, startTime);
-        oscillator.type = 'sine';
+        oscillator.type = "sine";
 
         gainNode.gain.setValueAtTime(0.1, startTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
@@ -464,7 +476,7 @@ export default function Landing() {
       );
     }, 3500);
     return () => clearInterval(interval);
-  }, [isPlaying, featureAutoPlay, features.length]);
+  }, [isPlaying, featureAutoPlay]);
 
   // In the timeline logic, calculate the current feature section based on playhead
   const timelineSections = features.length;
@@ -564,13 +576,19 @@ export default function Landing() {
                   </div>
 
                   <div className="flex items-center gap-6 text-muted-foreground text-xs">
-                    <button className="hover:text-foreground transition-colors">File</button>
-                    <button className="hover:text-foreground transition-colors">Edit</button>
-                    <button className="hover:text-foreground transition-colors">View</button>
-                    <button className="hover:text-foreground transition-colors">Project</button>
+                    <button className="hover:text-foreground transition-colors">
+                      File
+                    </button>
+                    <button className="hover:text-foreground transition-colors">
+                      Edit
+                    </button>
+                    <button className="hover:text-foreground transition-colors">
+                      View
+                    </button>
+                    <button className="hover:text-foreground transition-colors">
+                      Project
+                    </button>
                   </div>
-
-
                 </div>
 
                 {/* Mobile player (standalone) */}
@@ -590,7 +608,6 @@ export default function Landing() {
 
                 {/* Main Editor Layout - Desktop/tablet only */}
                 <div className="hidden sm:flex flex-col sm:flex-row h-auto sm:h-[650px] lg:h-[700px]">
-
                   {/* Left Sidebar - Media Bin with Much More Translucent Elements */}
                   <div className="hidden md:flex xl:flex ipadmini:hidden w-full sm:w-56 bg-background/25 backdrop-blur-sm sm:border-r border-border/20 flex-col gap-6 p-4 sm:h-full min-w-0">
                     <div className="h-10 bg-background/60 backdrop-blur-sm border-b border-border/20 flex items-center px-3 text-xs font-medium rounded-xl opacity-25 mb-3">
@@ -599,9 +616,34 @@ export default function Landing() {
                     </div>
                     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
                       <div className="bg-background/25 backdrop-blur-sm border border-border/20 rounded-xl p-4 shadow-md flex flex-col gap-3 opacity-25">
-                        {[{ icon: Video, name: "Vibe_Coding.mp4", duration: "2:34", color: "text-blue-500" }, { icon: Music, name: "Lo_Fi_Beats.mp3", duration: "1:45", color: "text-green-500" }, { icon: Image, name: "Code_Editor.png", duration: "", color: "text-purple-500" }, { icon: Type, name: "Title_Card.txt", duration: "", color: "text-orange-500" }].map((item, i) => (
+                        {[
+                          {
+                            icon: Video,
+                            name: "Vibe_Coding.mp4",
+                            duration: "2:34",
+                            color: "text-blue-500",
+                          },
+                          {
+                            icon: Music,
+                            name: "Lo_Fi_Beats.mp3",
+                            duration: "1:45",
+                            color: "text-green-500",
+                          },
+                          {
+                            icon: Image,
+                            name: "Code_Editor.png",
+                            duration: "",
+                            color: "text-purple-500",
+                          },
+                          {
+                            icon: Type,
+                            name: "Title_Card.txt",
+                            duration: "",
+                            color: "text-orange-500",
+                          },
+                        ].map((item, i) => (
                           <motion.div
-                            key={item.name}
+                            key={i}
                             className="flex items-center gap-3 p-2 rounded bg-background/30 hover:bg-background/50 transition-colors cursor-pointer"
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -609,8 +651,14 @@ export default function Landing() {
                           >
                             <item.icon className={`w-4 h-4 ${item.color}`} />
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium text-foreground truncate">{item.name}</div>
-                              {item.duration && <div className="text-xs text-muted-foreground">{item.duration}</div>}
+                              <div className="text-xs font-medium text-foreground truncate">
+                                {item.name}
+                              </div>
+                              {item.duration && (
+                                <div className="text-xs text-muted-foreground">
+                                  {item.duration}
+                                </div>
+                              )}
                             </div>
                           </motion.div>
                         ))}
@@ -631,7 +679,6 @@ export default function Landing() {
 
                   {/* Center Content */}
                   <div className="flex-1 flex flex-col min-w-0 order-first sm:order-none">
-                    
                     {/* Mobile Player (replaces desktop preview on small screens) */}
                     <div className="sm:hidden w-full">
                       <MobileVideoEditorPreview
@@ -651,56 +698,104 @@ export default function Landing() {
                       {/* Main Content - Strictly centered, with reserved space for play bar */}
                       <div className="flex-1 flex flex-col justify-center items-center text-center px-2 md:px-6 lg:px-12 pt-8 pb-20 w-full h-full overflow-hidden">
                         <AnimatePresence mode="wait" initial={false}>
-
-                          <motion.div
+                          <m.div
                             key={activeAssetIndex}
                             initial={activeAsset.animation.initial}
                             animate={activeAsset.animation.animate}
                             exit={activeAsset.animation.exit}
-                            transition={{ type: 'spring', stiffness: 80, damping: 22, duration: 1.1 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 80,
+                              damping: 22,
+                              duration: 1.1,
+                            }}
                             className="w-full flex flex-col items-center justify-center"
-                            style={{ minHeight: 340, paddingTop: 24, paddingBottom: 24 }}
+                            style={{
+                              minHeight: 340,
+                              paddingTop: 24,
+                              paddingBottom: 24,
+                            }}
                           >
                             <div className="flex flex-col items-center w-full">
-                              <motion.div
-                                key={activeAssetIndex + '-icon'}
-                                initial={{ opacity: 0, scale: 0.7, filter: 'blur(8px)' }}
-                                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                                exit={{ opacity: 0, scale: 0.7, filter: 'blur(8px)' }}
-                                transition={{ type: 'spring', stiffness: 100, damping: 18, delay: 0.12 }}
+                              <m.div
+                                key={activeAssetIndex + "-icon"}
+                                initial={{
+                                  opacity: 0,
+                                  scale: 0.7,
+                                  filter: "blur(8px)",
+                                }}
+                                animate={{
+                                  opacity: 1,
+                                  scale: 1,
+                                  filter: "blur(0px)",
+                                }}
+                                exit={{
+                                  opacity: 0,
+                                  scale: 0.7,
+                                  filter: "blur(8px)",
+                                }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 100,
+                                  damping: 18,
+                                  delay: 0.12,
+                                }}
                                 className="mb-4"
                                 style={{ fontSize: 44 }}
                               >
                                 {activeAsset.icon}
-                              </motion.div>
-                              <motion.h2
-                                key={activeAssetIndex + '-title'}
+                              </m.div>
+                              <m.h2
+                                key={activeAssetIndex + "-title"}
                                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                                 animate={{ opacity: 1, y: 0, scale: 1.15 }}
                                 exit={{ opacity: 0, y: -20, scale: 0.9 }}
                                 transition={{ delay: 0.18, duration: 0.7 }}
                                 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white text-center drop-shadow-lg mb-4"
-                                style={{ fontFamily: 'Montserrat, Poppins, Arial, sans-serif', letterSpacing: '-0.01em', lineHeight: 1.1 }}
+                                style={{
+                                  fontFamily:
+                                    "Montserrat, Poppins, Arial, sans-serif",
+                                  letterSpacing: "-0.01em",
+                                  lineHeight: 1.1,
+                                }}
                               >
-                                {typeof activeAsset.heading === 'string' ? activeAsset.heading : activeAsset.heading}
-                              </motion.h2>
-                              <motion.p
-                                key={activeAssetIndex + '-desc'}
+                                {typeof activeAsset.heading === "string"
+                                  ? activeAsset.heading
+                                  : activeAsset.heading}
+                              </m.h2>
+                              <m.p
+                                key={activeAssetIndex + "-desc"}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ delay: 0.25, duration: 0.7 }}
                                 className="text-lg md:text-xl text-zinc-200 text-center max-w-2xl font-semibold mb-6"
-                                style={{ fontFamily: 'Inter, system-ui, Arial, sans-serif', letterSpacing: '-0.01em' }}
+                                style={{
+                                  fontFamily:
+                                    "Inter, system-ui, Arial, sans-serif",
+                                  letterSpacing: "-0.01em",
+                                }}
                               >
-                                {activeAsset.desc || ''}
-                              </motion.p>
+                                {activeAsset.desc || ""}
+                              </m.p>
                             </div>
                             <div className="flex flex-col items-center gap-2 w-full mb-2">
-                              <p className="text-base md:text-lg text-zinc-300 text-center max-w-2xl font-medium mb-1" style={{ fontFamily: 'Inter, system-ui, Arial, sans-serif' }}>
+                              <p
+                                className="text-base md:text-lg text-zinc-300 text-center max-w-2xl font-medium mb-1"
+                                style={{
+                                  fontFamily:
+                                    "Inter, system-ui, Arial, sans-serif",
+                                }}
+                              >
                                 {activeAsset.subtext}
                               </p>
-                              <p className="text-sm md:text-base text-zinc-400 text-center max-w-xl font-normal" style={{ fontFamily: 'Inter, system-ui, Arial, sans-serif' }}>
+                              <p
+                                className="text-sm md:text-base text-zinc-400 text-center max-w-xl font-normal"
+                                style={{
+                                  fontFamily:
+                                    "Inter, system-ui, Arial, sans-serif",
+                                }}
+                              >
                                 {activeAsset.subtext2}
                               </p>
                             </div>
@@ -714,7 +809,7 @@ export default function Landing() {
                                 </Badge>
                               ))}
                             </div>
-                          </motion.div>
+                          </m.div>
                         </AnimatePresence>
                       </div>
                       {/* Play bar and controls at the bottom, always visible and full width, fixed height */}
@@ -722,11 +817,15 @@ export default function Landing() {
                         <div className="w-full bg-black/70 backdrop-blur-md p-2 border-t border-white/10 flex flex-col justify-end">
                           {/* Progress bar (seek bar) */}
                           <div className="w-full h-0.5 mb-2 bg-white/10 rounded-full overflow-hidden flex items-center">
-                            <motion.div
+                            <m.div
                               className="h-0.5 bg-white rounded-full transition-all duration-200"
                               style={{ width: `${progress}%` }}
                               animate={{ width: `${progress}%` }}
-                              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 120,
+                                damping: 18,
+                              }}
                             />
                           </div>
                           {/* Play bar controls */}
@@ -735,7 +834,10 @@ export default function Landing() {
                               <button className="hover:text-white/70 transition-colors p-1">
                                 <SkipBack className="w-4 h-4" />
                               </button>
-                              <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-white/80 transition-colors p-1">
+                              <button
+                                onClick={() => setIsPlaying(!isPlaying)}
+                                className="hover:text-white/80 transition-colors p-1"
+                              >
                                 {isPlaying ? (
                                   <Pause className="w-5 h-5 text-white" />
                                 ) : (
@@ -820,69 +922,122 @@ export default function Landing() {
                           {/* Ruler */}
                           <div className="absolute top-0 left-0 right-0 h-4 bg-muted/5 border-b border-border/20 flex text-xs">
                             {Array.from({ length: 8 }, (_, i) => (
-                              <div key={`ruler-${i}`} className="flex-1 border-r border-border/20 px-1 text-muted-foreground">
+                              <div
+                                key={i}
+                                className="flex-1 border-r border-border/20 px-1 text-muted-foreground"
+                              >
                                 {i * 20}s
                               </div>
                             ))}
                           </div>
 
                           {/* Single Video Track with multiple assets */}
-                          <div className="absolute top-4 left-0 right-0 h-12 border-b border-border/20 p-1 flex items-center" style={{ gap: '8px' }}>
+                          <div
+                            className="absolute top-4 left-0 right-0 h-12 border-b border-border/20 p-1 flex items-center"
+                            style={{ gap: "8px" }}
+                          >
                             {timelineAssets.map((asset, i) => {
-                              const widthPercent = (asset.duration / totalDuration) * 100;
+                              const widthPercent =
+                                (asset.duration / totalDuration) * 100;
                               const width = `${widthPercent}%`;
                               return (
-                                <motion.div
+                                <m.div
                                   key={i}
                                   className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border overflow-hidden ${asset.color}`}
                                   style={{ width, minWidth: 0 }}
                                   initial={{ width: 0 }}
                                   animate={{ width }}
-                                  transition={{ duration: 1, delay: 0.8 + i * 0.1 }}
+                                  transition={{
+                                    duration: 1,
+                                    delay: 0.8 + i * 0.1,
+                                  }}
                                 >
                                   <div className="flex items-center gap-1 min-w-0 w-full">
                                     {asset.icon}
                                     {widthPercent > 5 && (
-                                      <span className={`text-xs ${asset.color.split(' ')[2]} truncate`} title={typeof asset.label === 'string' ? asset.label : ''}>
+                                      <span
+                                        className={`text-xs ${
+                                          asset.color.split(" ")[2]
+                                        } truncate`}
+                                        title={
+                                          typeof asset.label === "string"
+                                            ? asset.label
+                                            : ""
+                                        }
+                                      >
                                         {asset.label}
                                       </span>
                                     )}
                                   </div>
-                                </motion.div>
+                                </m.div>
                               );
                             })}
                           </div>
 
                           {/* Playhead */}
-                          <motion.div
+                          <m.div
                             className="absolute top-4 bottom-0 w-px bg-red-500 z-10"
                             animate={{ left: `${progress}%` }}
-                            transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 120,
+                              damping: 18,
+                            }}
                           >
                             <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rotate-45" />
-                          </motion.div>
-
+                          </m.div>
                         </div>
                       </div>
                     </div>
                   </div>
+
                   {/* Right Sidebar - Inspector Panel (wider) */}
                   <div className="min-w-[220px] max-w-[320px] w-full bg-background/25 backdrop-blur-sm border-l border-border/20 flex flex-col gap-4 p-3 h-full ipadmini:min-w-[160px] ipadmini:max-w-[220px] relative">
                     {/* Waitlist Card with reduced white glow */}
                     <div className="px-3 py-2">
-                      <div className="bg-background/40 backdrop-blur-sm border border-border/20 rounded-xl p-6 shadow-md relative w-full mb-4" style={{ boxShadow: '0 0 12px 2px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.10)' }}>
+                      <div
+                        className="bg-background/40 backdrop-blur-sm border border-border/20 rounded-xl p-6 shadow-md relative w-full mb-4"
+                        style={{
+                          boxShadow:
+                            "0 0 12px 2px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.10)",
+                        }}
+                      >
                         {/* White gradient border for extra glow */}
-                        <div className="pointer-events-none absolute inset-0 rounded-xl z-10" style={{ boxShadow: '0 0 16px 4px rgba(255,255,255,0.12)' }} />
+                        <div
+                          className="pointer-events-none absolute inset-0 rounded-xl z-10"
+                          style={{
+                            boxShadow: "0 0 16px 4px rgba(255,255,255,0.12)",
+                          }}
+                        />
                         <div className="flex items-center justify-between mb-2 relative z-20">
-                          <h3 className="text-md font-semibold text-foreground">Join the waitlist !</h3>
+                          <h3 className="text-md font-semibold text-foreground">
+                            Join the waitlist !
+                          </h3>
                           <Sparkles className="w-4 h-4 text-white" />
                         </div>
-                        {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
-                          <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2 relative z-20">
-                            {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
-                          </div>
-                        )}
-                        <form onSubmit={handleSubmit} className="space-y-3 relative z-20">
+                        {typeof formatCreatorCount(
+                          typeof waitlistCount !== "undefined"
+                            ? waitlistCount
+                            : 0
+                        ) !== "undefined" &&
+                          formatCreatorCount(
+                            typeof waitlistCount !== "undefined"
+                              ? waitlistCount
+                              : 0
+                          ) && (
+                            <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2 relative z-20">
+                              {formatCreatorCount(
+                                typeof waitlistCount !== "undefined"
+                                  ? waitlistCount
+                                  : 0
+                              )}{" "}
+                              creators joined
+                            </div>
+                          )}
+                        <form
+                          onSubmit={handleSubmit}
+                          className="space-y-3 relative z-20"
+                        >
                           <Input
                             type="email"
                             placeholder="your@email.com"
@@ -922,16 +1077,35 @@ export default function Landing() {
 
                     {/* Copilot Chat Card: pin input to bottom, messages scroll above */}
                     <div className="bg-background/25 backdrop-blur-sm border border-border/20 rounded-xl p-1 shadow-md flex flex-col flex-1 w-full opacity-25 relative overflow-hidden">
-                      <div className="font-semibold text-foreground mb-3 flex items-center gap-2"><Bot className="h-4 w-4 text-muted-foreground" /> Kimu Copilot</div>
-                      <div className="flex-1 overflow-y-auto space-y-3 pr-1 mb-2" style={{ minHeight: 0, maxHeight: 'calc(100% - 56px)' }}>
+                      <div className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Bot className="h-4 w-4 text-muted-foreground" /> Kimu
+                        Copilot
+                      </div>
+                      <div
+                        className="flex-1 overflow-y-auto space-y-3 pr-1 mb-2"
+                        style={{ minHeight: 0, maxHeight: "calc(100% - 56px)" }}
+                      >
                         {sampleChat.map((msg) => (
-                          <div key={msg.id} className={`flex ${msg.isUser ? "justify-end" : "justify-start"}`}>
-                            <div className={`max-w-[80%] px-3 py-2 rounded border border-border/20 text-xs flex items-start gap-2 bg-transparent`}>
-                              {!msg.isUser && <Bot className="h-3 w-3 text-muted-foreground mt-0.5" />}
+                          <div
+                            key={msg.id}
+                            className={`flex ${
+                              msg.isUser ? "justify-end" : "justify-start"
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[80%] px-3 py-2 rounded border border-border/20 text-xs flex items-start gap-2 bg-transparent`}
+                            >
+                              {!msg.isUser && (
+                                <Bot className="h-3 w-3 text-muted-foreground mt-0.5" />
+                              )}
                               <div className="flex-1 min-w-0">
-                                <p className="leading-relaxed break-words">{msg.content}</p>
+                                <p className="leading-relaxed break-words">
+                                  {msg.content}
+                                </p>
                               </div>
-                              {msg.isUser && <User className="h-3 w-3 text-muted-foreground mt-0.5" />}
+                              {msg.isUser && (
+                                <User className="h-3 w-3 text-muted-foreground mt-0.5" />
+                              )}
                             </div>
                           </div>
                         ))}
@@ -946,13 +1120,51 @@ export default function Landing() {
                           className="flex-1 rounded-lg border border-border/60 bg-background px-3 pt-2.5 pb-1 text-xs placeholder:text-muted-foreground/90 focus:outline-none transition-all duration-200 shadow-sm resize-none min-h-8 max-h-20 leading-relaxed"
                           rows={1}
                           disabled
-                          style={{ height: '36px' }}
+                          style={{ height: "36px" }}
                         />
-                        <Button size="icon" className="h-8 w-8 p-0 bg-transparent hover:bg-primary/10 text-lime-400" variant="ghost" disabled>
-                          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.5 10L16.5 10M16.5 10L12 5.5M16.5 10L12 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <Button
+                          size="icon"
+                          className="h-8 w-8 p-0 bg-transparent hover:bg-primary/10 text-lime-400"
+                          variant="ghost"
+                          disabled
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M3.5 10L16.5 10M16.5 10L12 5.5M16.5 10L12 14.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </Button>
-                        <Button size="icon" className="h-8 w-8 p-0 bg-transparent hover:bg-primary/10 text-lime-400" variant="ghost" disabled>
-                          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 8L10 13L15 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <Button
+                          size="icon"
+                          className="h-8 w-8 p-0 bg-transparent hover:bg-primary/10 text-lime-400"
+                          variant="ghost"
+                          disabled
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M5 8L10 13L15 8"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </Button>
                       </form>
                     </div>
@@ -1025,7 +1237,10 @@ export default function Landing() {
                     "Private by design: Strong auth, scoped access, and server‑enforced ownership for every asset and project.",
                 },
               ].map((item, i) => (
-                <li key={item.title} className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}>
+                <li
+                  key={i}
+                  className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}
+                >
                   <div className="relative h-full rounded-2xl border p-2 md:rounded-3xl md:p-3">
                     <GlowingEffect
                       spread={40}
@@ -1073,12 +1288,35 @@ export default function Landing() {
                 {/* list */}
                 <div className="border-r border-border/20 p-4 space-y-2">
                   {[
-                    { icon: <Sparkles className='w-3.5 h-3.5' />, name: 'LUTs & FX', sub: 'Color + glow', on: true },
-                    { icon: <Bot className='w-3.5 h-3.5' />, name: 'Auto‑edit', sub: 'Silence + transcript', on: false },
-                    { icon: <Download className='w-3.5 h-3.5' />, name: 'Pipelines', sub: 'Export + publish', on: true },
-                    { icon: <Type className='w-3.5 h-3.5' />, name: 'Motion Titles', sub: 'Presets', on: false },
+                    {
+                      icon: <Sparkles className="w-3.5 h-3.5" />,
+                      name: "LUTs & FX",
+                      sub: "Color + glow",
+                      on: true,
+                    },
+                    {
+                      icon: <Bot className="w-3.5 h-3.5" />,
+                      name: "Auto‑edit",
+                      sub: "Silence + transcript",
+                      on: false,
+                    },
+                    {
+                      icon: <Download className="w-3.5 h-3.5" />,
+                      name: "Pipelines",
+                      sub: "Export + publish",
+                      on: true,
+                    },
+                    {
+                      icon: <Type className="w-3.5 h-3.5" />,
+                      name: "Motion Titles",
+                      sub: "Presets",
+                      on: false,
+                    },
                   ].map((p, i) => (
-                    <div key={p.name} className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between">
+                    <div
+                      key={i}
+                      className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-2">
                         <div className="h-7 w-7 grid place-items-center rounded-md bg-muted/30 border border-border/20 text-muted-foreground">
                           {p.icon}
@@ -1092,8 +1330,16 @@ export default function Landing() {
                           </div>
                         </div>
                       </div>
-                      <div className={`h-5 w-9 rounded-full border border-border/30 ${p.on ? 'bg-foreground' : 'bg-background'}`}>
-                        <div className={`h-4 w-4 mt-0.5 rounded-full bg-background transition ${p.on ? 'ml-4' : 'ml-1'}`} />
+                      <div
+                        className={`h-5 w-9 rounded-full border border-border/30 ${
+                          p.on ? "bg-foreground" : "bg-background"
+                        }`}
+                      >
+                        <div
+                          className={`h-4 w-4 mt-0.5 rounded-full bg-background transition ${
+                            p.on ? "ml-4" : "ml-1"
+                          }`}
+                        />
                       </div>
                     </div>
                   ))}
@@ -1138,7 +1384,9 @@ export default function Landing() {
                 Coming soon
               </span>
               <div className="flex items-center gap-3 mb-2 mt-3">
-                <h3 className="text-2xl font-bold text-foreground">Plugin ecosystem</h3>
+                <h3 className="text-2xl font-bold text-foreground">
+                  Plugin ecosystem
+                </h3>
               </div>
               <p className="text-muted-foreground mb-6 max-w-prose">
                 Extend Kimu without forking the editor. Install community
@@ -1189,10 +1437,16 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
             {/* Left: copy */}
             <div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Coming soon</span>
-              <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">Realtime multiplayer editing</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                Coming soon
+              </span>
+              <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-tight">
+                Realtime multiplayer editing
+              </h3>
               <p className="mt-3 text-muted-foreground max-w-prose">
-                Invite teammates and edit together in realtime. See cursors, selections and changes instantly — perfect for teams, reviews and pair-editing.
+                Invite teammates and edit together in realtime. See cursors,
+                selections and changes instantly — perfect for teams, reviews
+                and pair-editing.
               </p>
             </div>
 
@@ -1279,9 +1533,15 @@ export default function Landing() {
           `}</style>
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-6">
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">And much more</span>
-              <h3 className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight">Little things that add up to flow</h3>
-              <p className="mt-2 text-sm text-muted-foreground">A fast editor is about details. Here are a few we obsess over.</p>
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                And much more
+              </span>
+              <h3 className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight">
+                Little things that add up to flow
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                A fast editor is about details. Here are a few we obsess over.
+              </p>
             </div>
 
             {/* Feature ticker */}
@@ -1326,22 +1586,36 @@ export default function Landing() {
 
             {/* Teaser cards */}
             <div className="mt-6 grid sm:grid-cols-3 gap-4">
-              {[{
-                h: 'Comments & reviews', d: 'Drop pins on the timeline, mention teammates and resolve threads.'
-              }, {
-                h: 'Share links, not files', d: 'View‑only links with watermarking and expiring access.'
-              }, {
-                h: 'One‑click exports', d: 'Presets for socials, captions baked‑in, pipelines for publish.'
-              }].map((c, i) => (
-                <div key={c.h} className="rounded-xl border border-border/20 p-4 bg-background/60">
-                  <h4 className="text-sm font-semibold text-foreground mb-1">{c.h}</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
+              {[
+                {
+                  h: "Comments & reviews",
+                  d: "Drop pins on the timeline, mention teammates and resolve threads.",
+                },
+                {
+                  h: "Share links, not files",
+                  d: "View‑only links with watermarking and expiring access.",
+                },
+                {
+                  h: "One‑click exports",
+                  d: "Presets for socials, captions baked‑in, pipelines for publish.",
+                },
+              ].map((c, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-border/20 p-4 bg-background/60"
+                >
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
+                    {c.h}
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {c.d}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </section>
-                        
+
         {/* Bottom CTA (clean, no container gradients) */}
         <section className="py-14 text-center">
           <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">
@@ -1370,7 +1644,6 @@ export default function Landing() {
       </div>
 
       {/* Footers are now injected globally from root via MarketingFooter */}
-
     </div>
   );
 }
@@ -1565,7 +1838,8 @@ function MobileTimelinePlayground({
   );
 }
 
-interface MobileTimelinePlaygroundProps {
+// Fix linter errors for MobileStoryboardLanding
+interface MobileStoryboardLandingProps {
   timelineAssets: Array<{
     label: string;
     color: string;
@@ -1858,7 +2132,6 @@ function MobileVideoEditorPreview({
     <div className="w-full min-h-screen bg-background text-foreground">
       {/* Main Content */}
       <div className="">
-        
         {/* Desktop-style Waitlist Card for Mobile */}
 
         {/* Video Editor App Window */}
@@ -1894,9 +2167,15 @@ function MobileVideoEditorPreview({
                     transition={{ duration: 0.3 }}
                     className="flex flex-col items-center"
                   >
-                    <div className="text-4xl mb-4">{timelineAssets[activeIdx].icon}</div>
-                    <h2 className="text-xl font-bold text-white mb-3">{timelineAssets[activeIdx].heading}</h2>
-                    <p className="text-base text-zinc-300 max-w-xs">{timelineAssets[activeIdx].desc}</p>
+                    <div className="text-4xl mb-4">
+                      {timelineAssets[activeIdx].icon}
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-3">
+                      {timelineAssets[activeIdx].heading}
+                    </h2>
+                    <p className="text-base text-zinc-300 max-w-xs">
+                      {timelineAssets[activeIdx].desc}
+                    </p>
                   </motion.div>
                 </div>
 
@@ -1921,10 +2200,16 @@ function MobileVideoEditorPreview({
                   className="h-7 w-7"
                   onClick={() => setPlaying(!playing)}
                 >
-                  {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {playing ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
                 </Button>
                 <div className="flex-1 text-center">
-                  <span className="text-xs text-muted-foreground">Track {activeIdx + 1}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Track {activeIdx + 1}
+                  </span>
                 </div>
                 <Button size="icon" variant="ghost" className="h-7 w-7">
                   <Maximize className="w-4 h-4" />
@@ -1938,9 +2223,15 @@ function MobileVideoEditorPreview({
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="font-medium">Timeline</span>
                     <span>•</span>
-                    <span>{Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}</span>
+                    <span>
+                      {Math.floor(currentTime / 60)}:
+                      {(currentTime % 60).toString().padStart(2, "0")}
+                    </span>
                     <span>•</span>
-                    <span>{Math.floor(totalDuration / 60)}:{(totalDuration % 60).toString().padStart(2, '0')}</span>
+                    <span>
+                      {Math.floor(totalDuration / 60)}:
+                      {(totalDuration % 60).toString().padStart(2, "0")}
+                    </span>
                   </div>
                 </div>
 
@@ -2131,7 +2422,11 @@ function MobileVideoEditorPreview({
                   disabled={loading || success || !email}
                   className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
                 >
-                  {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+                  {loading
+                    ? "Joining..."
+                    : success
+                    ? "✓ You're in!"
+                    : "Join Waitlist"}
                 </Button>
               </form>
               {success && (

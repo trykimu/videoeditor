@@ -197,7 +197,7 @@ export async function action({ request }: { request: Request }) {
 
     // Reconstruct a new FormData and forward to 8000 so boundary is correct; faster and streams
     const form = new FormData();
-    const filenameFor8000 = (media as {name?: string})?.name || originalNameHeader || "upload.bin";
+    const filenameFor8000 = originalNameHeader || "upload.bin";
     form.append("media", media, filenameFor8000);
 
     const forwardRes = await fetch("http://localhost:8000/upload", {
@@ -215,7 +215,6 @@ export async function action({ request }: { request: Request }) {
         }
       );
     }
-  
     const json = await forwardRes.json();
     const filename: string = json.filename;
     const size: number = json.size;

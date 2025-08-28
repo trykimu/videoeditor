@@ -252,7 +252,7 @@ export const useTimeline = () => {
       ...prev,
       tracks: [...prev.tracks, newTrack],
     }));
-  }, [snapshotTimeline]);
+  }, []);
 
   const handleDeleteTrack = useCallback(
     (trackId: string) => {

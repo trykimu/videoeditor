@@ -64,4 +64,3 @@ htmlcov/
 *.tmp
 *.temp
 .DS_Store
-.mypy_cache/
