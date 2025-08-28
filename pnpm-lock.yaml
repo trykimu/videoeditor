@@ -183,6 +183,9 @@ importers:
       multer:
         specifier: ^2.0.2
         version: 2.0.2
+      prettier:
+        specifier: ^3.3.3
+        version: 3.6.2
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.11
