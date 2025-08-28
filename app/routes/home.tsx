@@ -34,11 +34,7 @@ import { Separator } from "~/components/ui/separator";
 import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "~/components/ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "~/components/ui/resizable";
 import { toast } from "sonner";
 
 // Hooks
@@ -102,9 +98,7 @@ export default function TimelineEditor() {
   const [starCount, setStarCount] = useState<number | null>(null);
   // Avoid initial blank render; don't delay render on a 'mounted' gate
 
-  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(
-    null
-  );
+  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
 
   // video player media selection state
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -170,11 +164,7 @@ export default function TimelineEditor() {
   const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
 
   // Wrapper function for transition drop handler to match expected interface
-  const handleDropTransitionOnTrackWrapper = (
-    transition: Transition,
-    trackId: string,
-    dropLeftPx: number
-  ) => {
+  const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
     handleAddTransitionToTrack(trackId, transition, dropLeftPx);
   };
 
@@ -203,9 +193,7 @@ export default function TimelineEditor() {
   // Hydrate project name and timeline from API
   useEffect(() => {
     (async () => {
-      const id =
-        projectId ||
-        (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
       if (!id) return;
       const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
         credentials: "include",
@@ -220,31 +208,25 @@ export default function TimelineEditor() {
       // Use saved textBinItems if present, else extract from timeline
       try {
         if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
-          const textItems: typeof mediaBinItems = j.textBinItems.map(
-            (t: MediaBinItem) => ({
-              id: t.id,
-              name: t.name,
-              mediaType: "text" as const,
-              media_width: Number(t.media_width) || 0,
-              media_height: Number(t.media_height) || 0,
-              text: t.text || null,
-              mediaUrlLocal: null,
-              mediaUrlRemote: null,
-              durationInSeconds: Number(t.durationInSeconds) || 0,
-              isUploading: false,
-              uploadProgress: null,
-              left_transition_id: null,
-              right_transition_id: null,
-            })
-          );
+          const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
+            id: t.id,
+            name: t.name,
+            mediaType: "text" as const,
+            media_width: Number(t.media_width) || 0,
+            media_height: Number(t.media_height) || 0,
+            text: t.text || null,
+            mediaUrlLocal: null,
+            mediaUrlRemote: null,
+            durationInSeconds: Number(t.durationInSeconds) || 0,
+            isUploading: false,
+            uploadProgress: null,
+            left_transition_id: null,
+            right_transition_id: null,
+          }));
           setTextItems(textItems);
         } else {
-          const perTrack = (j.timeline?.tracks || []).flatMap(
-            (t: TrackState) => t.scrubbers || []
-          );
-          const rootScrubbers = Array.isArray(j.timeline?.scrubbers)
-            ? (j.timeline!.scrubbers as ScrubberState[])
-            : [];
+          const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
+          const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
           const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
           const textItems: typeof mediaBinItems = (allScrubbers || [])
             .filter((s: ScrubberState) => s && s.mediaType === "text" && s.text)
@@ -282,9 +264,7 @@ export default function TimelineEditor() {
     let changed = false;
 
     const assetsByName = new Map(
-      mediaBinItems
-        .filter((i) => i.mediaType !== "text" && i.mediaUrlRemote)
-        .map((i) => [i.name, i])
+      mediaBinItems.filter((i) => i.mediaType !== "text" && i.mediaUrlRemote).map((i) => [i.name, i]),
     );
 
     const newTracks = current.tracks.map((track) => ({
@@ -317,18 +297,14 @@ export default function TimelineEditor() {
   const handleSaveTimeline = useCallback(async () => {
     try {
       toast.info("Saving state of the project...");
-      const id =
-        projectId ||
-        (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
       if (!id) {
         toast.error("No project ID");
         return;
       }
       const timelineState = getTimelineState();
       // persist current text items alongside timeline
-      const textItemsPayload = getMediaBinItems().filter(
-        (i) => i.mediaType === "text"
-      );
+      const textItemsPayload = getMediaBinItems().filter((i) => i.mediaType === "text");
       const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
         method: "PATCH",
         credentials: "include",
@@ -350,9 +326,8 @@ export default function TimelineEditor() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const isInputEl =
-        ((e.target as HTMLElement)?.tagName || "").match(
-          /^(INPUT|TEXTAREA)$/
-        ) || (e.target as HTMLElement)?.isContentEditable;
+        ((e.target as HTMLElement)?.tagName || "").match(/^(INPUT|TEXTAREA)$/) ||
+        (e.target as HTMLElement)?.isContentEditable;
       if (isInputEl) return;
       const key = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && key === "s") {
@@ -391,14 +366,7 @@ export default function TimelineEditor() {
       window.removeEventListener("keydown", onKeyDown, {
         capture: true,
       } as AddEventListenerOptions);
-  }, [
-    handleSaveTimeline,
-    undo,
-    redo,
-    selectedItem,
-    handleDeleteScrubber,
-    setSelectedItem,
-  ]);
+  }, [handleSaveTimeline, undo, redo, selectedItem, handleDeleteScrubber, setSelectedItem]);
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -420,48 +388,26 @@ export default function TimelineEditor() {
         }
 
         if (successCount > 0 && errorCount > 0) {
-          toast.warning(
-            `Imported ${successCount} file${
-              successCount > 1 ? "s" : ""
-            }, ${errorCount} failed`
-          );
+          toast.warning(`Imported ${successCount} file${successCount > 1 ? "s" : ""}, ${errorCount} failed`);
         } else if (errorCount > 0) {
-          toast.error(
-            `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
-          );
+          toast.error(`Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`);
         }
 
         e.target.value = "";
       }
     },
-    [handleAddMediaToBin]
+    [handleAddMediaToBin],
   );
 
   const handleRenderClick = useCallback(() => {
-    if (
-      timelineData.length === 0 ||
-      timelineData.every((item) => item.scrubbers.length === 0)
-    ) {
+    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
       toast.error("No timeline to render. Add some media first!");
       return;
     }
 
-    handleRenderVideo(
-      getTimelineData,
-      timeline,
-      isAutoSize ? null : width,
-      isAutoSize ? null : height
-    );
+    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height);
     toast.info("Starting render...");
-  }, [
-    handleRenderVideo,
-    getTimelineData,
-    timeline,
-    width,
-    height,
-    isAutoSize,
-    timelineData,
-  ]);
+  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData]);
 
   const handleLogTimelineData = useCallback(() => {
     if (timelineData.length === 0) {
@@ -512,32 +458,19 @@ export default function TimelineEditor() {
       return;
     }
 
-    if (
-      timelineData.length === 0 ||
-      timelineData.every((item) => item.scrubbers.length === 0)
-    ) {
+    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
       toast.error("No scrubbers to split. Add some media first!");
       return;
     }
 
-    const splitCount = handleSplitScrubberAtRuler(
-      rulerPositionPx,
-      selectedScrubberId
-    );
+    const splitCount = handleSplitScrubberAtRuler(rulerPositionPx, selectedScrubberId);
     if (splitCount === 0) {
-      toast.info(
-        "Cannot split: ruler is not positioned within the selected scrubber"
-      );
+      toast.info("Cannot split: ruler is not positioned within the selected scrubber");
     } else {
       setSelectedScrubberId(null); // Clear selection since original scrubber is replaced
       toast.success(`Split the selected scrubber at ruler position`);
     }
-  }, [
-    handleSplitScrubberAtRuler,
-    rulerPositionPx,
-    selectedScrubberId,
-    timelineData,
-  ]);
+  }, [handleSplitScrubberAtRuler, rulerPositionPx, selectedScrubberId, timelineData]);
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef);
@@ -629,9 +562,7 @@ export default function TimelineEditor() {
   useEffect(() => {
     const fetchStarCount = async () => {
       try {
-        const response = await fetch(
-          "https://api.github.com/repos/robinroy03/videoeditor"
-        );
+        const response = await fetch("https://api.github.com/repos/robinroy03/videoeditor");
         if (response.ok) {
           const data = await response.json();
           setStarCount(data.stargazers_count);
@@ -647,8 +578,7 @@ export default function TimelineEditor() {
   // Ruler mouse events
   useEffect(() => {
     if (isDraggingRuler) {
-      const handleMouseMove = (e: MouseEvent) =>
-        handleRulerMouseMove(e, containerRef);
+      const handleMouseMove = (e: MouseEvent) => handleRulerMouseMove(e, containerRef);
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleRulerMouseUp);
       return () => {
@@ -685,13 +615,7 @@ export default function TimelineEditor() {
     };
   }, [handleZoomIn, handleZoomOut]);
 
-  const {
-    user,
-    isLoading: isAuthLoading,
-    isSigningIn,
-    signInWithGoogle,
-    signOut,
-  } = useAuth();
+  const { user, isLoading: isAuthLoading, isSigningIn, signInWithGoogle, signOut } = useAuth();
 
   return (
     <div
@@ -701,8 +625,7 @@ export default function TimelineEditor() {
           return;
         }
         setSelectedItem(null);
-      }}
-    >
+      }}>
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-3">
@@ -712,9 +635,7 @@ export default function TimelineEditor() {
 
         {/* Center project name */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <span className="text-xs leading-none text-muted-foreground font-mono">
-            {projectName || "Project"}
-          </span>
+          <span className="text-xs leading-none text-muted-foreground font-mono">{projectName || "Project"}</span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -724,18 +645,12 @@ export default function TimelineEditor() {
             size="sm"
             onClick={handleSaveTimeline}
             className="h-7 px-2 text-xs"
-            title="Save timeline (Ctrl/Cmd+S)"
-          >
+            title="Save timeline (Ctrl/Cmd+S)">
             <SaveIcon className="h-3 w-3 mr-1" />
             Save
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddMediaClick}
-            className="h-7 px-2 text-xs"
-          >
+          <Button variant="ghost" size="sm" onClick={handleAddMediaClick} className="h-7 px-2 text-xs">
             <Upload className="h-3 w-3 mr-1" />
             Import
           </Button>
@@ -745,27 +660,21 @@ export default function TimelineEditor() {
             size="sm"
             onClick={handleRenderClick}
             disabled={isRendering}
-            className="h-7 px-2 text-xs"
-          >
+            className="h-7 px-2 text-xs">
             <Download className="h-3 w-3 mr-1" />
             {isRendering ? "Rendering..." : "Export"}
           </Button>
 
           {/* Auth status — keep avatar as the last item (right corner) */}
           {user ? (
-            <ProfileMenu
-              user={user}
-              starCount={starCount}
-              onSignOut={signOut}
-            />
+            <ProfileMenu user={user} starCount={starCount} onSignOut={signOut} />
           ) : (
             <Button
               variant="ghost"
               size="sm"
               onClick={signInWithGoogle}
               className="h-7 px-2 text-xs ml-1"
-              title="Sign in with Google"
-            >
+              title="Sign in with Google">
               Sign in
             </Button>
           )}
@@ -862,17 +771,13 @@ export default function TimelineEditor() {
                     {!isChatMinimized && null}
                     {isChatMinimized && (
                       <>
-                        <Separator
-                          orientation="vertical"
-                          className="h-4 mx-1"
-                        />
+                        <Separator orientation="vertical" className="h-4 mx-1" />
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setIsChatMinimized(false)}
                           className="h-6 w-6 p-0 text-primary"
-                          title="Open Chat"
-                        >
+                          title="Open Chat">
                           <KimuLogo className="h-3 w-3" />
                         </Button>
                       </>
@@ -885,8 +790,7 @@ export default function TimelineEditor() {
                   className={
                     "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
                     "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
-                  }
-                >
+                  }>
                   <div className="flex-1 flex items-center justify-center w-full">
                     <VideoPlayer
                       timelineData={timelineData}
@@ -907,17 +811,8 @@ export default function TimelineEditor() {
                       <MuteButton playerRef={playerRef} />
                     </div>
                     <div className="flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={togglePlayback}
-                        className="h-6 w-6 p-0"
-                      >
-                        {isPlaying ? (
-                          <Pause className="h-3 w-3" />
-                        ) : (
-                          <Play className="h-3 w-3" />
-                        )}
+                      <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
+                        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                       </Button>
                     </div>
                     <div className="flex items-center gap-1">
@@ -936,10 +831,7 @@ export default function TimelineEditor() {
                 <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium">Timeline</span>
-                    <Badge
-                      variant="outline"
-                      className="text-xs h-4 px-1.5 font-mono"
-                    >
+                    <Badge variant="outline" className="text-xs h-4 px-1.5 font-mono">
                       {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                     </Badge>
                     <Button
@@ -948,8 +840,7 @@ export default function TimelineEditor() {
                       onClick={undo}
                       disabled={!canUndo}
                       className="h-6 w-6 p-0"
-                      title="Undo (Ctrl/Cmd+Z)"
-                    >
+                      title="Undo (Ctrl/Cmd+Z)">
                       <CornerUpLeft className="h-3 w-3" />
                     </Button>
                     <Button
@@ -958,8 +849,7 @@ export default function TimelineEditor() {
                       onClick={redo}
                       disabled={!canRedo}
                       className="h-6 w-6 p-0"
-                      title="Redo (Ctrl/Cmd+Shift+Z)"
-                    >
+                      title="Redo (Ctrl/Cmd+Shift+Z)">
                       <CornerUpRight className="h-3 w-3" />
                     </Button>
                   </div>
@@ -970,16 +860,14 @@ export default function TimelineEditor() {
                         size="sm"
                         onClick={handleZoomOut}
                         className="h-6 w-6 p-0 text-xs"
-                        title="Zoom Out"
-                      >
+                        title="Zoom Out">
                         <Minus className="h-3 w-3" />
                       </Button>
                       <Badge
                         variant="secondary"
                         className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
                         onClick={handleZoomReset}
-                        title="Click to reset zoom to 100%"
-                      >
+                        title="Click to reset zoom to 100%">
                         {Math.round(zoomLevel * 100)}%
                       </Badge>
                       <Button
@@ -987,18 +875,12 @@ export default function TimelineEditor() {
                         size="sm"
                         onClick={handleZoomIn}
                         className="h-6 w-6 p-0 text-xs"
-                        title="Zoom In"
-                      >
+                        title="Zoom In">
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
                     <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleAddTrackClick}
-                      className="h-6 px-2 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
                       <Plus className="h-3 w-3 mr-1" />
                       Track
                     </Button>
@@ -1008,18 +890,12 @@ export default function TimelineEditor() {
                       size="sm"
                       onClick={handleSplitClick}
                       className="h-6 px-2 text-xs"
-                      title="Split selected scrubber at ruler position"
-                    >
+                      title="Split selected scrubber at ruler position">
                       <Scissors className="h-3 w-3 mr-1" />
                       Split
                     </Button>
                     <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleLogTimelineData}
-                      className="h-6 px-2 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleLogTimelineData} className="h-6 px-2 text-xs">
                       <Settings className="h-3 w-3 mr-1" />
                       Debug
                     </Button>
@@ -1103,11 +979,7 @@ export default function TimelineEditor() {
 
       {/* Blocker overlay for unauthenticated users */}
       {!isAuthLoading && !user && (
-        <AuthOverlay
-          isLoading={isAuthLoading}
-          isSigningIn={isSigningIn}
-          onSignIn={signInWithGoogle}
-        />
+        <AuthOverlay isLoading={isAuthLoading} isSigningIn={isSigningIn} onSignIn={signInWithGoogle} />
       )}
     </div>
   );

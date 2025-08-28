@@ -1,9 +1,4 @@
-import {
-  useParams,
-  useNavigate,
-  useLoaderData,
-  type LoaderFunctionArgs,
-} from "react-router";
+import { useParams, useNavigate, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import React, { useEffect } from "react";
 import TimelineEditor from "./home";
 import { auth } from "~/lib/auth.server";
@@ -14,8 +9,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   // SSR gate: verify auth
   try {
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined =
-      session?.user?.id || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (!uid)
       return new Response(null, {
         status: 302,

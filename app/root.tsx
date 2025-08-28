@@ -71,17 +71,17 @@ export default function App() {
   const location = useLocation();
   const matches = useMatches();
   const [showBrand, setShowBrand] = useState(true);
-  const isNotFound = (matches[matches.length - 1]?.id || "").includes(
-    "NotFound"
-  );
+  const isNotFound = (matches[matches.length - 1]?.id || "").includes("NotFound");
   const hideNavbar =
     isNotFound ||
     location.pathname === "/projects" ||
-    location.pathname.startsWith("/project/");
+    location.pathname.startsWith("/project/") ||
+    location.pathname === "/profile";
   const hideFooter =
     isNotFound ||
     location.pathname === "/projects" ||
-    location.pathname.startsWith("/project/");
+    location.pathname.startsWith("/project/") ||
+    location.pathname === "/profile";
 
   useEffect(() => {
     // Only apply hero intersection logic on the landing page
@@ -96,7 +96,7 @@ export default function App() {
           const e = entries[0];
           setShowBrand(!e.isIntersecting);
         },
-        { root: null, threshold: 0.25 }
+        { root: null, threshold: 0.25 },
       );
       observer.observe(hero);
       return () => observer.disconnect();
@@ -111,9 +111,7 @@ export default function App() {
       {/* Expose initial auth user to the client to avoid extra roundtrips/flicker */}
       <script
         dangerouslySetInnerHTML={{
-          __html: `window.__AUTH_USER__ = ${JSON.stringify(
-            data?.user ?? null
-          )};`,
+          __html: `window.__AUTH_USER__ = ${JSON.stringify(data?.user ?? null)};`,
         }}
       />
       {!hideNavbar && <Navbar showBrand={showBrand} />}
@@ -130,15 +128,8 @@ export function ErrorBoundary({ error }: { error: Error }) {
 
   if (isRouteErrorResponse(error)) {
     message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (
-    process.env.NODE_ENV === "development" &&
-    error &&
-    error instanceof Error
-  ) {
+    details = error.status === 404 ? "The requested page could not be found." : error.statusText || details;
+  } else if (process.env.NODE_ENV === "development" && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;
   }

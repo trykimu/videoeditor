@@ -37,10 +37,8 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
     const milliseconds = totalMs % 1000;
 
     return `${hours.toString().padStart(2, "0")}:${minutes
-        .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds
-        .toString()
-        .padStart(3, "0")}`;
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
   };
 
   // Format ruler marks to mm:ss or HH:MM:SS, centered on major ticks
@@ -55,9 +53,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
         .toString()
         .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   // Handle time input submission with improved parsing
@@ -76,8 +72,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
         const [minutes, secondsAndMs] = timeString.split(":");
         if (secondsAndMs.includes(".")) {
           const [seconds, ms] = secondsAndMs.split(".");
-          totalSeconds =
-            parseInt(minutes) * 60 + parseInt(seconds) + parseFloat(`0.${ms}`);
+          totalSeconds = parseInt(minutes) * 60 + parseInt(seconds) + parseFloat(`0.${ms}`);
         } else {
           totalSeconds = parseInt(minutes) * 60 + parseInt(secondsAndMs);
         }
@@ -185,9 +180,9 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
     return `${mm}:${ss}:${ff}`;
   };
   return (
-    <div className="flex flex-shrink-0 h-8">
+    <div className="flex flex-shrink-0 h-6 border-b border-border/30">
       {/* Track controls header with timestamp display */}
-      <div className="w-28 bg-muted border-r border-border/50 flex-shrink-0 flex flex-col items-center justify-center py-0.5 px-2">
+      <div className="w-28 bg-muted/70 border-r border-border/50 flex-shrink-0 flex flex-col items-center justify-center py-1 px-2">
         {isEditingTime ? (
           <Input
             value={timeInputValue}
@@ -195,18 +190,17 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             onBlur={handleTimeInputSubmit}
             onKeyDown={handleTimeInputKeyDown}
             placeholder="00:00:00.000"
-            className="h-4 text-xs font-mono w-full px-1 py-0 text-center border-0 bg-transparent focus:bg-muted/50 transition-colors"
+            className="h-3 text-xs font-mono w-full px-1 py-0 text-center border-0 bg-transparent focus:bg-muted/50 transition-colors"
             autoFocus
           />
         ) : (
           <div
-            className="w-full text-xs font-mono text-foreground font-medium leading-none cursor-pointer hover:bg-muted/50 px-1 rounded transition-colors whitespace-nowrap overflow-hidden text-center"
+            className="w-full text-xs font-mono text-foreground font-medium leading-none cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors whitespace-nowrap overflow-hidden text-center"
             onClick={() => {
               setIsEditingTime(true);
               setTimeInputValue(formatTimestamp(currentTimeInSeconds));
             }}
-            title="Click to edit time (supports mm:ss.ms, ss.ms, 120f formats)"
-          >
+            title="Click to edit time (supports mm:ss.ms, ss.ms, 120f formats)">
             {formatTimestamp(currentTimeInSeconds)}
           </div>
         )}
@@ -214,9 +208,8 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
       {/* Timeline Ruler */}
       <div
-        className="bg-muted/50 border-b border-border/50 cursor-pointer relative z-20 flex-1 overflow-hidden"
-        style={{ height: "32px" }}
-      >
+        className="bg-gradient-to-b from-muted/60 to-muted/40 cursor-pointer relative z-20 flex-1 overflow-hidden"
+        style={{ height: "24px" }}>
         <div
           className="absolute top-0 left-0 h-full"
           style={{
@@ -229,21 +222,18 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               // The click position relative to this div is already the correct timeline position
               const rulerRect = e.currentTarget.getBoundingClientRect();
               const clickXInRuler = e.clientX - rulerRect.left;
-              
+
               // Since the ruler content is already transformed to account for scroll,
               // clickXInRuler is already the correct absolute position in the timeline
               onRulerDrag(clickXInRuler);
             }
-          }}
-        >
+          }}>
           {/* Major markings - adaptive with labels (no 00:00) */}
           {(() => {
             const elements: React.ReactNode[] = [];
             let lastLabelX = -Infinity;
             const minLabelSpacingPx = 40; // avoid label overlap
-            const count = Math.floor(
-              timelineWidth / (majorSeconds * pixelsPerSecond)
-            ) + 1;
+            const count = Math.floor(timelineWidth / (majorSeconds * pixelsPerSecond)) + 1;
             for (let tick = 0; tick < count; tick++) {
               const timeValue = tick * majorSeconds;
               const x = tick * majorSeconds * pixelsPerSecond;
@@ -255,17 +245,16 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                 <div
                   key={`major-mark-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                  style={{ left: `${x}px` }}
-                >
+                  style={{ left: `${x}px` }}>
                   {showLabel ? (
-                    <span className="text-[10px] text-muted-foreground -translate-x-1/2 mt-0.5 bg-background/90 px-1.5 py-0.5 rounded-sm border border-border/30 font-mono">
+                    <span className="text-[9px] text-muted-foreground -translate-x-1/2 mt-0.5 bg-background/90 px-1 py-0.5 rounded-sm border border-border/30 font-mono leading-none">
                       {formatMajorLabel(timeValue)}
                     </span>
                   ) : (
                     <span className="sr-only">{formatMajorLabel(timeValue)}</span>
                   )}
-                  <div className="w-px bg-border h-6 mt-auto" />
-                </div>
+                  <div className="w-px bg-border h-4 mt-auto" />
+                </div>,
               );
             }
             return elements;
@@ -275,9 +264,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           {showMidMajor &&
             (() => {
               const elements: React.ReactNode[] = [];
-              const count = Math.floor(
-                timelineWidth / (MID_MAJOR_SECONDS * pixelsPerSecond)
-              ) + 1;
+              const count = Math.floor(timelineWidth / (MID_MAJOR_SECONDS * pixelsPerSecond)) + 1;
               for (let tick = 1; tick < count; tick++) {
                 const timeValue = tick * MID_MAJOR_SECONDS;
                 // skip those that coincide with major ticks
@@ -287,13 +274,12 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                   <div
                     key={`mid-major-${tick}`}
                     className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                    style={{ left: `${x}px` }}
-                  >
-                    <span className="text-[9px] text-muted-foreground/80 -translate-x-1/2 mt-0.5 bg-background/80 px-1 py-0.5 rounded-sm border border-border/20 font-mono">
+                    style={{ left: `${x}px` }}>
+                    <span className="text-[8px] text-muted-foreground/80 -translate-x-1/2 mt-0.5 bg-background/80 px-1 py-0.5 rounded-sm border border-border/20 font-mono leading-none">
                       {formatMajorLabel(timeValue)}
                     </span>
-                    <div className="w-px bg-border/80 h-5 mt-auto" />
-                  </div>
+                    <div className="w-px bg-border/80 h-3 mt-auto" />
+                  </div>,
                 );
               }
               return elements;
@@ -305,9 +291,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               const elements: React.ReactNode[] = [];
               let lastLabelX = -Infinity;
               const minLabelSpacingPx = 36;
-              const count = Math.floor(
-                timelineWidth / (MINOR_SECONDS * pixelsPerSecond)
-              ) + 1;
+              const count = Math.floor(timelineWidth / (MINOR_SECONDS * pixelsPerSecond)) + 1;
               for (let tick = 0; tick < count; tick++) {
                 const timeValue = tick * MINOR_SECONDS;
                 const isMajorTick = timeValue % majorSeconds === 0;
@@ -319,17 +303,16 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                   <div
                     key={`minor-mark-${tick}`}
                     className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                    style={{ left: `${x}px` }}
-                  >
+                    style={{ left: `${x}px` }}>
                     {showMinorLabels && canShowLabel ? (
-                      <span className="text-[9px] text-muted-foreground/80 -translate-x-1/2 mt-0.5 bg-background/80 px-1 py-0.5 rounded-sm border border-border/20 font-mono">
+                      <span className="text-[8px] text-muted-foreground/80 -translate-x-1/2 mt-0.5 bg-background/80 px-1 py-0.5 rounded-sm border border-border/20 font-mono leading-none">
                         {formatSubSecondLabel(timeValue, MINOR_SECONDS)}
                       </span>
                     ) : (
                       <span className="sr-only">{formatSubSecondLabel(timeValue, MINOR_SECONDS)}</span>
                     )}
-                    <div className="w-px bg-border/60 h-4 mt-auto" />
-                  </div>
+                    <div className="w-px bg-border/60 h-3 mt-auto" />
+                  </div>,
                 );
               }
               return elements;
@@ -339,81 +322,71 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
           {showMicro &&
             Array.from(
               {
-                length: Math.floor(
-                  timelineWidth / (MICRO_SECONDS * pixelsPerSecond)
-                ) + 1,
-            },
-            (_, index) => index
-          ).map((tick) => {
+                length: Math.floor(timelineWidth / (MICRO_SECONDS * pixelsPerSecond)) + 1,
+              },
+              (_, index) => index,
+            ).map((tick) => {
               const timeValue = tick * MICRO_SECONDS;
               const isMinorTick = timeValue % MINOR_SECONDS === 0;
               const isMajorTick = timeValue % majorSeconds === 0;
               if (isMinorTick || isMajorTick) return null;
               const x = tick * MICRO_SECONDS * pixelsPerSecond;
               const showLabel = pixelsPerSecond * MICRO_SECONDS >= 140; // label at very high zoom
-            return (
-              <div
+              return (
+                <div
                   key={`micro-mark-${tick}`}
-                className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                  style={{ left: `${x}px` }}
-              >
+                  className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
+                  style={{ left: `${x}px` }}>
                   {showLabel ? (
-                    <span className="text-[9px] text-muted-foreground/70 -translate-x-1/2 mt-0.5 bg-background/70 px-1 py-0.5 rounded-sm border border-border/20 font-mono">
+                    <span className="text-[8px] text-muted-foreground/70 -translate-x-1/2 mt-0.5 bg-background/70 px-1 py-0.5 rounded-sm border border-border/20 font-mono leading-none">
                       {formatSubSecondLabel(timeValue, MICRO_SECONDS)}
-                </span>
+                    </span>
                   ) : (
                     <span className="sr-only">{formatSubSecondLabel(timeValue, MICRO_SECONDS)}</span>
                   )}
                   <div className="w-px bg-border/30 h-2 mt-auto" />
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
 
           {/* Micro 0.25s ticks */}
           {showMicroQuarter &&
             Array.from(
-            {
-                length: Math.floor(
-                  timelineWidth / (MICRO_QUARTER_SECONDS * pixelsPerSecond)
-                ) + 1,
-            },
-            (_, index) => index
-          ).map((tick) => {
+              {
+                length: Math.floor(timelineWidth / (MICRO_QUARTER_SECONDS * pixelsPerSecond)) + 1,
+              },
+              (_, index) => index,
+            ).map((tick) => {
               const timeValue = tick * MICRO_QUARTER_SECONDS;
               const isHigherTick =
-                timeValue % MICRO_SECONDS === 0 ||
-                timeValue % MINOR_SECONDS === 0 ||
-                timeValue % majorSeconds === 0;
+                timeValue % MICRO_SECONDS === 0 || timeValue % MINOR_SECONDS === 0 || timeValue % majorSeconds === 0;
               if (isHigherTick) return null;
               const x = tick * MICRO_QUARTER_SECONDS * pixelsPerSecond;
               const showLabel = pixelsPerSecond * MICRO_QUARTER_SECONDS >= 160;
-            return (
-              <div
+              return (
+                <div
                   key={`micro-quarter-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                  style={{ left: `${x}px` }}
-                >
+                  style={{ left: `${x}px` }}>
                   {showLabel ? (
-                    <span className="text-[8px] text-muted-foreground/70 -translate-x-1/2 mt-0.5 bg-background/60 px-1 py-[1px] rounded-sm border border-border/20 font-mono">
+                    <span className="text-[7px] text-muted-foreground/70 -translate-x-1/2 mt-0.5 bg-background/60 px-1 py-[1px] rounded-sm border border-border/20 font-mono leading-none">
                       {formatSubSecondLabel(timeValue, MICRO_QUARTER_SECONDS)}
                     </span>
                   ) : (
                     <span className="sr-only">{formatSubSecondLabel(timeValue, MICRO_QUARTER_SECONDS)}</span>
                   )}
-                  <div className="w-px bg-border/20 h-2 mt-auto" />
-              </div>
-            );
-          })}
+                  <div className="w-px bg-border/20 h-1.5 mt-auto" />
+                </div>
+              );
+            })}
 
           {/* Micro 0.1s ticks */}
           {showMicroTenth &&
             Array.from(
               {
-                length: Math.floor(
-                  timelineWidth / (MICRO_TENTH_SECONDS * pixelsPerSecond)
-                  ) + 1,
+                length: Math.floor(timelineWidth / (MICRO_TENTH_SECONDS * pixelsPerSecond)) + 1,
               },
-              (_, index) => index
+              (_, index) => index,
             ).map((tick) => {
               const timeValue = tick * MICRO_TENTH_SECONDS;
               const isHigherTick =
@@ -428,10 +401,9 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                 <div
                   key={`micro-tenth-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                  style={{ left: `${x}px` }}
-                >
+                  style={{ left: `${x}px` }}>
                   {showLabel ? (
-                    <span className="text-[8px] text-muted-foreground/60 -translate-x-1/2 mt-0.5 bg-background/50 px-1 py-[1px] rounded-sm border border-border/20 font-mono">
+                    <span className="text-[7px] text-muted-foreground/60 -translate-x-1/2 mt-0.5 bg-background/50 px-1 py-[1px] rounded-sm border border-border/20 font-mono leading-none">
                       {formatSubSecondLabel(timeValue, MICRO_TENTH_SECONDS)}
                     </span>
                   ) : (
@@ -448,7 +420,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
               {
                 length: Math.floor(timelineWidth / (FRAME_SECONDS * pixelsPerSecond)) + 1,
               },
-              (_, index) => index
+              (_, index) => index,
             ).map((tick) => {
               const timeValue = tick * FRAME_SECONDS;
               const isHigherTick =
@@ -464,40 +436,39 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                 <div
                   key={`frame-${tick}`}
                   className="absolute top-0 h-full flex flex-col justify-between pointer-events-none"
-                  style={{ left: `${x}px` }}
-                >
+                  style={{ left: `${x}px` }}>
                   {labelThis ? (
-                    <span className="text-[8px] text-muted-foreground/60 -translate-x-1/2 mt-0.5 bg-background/40 px-1 py-[1px] rounded-sm border border-border/10 font-mono">
+                    <span className="text-[7px] text-muted-foreground/60 -translate-x-1/2 mt-0.5 bg-background/40 px-1 py-[1px] rounded-sm border border-border/10 font-mono leading-none">
                       {formatFrameLabel(timeValue)}
                     </span>
                   ) : (
                     <span className="sr-only">{formatFrameLabel(timeValue)}</span>
                   )}
-                  <div className="w-px bg-border/10 h-1 mt-auto" />
+                  <div className="w-px bg-border/10 h-0.5 mt-auto" />
                 </div>
               );
             })}
 
-          {/* Playhead line - extends full height */}
+          {/* Playhead line - contained within ruler */}
           <div
-            className="absolute top-0 w-0.5 bg-primary pointer-events-none z-20 shadow-sm"
+            className="absolute top-0 w-0.5 bg-primary pointer-events-none z-30 shadow-sm"
             style={{
               left: `${rulerPositionPx}px`,
-              height: "32px",
+              height: "24px",
             }}
           />
 
-          {/* Playhead handle - rectangular marker (original style) */}
+          {/* Playhead handle - compact design */}
           <div
-            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-20 border-2 border-background shadow-lg"
+            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-30 border border-background shadow-lg hover:shadow-xl transition-shadow"
             style={{
-              left: `${rulerPositionPx - 5}px`,
-              top: "1px",
-              width: "12px",
-              height: "10px",
-              borderRadius: "2px",
+              left: `${rulerPositionPx - 4}px`,
+              top: "2px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "1px",
               transform: "none",
-              transition: "none",
+              transition: "box-shadow 0.15s ease",
             }}
             onMouseDown={onRulerMouseDown}
             title="Drag to seek"

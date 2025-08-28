@@ -28,9 +28,7 @@ export function ProfileMenu({
 }) {
   const { theme, setTheme } = useTheme();
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
-  const [limitBytes, setLimitBytes] = React.useState<number>(
-    2 * 1024 * 1024 * 1024
-  );
+  const [limitBytes, setLimitBytes] = React.useState<number>(2 * 1024 * 1024 * 1024);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -57,10 +55,7 @@ export function ProfileMenu({
   function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
     const units = ["B", "KB", "MB", "GB", "TB"] as const;
-    const i = Math.min(
-      Math.floor(Math.log(bytes) / Math.log(1024)),
-      units.length - 1
-    );
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
     const val = bytes / Math.pow(1024, i);
     return `${val >= 100 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
   }
@@ -104,29 +99,24 @@ export function ProfileMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[220px]">
-        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-          {user.name || user.email || "Signed in"}
-        </div>
-        <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-          Appearance
-        </DropdownMenuLabel>
+        <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.name || user.email || "Signed in"}</div>
+        <DropdownMenuItem asChild>
+          <a href="/profile" className="text-xs">
+            View profile
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">Appearance</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <button
             className="w-full flex items-center gap-2 text-xs"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-3.5 w-3.5" />
-            ) : (
-              <Moon className="h-3.5 w-3.5" />
-            )}
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             Switch theme
           </button>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-          Socials
-        </DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">Socials</DropdownMenuLabel>
         <div className="px-0 pb-2">
           <div className="flex items-center justify-center gap-1">
             <DropdownMenuItem asChild className="p-0">
@@ -135,8 +125,7 @@ export function ProfileMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center h-8 rounded-md border border-border/40 px-3 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                title="GitHub"
-              >
+                title="GitHub">
                 <span className="inline-flex items-center justify-center gap-1 leading-none">
                   <GitHubIcon className="h-3 w-3 shrink-0" />
                   <Star className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
@@ -152,8 +141,7 @@ export function ProfileMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-14 h-8 rounded-md border border-border/40 px-2 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                title="Discord"
-              >
+                title="Discord">
                 <DiscordIcon className="h-3.5 w-3.5" />
               </a>
             </DropdownMenuItem>
@@ -163,17 +151,14 @@ export function ProfileMenu({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-14 h-8 rounded-md border border-border/40 px-2 hover:bg-accent/30 focus:bg-accent/30 focus:outline-none transition-colors"
-                title="X (Twitter)"
-              >
+                title="X (Twitter)">
                 <XIcon className="h-3.5 w-3.5" />
               </a>
             </DropdownMenuItem>
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-          Cloud Storage
-        </DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">Cloud Storage</DropdownMenuLabel>
         <div className="px-2 pb-2 flex flex-col gap-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -181,18 +166,14 @@ export function ProfileMenu({
               Storage
             </span>
             <span className="font-mono">
-              {usedBytes === null
-                ? "..."
-                : `${formatBytes(usedBytes)} / ${formatBytes(limitBytes)}`}
+              {usedBytes === null ? "..." : `${formatBytes(usedBytes)} / ${formatBytes(limitBytes)}`}
             </span>
           </div>
           {
             <Progress
               // @ts-ignore radix root value
               value={
-                usedBytes !== null && limitBytes > 0
-                  ? Math.min(100, Math.max(0, (usedBytes / limitBytes) * 100))
-                  : 0
+                usedBytes !== null && limitBytes > 0 ? Math.min(100, Math.max(0, (usedBytes / limitBytes) * 100)) : 0
               }
             />
           }
@@ -205,8 +186,7 @@ export function ProfileMenu({
               window.location.href = "/";
             }, 100);
           }}
-          variant="destructive"
-        >
+          variant="destructive">
           <LogOut className="h-4 w-4" />
           <span className="text-xs font-medium">Sign out</span>
         </DropdownMenuItem>
