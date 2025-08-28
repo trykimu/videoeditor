@@ -333,7 +333,7 @@ export const useMediaBin = (
 
       throw new Error(`Failed to add media: ${errorMessage}`);
     }
-  }, []);
+  }, [projectId]);
 
   const handleAddTextToBin = useCallback(
     (

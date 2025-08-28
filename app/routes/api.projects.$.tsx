@@ -22,7 +22,6 @@ import type { MediaBinItem, TimelineState } from "~/components/timeline/types";
 
 async function requireUserId(request: Request): Promise<string> {
   try {
-    // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const uid: string | undefined =
       session?.user?.id || session?.session?.userId;

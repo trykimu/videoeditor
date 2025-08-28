@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiUrl } from "~/utils/api";
 import { authClient } from "~/lib/auth.client";
+import { useNavigate } from "react-router";
 
 interface AuthUser {
   id: string;
@@ -53,6 +54,8 @@ export function useAuth(): UseAuthResult {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     let isMounted = true;
@@ -127,53 +130,6 @@ export function useAuth(): UseAuthResult {
       const next = a || b || (a === null && b === null ? null : user);
       if (next?.id !== user?.id || !!next !== !!user) {
         setUser(next ?? null);
-      }
-    };
-
-    const checkSession = async () => {
-      try {
-        console.log("🔍 Checking session...");
-        const sessionUrl = apiUrl("/api/auth/session", false, true);
-        console.log("🔍 Fetching session from:", sessionUrl);
-
-        const res = await fetch(sessionUrl, {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-            Accept: "application/json",
-          },
-        });
-
-        console.log("🌐 API response status:", res.status);
-
-        if (res.ok) {
-          const session = await res.json();
-          console.log("🌐 API session:", session);
-          if (isMounted) {
-            setUser(extractUser(session));
-          }
-        } else if (res.status === 404) {
-          // No active session is a normal state; don't treat as an error
-          if (isMounted) {
-            setUser(null);
-          }
-        } else {
-          const errorText = await res.text().catch(() => "<no body>");
-          console.warn("🌐 API error body:", errorText);
-          if (isMounted) {
-            setUser(null);
-          }
-        }
-      } catch (err) {
-        console.log("❌ API call error:", err);
-        if (isMounted) {
-          setUser(null);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
       }
     };
 
@@ -276,47 +232,42 @@ export function useAuth(): UseAuthResult {
     setIsSigningIn(true);
     try {
       console.log("🔐 Starting Google sign-in...");
-
-      // // Try using Better Auth client's signIn method first
-      // if (authClient.signIn) {
-      //   console.log("🔐 Using Better Auth client signIn");
-      //   try {
-      //     const result = await authClient.signIn.social({
-      //       provider: "google",
-      //       callbackURL: "/editor"
-      //     });
-      //     console.log("🔐 Sign-in response:", result);
-      //     return;
-      //   } catch (clientError) {
-      //     console.log("🔐 Client signIn failed, falling back to REST API:", clientError);
-      //   }
-      // }
+      // Try using Better Auth client's signIn method first
+      if (authClient.signIn) {
+        console.log("🔐 Using Better Auth client signIn");
+        try {
+          const result = await authClient.signIn.social({
+            provider: "google",
+            callbackURL: "/editor",
+          });
+          console.log("🔐 Sign-in response:", result);
+          return;
+        } catch (clientError) {
+          console.log("🔐 Client signIn failed", clientError);
+        }
+      }
 
       // Fallback to REST API call with correct endpoint
-      console.log("🔐 Using REST API signIn");
-      const signInUrl = apiUrl("/api/auth/sign-in/social", false, true);
-      console.log("🔐 Sign-in URL:", signInUrl);
-      const response = await fetch(signInUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        // Let Better Auth handle callback at /api/auth/callback/google and then redirect back
-        body: JSON.stringify({ provider: "google" }),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        console.log("🔐 Sign-in response:", result);
-        if (result.url) {
-          console.log("🔐 Redirecting to:", result.url);
-          window.location.href = result.url;
-        }
-      } else {
-        console.error(
-          "❌ Sign-in failed:",
-          response.status,
-          await response.text()
-        );
-      }
+      // console.log("🔐 Using REST API signIn");
+      // const signInUrl = apiUrl("/api/auth/sign-in/social", false, true);
+      // console.log("🔐 Sign-in URL:", signInUrl);
+      // const response = await fetch(signInUrl, {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   credentials: "include",
+      //   // Let Better Auth handle callback at /api/auth/callback/google and then redirect back
+      //   body: JSON.stringify({ provider: "google" })
+      // });
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   console.log("🔐 Sign-in response:", result);
+      //   if (result.url) {
+      //     console.log("🔐 Redirecting to:", result.url);
+      //     window.location.href = result.url;
+      //   }
+      // } else {
+      //   console.error("❌ Sign-in failed:", response.status, await response.text());
+      // }
     } catch (error) {
       console.error("❌ Sign in error:", error);
     } finally {
@@ -328,29 +279,11 @@ export function useAuth(): UseAuthResult {
     try {
       console.log("🚪 Signing out...");
 
-      // // Try using Better Auth client's signOut method first
-      // if (authClient.signOut) {
-      //   console.log("🔐 Using Better Auth client signOut");
-      //   const result = await authClient.signOut();
-      //   console.log("✅ Sign-out successful via client");
-      //   setUser(null);
-      //   return;
-      // }
-
-      // Fallback to REST API call with correct endpoint
-      console.log("🔐 Using REST API signOut");
-      const signOutUrl = apiUrl("/api/auth/sign-out", false, true);
-      console.log("URL:", signOutUrl);
-      const response = await fetch(signOutUrl, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        console.log("✅ Sign-out successful");
+      // Try using Better Auth client's signOut method first
+      if (authClient.signOut) {
+        console.log("🔐 Using Better Auth client signOut");
+        const result = await authClient.signOut();
+        console.log("✅ Sign-out successful via client");
         setUser(null);
       } else {
         console.log(
@@ -359,6 +292,25 @@ export function useAuth(): UseAuthResult {
           await response.text()
         );
       }
+
+      // Fallback to REST API call with correct endpoint
+      // console.log("🔐 Using REST API signOut");
+      // const signOutUrl = apiUrl("/api/auth/sign-out", false, true);
+      // console.log("URL:", signOutUrl);
+      // const response = await fetch(signOutUrl, {
+      //   method: "POST",
+      //   credentials: "include",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      // });
+
+      // if (response.ok) {
+      //   console.log("✅ Sign-out successful");
+      //   setUser(null);
+      // } else {
+      //   console.log("❌ Sign out failed:", response.status, await response.text());
+      // }
     } catch (error) {
       console.error("❌ Sign out error:", error);
     }

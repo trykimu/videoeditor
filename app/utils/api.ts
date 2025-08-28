@@ -1,29 +1,13 @@
-// Dynamic environment detection using Vite
-// @ts-ignore
-const isProduction: boolean = typeof import.meta !== "undefined" && import.meta.env ? !!import.meta.env.PROD : process.env.NODE_ENV === "production";
-
 export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = false): string => {
-  // In development, point directly to local services
-  if (!isProduction) {
-    // betterauth=true -> front-end dev server origin (Better Auth runs in the same app)
-    if (betterauth) return "http://localhost:5173";
-    // fastapi=true -> python backend
-    return fastapi ? "http://127.0.0.1:3000" : "http://localhost:8000";
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (betterauth) {
+    return isProduction ? "https://trykimu.com" : "http://localhost:5173";  // frontend  NOTE: this will be deleted, it is repeating logic. It'll be the default.
+  } else if (fastapi) {
+    return isProduction ? "https://trykimu.com/ai/api" : "http://127.0.0.1:3000";  // fastapi backend
+  } else {
+    return isProduction ? "https://trykimu.com/render" : "http://localhost:8000";   // remotion render server
   }
-
-  // In production, go through the reverse proxy paths
-
-  if (typeof window !== "undefined") {
-    // Better Auth lives under /api/auth on the frontend app → use origin without /api
-    if (betterauth) return `${window.location.origin}`;
-    // FastAPI (Python) is routed under /ai/api
-    if (fastapi) return `${window.location.origin}/ai/api`;
-    // Node backend is under /api
-    return `${window.location.origin}/api`;
-  }
-
-  // Fallback for SSR
-  return "/";
 };
 
 export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: boolean = false): string => {

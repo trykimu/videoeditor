@@ -13,7 +13,6 @@ import type { TimelineState } from "~/components/timeline/types";
 export async function loader({ request, params }: LoaderFunctionArgs) {
   // SSR gate: verify auth
   try {
-    // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const uid: string | undefined =
       session?.user?.id || session?.session?.userId;

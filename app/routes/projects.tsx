@@ -249,9 +249,17 @@ export default function Projects() {
         </div>
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <Card key={i} className="h-28 animate-pulse" />
-            ))}
+            {[
+              <Card key="loading-1" className="h-28 animate-pulse" />,
+              <Card key="loading-2" className="h-28 animate-pulse" />,
+              <Card key="loading-3" className="h-28 animate-pulse" />,
+              <Card key="loading-4" className="h-28 animate-pulse" />,
+              <Card key="loading-5" className="h-28 animate-pulse" />,
+              <Card key="loading-6" className="h-28 animate-pulse" />,
+              <Card key="loading-7" className="h-28 animate-pulse" />,
+              <Card key="loading-8" className="h-28 animate-pulse" />,
+              <Card key="loading-9" className="h-28 animate-pulse" />,
+            ]}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -20,6 +20,11 @@ import { KimuLogo } from "~/components/ui/KimuLogo";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { useNavigate } from "react-router";
 
+const MEDIA_KEYS = Array.from({ length: 10 }, (_, i) => `media-item-${i}`);
+const TIMELINE_KEYS = Array.from({ length: 15 }, (_, i) => `timeline-mark-${i}`);
+const TOOL_KEYS = Array.from({ length: 12 }, (_, i) => `tool-${i}`);
+const TYPING_KEYS = Array.from({ length: 3 }, (_, i) => `typing-dot-${i}`);
+
 export default function NotFound(): React.ReactElement {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
@@ -96,8 +101,8 @@ export default function NotFound(): React.ReactElement {
             <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
           <div className="p-4 space-y-3">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
+            {MEDIA_KEYS.map((key, i) => (
+              <div key={key} className="flex items-center gap-3">
                 {i % 3 === 0 ? (
                   <Video className="w-5 h-5 text-muted-foreground/60" />
                 ) : i % 3 === 1 ? (
@@ -168,9 +173,9 @@ export default function NotFound(): React.ReactElement {
         >
           {/* Timeline ruler */}
           <div className="h-8 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-6">
-            {[...Array(15)].map((_, i) => (
+            {TIMELINE_KEYS.map((key, i) => (
               <div
-                key={i}
+                key={key}
                 className="flex-1 text-sm text-muted-foreground/60 border-l border-muted-foreground/30 pl-2"
               >
                 {i * 10}s
@@ -278,9 +283,9 @@ export default function NotFound(): React.ReactElement {
             <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
           <div className="p-4 grid grid-cols-6 gap-3">
-            {[...Array(12)].map((_, i) => (
+            {TOOL_KEYS.map((key, i) => (
               <motion.div
-                key={i}
+                key={key}
                 className="w-full h-10 border border-muted-foreground/30 rounded bg-muted/20"
                 animate={{
                   opacity: [1, 0.5, 1],
@@ -518,9 +523,9 @@ export default function NotFound(): React.ReactElement {
                 <div className="bg-muted/20 rounded-2xl px-4 py-3 shadow-sm border border-border/30 w-fit">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
-                      {[0, 1, 2].map((i) => (
+                      {TYPING_KEYS.map((key, i) => (
                         <motion.div
-                          key={i}
+                          key={key}
                           className="w-2 h-2 bg-muted-foreground/60 rounded-full"
                           animate={{
                             scale: [1, 1.4, 1],

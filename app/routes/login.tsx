@@ -8,7 +8,6 @@ import { FaGoogle } from "react-icons/fa";
 export async function loader({ request }: { request: Request }) {
   // If already authenticated, redirect to projects
   try {
-    // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const uid: string | undefined =
       session?.user?.id || session?.session?.userId;
