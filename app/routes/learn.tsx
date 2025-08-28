@@ -13,7 +13,11 @@ import { slide } from "@remotion/transitions/slide";
 import { Player, type PlayerRef } from "@remotion/player";
 import { useEffect, useRef, useState } from "react";
 
-const Letter: React.FC<{ color: string; children: React.ReactNode; style?: React.CSSProperties }> = ({ color, children, style }) => {
+const Letter: React.FC<{
+  color: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}> = ({ color, children, style }) => {
   return (
     <AbsoluteFill
       style={{
@@ -65,18 +69,20 @@ const MyComp = () => {
 
           <TransitionSeries.Sequence durationInFrames={100}>
             <AbsoluteFill>
-              <div style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: 'green',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-                width: '100%',
-                backgroundColor: 'yellow',
-              }}>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: "green",
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "100%",
+                  width: "100%",
+                  backgroundColor: "yellow",
+                }}
+              >
                 there's nothing here
               </div>
             </AbsoluteFill>
@@ -87,7 +93,12 @@ const MyComp = () => {
       <Sequence from={0} durationInFrames={115}>
         <TransitionSeries>
           <TransitionSeries.Sequence durationInFrames={40}>
-            <Letter color="#0b84f3" style={{ height: '50%', width: '50%', backgroundColor: 'black' }}>A</Letter>
+            <Letter
+              color="#0b84f3"
+              style={{ height: "50%", width: "50%", backgroundColor: "black" }}
+            >
+              A
+            </Letter>
             {/* <Video src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" /> */}
           </TransitionSeries.Sequence>
           <TransitionSeries.Transition
@@ -95,7 +106,12 @@ const MyComp = () => {
             timing={linearTiming({ durationInFrames: 30 })}
           />
           <TransitionSeries.Sequence durationInFrames={60}>
-            <Letter color="pink" style={{ height: '50%', width: '50%', backgroundColor: 'black' }}>B</Letter>
+            <Letter
+              color="pink"
+              style={{ height: "50%", width: "50%", backgroundColor: "black" }}
+            >
+              B
+            </Letter>
             {/* <Video src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" /> */}
           </TransitionSeries.Sequence>
           <TransitionSeries.Transition
@@ -103,7 +119,12 @@ const MyComp = () => {
             timing={linearTiming({ durationInFrames: 45 })}
           />
           <TransitionSeries.Sequence durationInFrames={90}>
-            <Letter color="green" style={{ height: '50%', width: '50%', backgroundColor: 'black' }}>C</Letter>
+            <Letter
+              color="green"
+              style={{ height: "50%", width: "50%", backgroundColor: "black" }}
+            >
+              C
+            </Letter>
             {/* <Video src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" /> */}
           </TransitionSeries.Sequence>
         </TransitionSeries>
@@ -126,15 +147,22 @@ export default function Learn() {
       setCurrentFrame(e.detail.frame);
     };
 
-    player.addEventListener('frameupdate', onFrameUpdate);
+    player.addEventListener("frameupdate", onFrameUpdate);
 
     return () => {
-      player.removeEventListener('frameupdate', onFrameUpdate);
+      player.removeEventListener("frameupdate", onFrameUpdate);
     };
   }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "16px",
+      }}
+    >
       <Player
         ref={playerRef}
         component={MyComp}
@@ -144,16 +172,18 @@ export default function Learn() {
         compositionWidth={600}
         compositionHeight={600}
       />
-      <div style={{
-        fontSize: '18px',
-        fontWeight: 'bold',
-        fontFamily: 'monospace',
-        backgroundColor: 'black',
-        color: 'white',
-        padding: '8px 16px',
-        borderRadius: '4px',
-        border: '1px solid #ccc'
-      }}>
+      <div
+        style={{
+          fontSize: "18px",
+          fontWeight: "bold",
+          fontFamily: "monospace",
+          backgroundColor: "black",
+          color: "white",
+          padding: "8px 16px",
+          borderRadius: "4px",
+          border: "1px solid #ccc",
+        }}
+      >
         Frame: {currentFrame}
       </div>
     </div>

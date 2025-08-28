@@ -2,9 +2,6 @@ import type { Route } from "./+types/api.auth.$";
 import { auth } from "~/lib/auth.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  console.log(`\n\n\n\n=====================loader=================\n\n\n\n`);
-  console.log(request);
-  console.log(`\n\n\n\n=====================loader=================\n\n\n\n`);
   // Forward the request to Better Auth; it handles all subpaths
   const url = new URL(request.url);
   const isCallback = url.pathname.includes("/api/auth/callback/");
@@ -17,7 +14,9 @@ export async function loader({ request }: Route.LoaderArgs) {
         headers: { "Content-Type": "application/json" },
       });
     }
-  } catch { /* empty */ }
+  } catch {
+    console.error("Failed to get session");
+  }
   // After successful OAuth callback, redirect to /projects
   if (isCallback && (res.status === 200 || res.status === 302)) {
     const headers = new Headers(res.headers);
@@ -30,5 +29,3 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   return auth.handler(request);
 }
-
-
