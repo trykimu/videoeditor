@@ -28,7 +28,9 @@ export function ProfileMenu({
 }) {
   const { theme, setTheme } = useTheme();
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
-  const [limitBytes, setLimitBytes] = React.useState<number>(2 * 1024 * 1024 * 1024);
+  const [limitBytes, setLimitBytes] = React.useState<number>(
+    2 * 1024 * 1024 * 1024
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,7 @@ export function ProfileMenu({
           setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
         }
       } catch {
-        console.error('Storage fetch failed');
+        console.error("Storage fetch failed");
       }
     })();
     return () => {
@@ -55,7 +57,10 @@ export function ProfileMenu({
   function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
     const units = ["B", "KB", "MB", "GB", "TB"] as const;
-    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const i = Math.min(
+      Math.floor(Math.log(bytes) / Math.log(1024)),
+      units.length - 1
+    );
     const val = bytes / Math.pow(1024, i);
     return `${val >= 100 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
   }
@@ -166,7 +171,9 @@ export function ProfileMenu({
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[11px] text-muted-foreground">Cloud Storage</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[11px] text-muted-foreground">
+          Cloud Storage
+        </DropdownMenuLabel>
         <div className="px-2 pb-2 flex flex-col gap-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
@@ -174,10 +181,12 @@ export function ProfileMenu({
               Storage
             </span>
             <span className="font-mono">
-              {usedBytes === null ? "..." : `${formatBytes(usedBytes)} / ${formatBytes(limitBytes)}`}
+              {usedBytes === null
+                ? "..."
+                : `${formatBytes(usedBytes)} / ${formatBytes(limitBytes)}`}
             </span>
           </div>
-          {(
+          {
             <Progress
               // @ts-ignore radix root value
               value={
@@ -186,7 +195,7 @@ export function ProfileMenu({
                   : 0
               }
             />
-          )}
+          }
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -205,5 +214,3 @@ export function ProfileMenu({
     </DropdownMenu>
   );
 }
-
-

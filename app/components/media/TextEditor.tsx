@@ -115,7 +115,10 @@ export default function TextEditor() {
                       style={{ fontFamily: fontFamily }}
                       aria-label="Select font"
                     >
-                      <span className="truncate">{availableFonts.find(f => f.value === fontFamily)?.label || fontFamily}</span>
+                      <span className="truncate">
+                        {availableFonts.find((f) => f.value === fontFamily)
+                          ?.label || fontFamily}
+                      </span>
                       <ChevronDown className="h-3.5 w-3.5 ml-2 opacity-70" />
                     </Button>
                   </DropdownMenuTrigger>

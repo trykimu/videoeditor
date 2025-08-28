@@ -76,7 +76,10 @@ export async function insertAsset(params: {
   }
 }
 
-export async function listAssetsByUser(userId: string, projectId: string | null): Promise<AssetRecord[]> {
+export async function listAssetsByUser(
+  userId: string,
+  projectId: string | null
+): Promise<AssetRecord[]> {
   const client = await getPool().connect();
   try {
     const query =
@@ -104,7 +107,10 @@ export async function getAssetById(id: string): Promise<AssetRecord | null> {
   }
 }
 
-export async function softDeleteAsset(id: string, userId: string): Promise<void> {
+export async function softDeleteAsset(
+  id: string,
+  userId: string
+): Promise<void> {
   const client = await getPool().connect();
   try {
     await client.query(
@@ -115,5 +121,3 @@ export async function softDeleteAsset(id: string, userId: string): Promise<void>
     client.release();
   }
 }
-
-

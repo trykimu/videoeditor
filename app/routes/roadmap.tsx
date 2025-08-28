@@ -40,7 +40,7 @@ const coreFeatures: TimelineItem[] = [
     icon: <Zap className="w-3 h-3" />,
     color: "bg-green-500",
     startTime: 0,
-    duration: 3
+    duration: 3,
   },
   {
     id: "ai",
@@ -51,8 +51,8 @@ const coreFeatures: TimelineItem[] = [
     icon: <Wand2 className="w-3 h-3" />,
     color: "bg-blue-500",
     startTime: 2,
-    duration: 4
-  }
+    duration: 4,
+  },
 ];
 
 // Track 2: Advanced Features
@@ -66,7 +66,7 @@ const advancedFeatures: TimelineItem[] = [
     icon: <Sparkles className="w-3 h-3" />,
     color: "bg-purple-500",
     startTime: 3,
-    duration: 3
+    duration: 3,
   },
   {
     id: "collaboration",
@@ -77,8 +77,8 @@ const advancedFeatures: TimelineItem[] = [
     icon: <Users className="w-3 h-3" />,
     color: "bg-orange-500",
     startTime: 5,
-    duration: 2
-  }
+    duration: 2,
+  },
 ];
 
 // Track 3: Platform Expansion
@@ -92,16 +92,16 @@ const platformFeatures: TimelineItem[] = [
     icon: <Smartphone className="w-3 h-3" />,
     color: "bg-pink-500",
     startTime: 6,
-    duration: 3
-  }
+    duration: 3,
+  },
 ];
 
 const maxTime = 9; // Total timeline duration
 
 // Timeline Track Component
-const TimelineTrack: React.FC<{ 
-  title: string; 
-  items: TimelineItem[]; 
+const TimelineTrack: React.FC<{
+  title: string;
+  items: TimelineItem[];
   color: string;
   delay: number;
 }> = ({ title, items, color, delay }) => {
@@ -109,16 +109,16 @@ const TimelineTrack: React.FC<{
   const calculateProgress = React.useCallback(() => {
     let totalProgress = 0;
     let totalWeight = 0;
-    
-    items.forEach(item => {
-      if (item.status === 'completed') {
+
+    items.forEach((item) => {
+      if (item.status === "completed") {
         totalProgress += item.duration;
-      } else if (item.status === 'in-progress' && item.progress) {
+      } else if (item.status === "in-progress" && item.progress) {
         totalProgress += (item.duration * item.progress) / 100;
       }
       totalWeight += item.duration;
     });
-    
+
     return totalWeight > 0 ? (totalProgress / totalWeight) * maxTime : 0;
   }, [items]);
 
@@ -129,7 +129,7 @@ const TimelineTrack: React.FC<{
     let interval: NodeJS.Timeout;
     if (isPlaying) {
       interval = setInterval(() => {
-        setCurrentTime(prev => prev >= maxTime ? 0 : prev + 0.1);
+        setCurrentTime((prev) => (prev >= maxTime ? 0 : prev + 0.1));
       }, 100);
     } else {
       setCurrentTime(calculateProgress());
@@ -158,7 +158,7 @@ const TimelineTrack: React.FC<{
           )}
         </button>
       </div>
-      
+
       <div className="relative h-12 bg-muted/10 rounded-lg border border-border/20">
         {/* Playhead */}
         <motion.div
@@ -172,13 +172,13 @@ const TimelineTrack: React.FC<{
         {items.map((item, index) => {
           const leftPosition = (item.startTime / maxTime) * 100;
           const width = (item.duration / maxTime) * 100;
-          
+
           return (
             <motion.div
               key={item.id}
               className={`absolute top-1 bottom-1 ${item.color}/80 rounded border-l-2 border-white/30 cursor-pointer group overflow-hidden`}
-              style={{ 
-                left: `${leftPosition}%`, 
+              style={{
+                left: `${leftPosition}%`,
                 width: `${width}%`,
               }}
               initial={{ scaleX: 0 }}
@@ -190,25 +190,36 @@ const TimelineTrack: React.FC<{
               <div className="h-full flex items-center px-2 text-white">
                 <div className="flex items-center gap-1 min-w-0">
                   {item.icon}
-                  <span className="text-xs font-medium truncate">{item.title}</span>
+                  <span className="text-xs font-medium truncate">
+                    {item.title}
+                  </span>
                 </div>
                 {item.status === "in-progress" && item.progress && (
-                  <div className="absolute inset-0 bg-white/20 rounded" 
-                       style={{ width: `${item.progress}%` }} />
+                  <div
+                    className="absolute inset-0 bg-white/20 rounded"
+                    style={{ width: `${item.progress}%` }}
+                  />
                 )}
               </div>
-              
+
               {/* Tooltip */}
               <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-black text-white p-3 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity z-50 min-w-40 border border-white/20 shadow-lg">
                 <div className="font-medium text-white">{item.title}</div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    item.status === 'completed' ? 'bg-green-500/30 text-green-300' :
-                    item.status === 'in-progress' ? 'bg-blue-500/30 text-blue-300' :
-                    'bg-gray-500/30 text-gray-300'
-                  }`}>
-                    {item.status === 'completed' ? 'Done' : 
-                     item.status === 'in-progress' ? `${item.progress}%` : 'Planned'}
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      item.status === "completed"
+                        ? "bg-green-500/30 text-green-300"
+                        : item.status === "in-progress"
+                        ? "bg-blue-500/30 text-blue-300"
+                        : "bg-gray-500/30 text-gray-300"
+                    }`}
+                  >
+                    {item.status === "completed"
+                      ? "Done"
+                      : item.status === "in-progress"
+                      ? `${item.progress}%`
+                      : "Planned"}
                   </span>
                   <span className="text-white/70 text-xs">{item.quarter}</span>
                 </div>
@@ -228,11 +239,14 @@ export default function Roadmap() {
       <header className="border-b border-border/10 sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <Link
+              to="/"
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <KimuLogo className="w-6 h-6 text-foreground" />
               <span className="font-medium text-foreground">Roadmap</span>
             </Link>
-            
+
             <div className="flex items-center gap-6">
               <a
                 href="https://github.com/robinroy03/videoeditor"
@@ -256,14 +270,22 @@ export default function Roadmap() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M8 12a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />
                   <path d="M14 12a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />
                   <path d="M15.5 17c0 1 1.5 3 2 3c1.5 0 2.833 -1.667 3.5 -3c0.667 -1.667 0.5 -5.833 -1.5 -11.5c-1.457 -1.015 -3 -1.34 -4.5 -1.5l-0.972 1.923a11.913 11.913 0 0 0 -4.053 0l-0.975 -1.923c-1.5 0.16 -3.043 0.485 -4.5 1.5c-2 5.667 -2.167 9.833 -1.5 11.5c0.667 1.333 2 3 3.5 3c0.5 0 2 -2 2 -3" />
                   <path d="M7 16.5c3.5 1 6.5 1 10 0" />
                 </svg>
               </a>
-              <Link 
+              <Link
                 to="/"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
               >
@@ -279,29 +301,35 @@ export default function Roadmap() {
       <div className="max-w-4xl mx-auto px-6 py-16">
         {/* Roadmap Header */}
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Roadmap</h1>
-          <h2 className="text-lg text-muted-foreground mb-2">Development Timeline</h2>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Roadmap
+          </h1>
+          <h2 className="text-lg text-muted-foreground mb-2">
+            Development Timeline
+          </h2>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Track our progress as we build the future of video editing. Each timeline shows different feature tracks with projected implementation schedules.
+            Track our progress as we build the future of video editing. Each
+            timeline shows different feature tracks with projected
+            implementation schedules.
           </p>
         </div>
 
         <div className="space-y-8">
-          <TimelineTrack 
-            title="Core Features" 
-            items={coreFeatures} 
+          <TimelineTrack
+            title="Core Features"
+            items={coreFeatures}
             color="bg-blue-500"
             delay={0}
           />
-          <TimelineTrack 
-            title="Advanced Features" 
-            items={advancedFeatures} 
+          <TimelineTrack
+            title="Advanced Features"
+            items={advancedFeatures}
             color="bg-purple-500"
             delay={0.2}
           />
-          <TimelineTrack 
-            title="Platform Expansion" 
-            items={platformFeatures} 
+          <TimelineTrack
+            title="Platform Expansion"
+            items={platformFeatures}
             color="bg-pink-500"
             delay={0.4}
           />
@@ -309,4 +337,4 @@ export default function Roadmap() {
       </div>
     </div>
   );
-} 
+}

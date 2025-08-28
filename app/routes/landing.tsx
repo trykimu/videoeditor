@@ -1,6 +1,11 @@
 import * as React from "react";
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence, motion as m, type TargetAndTransition } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  motion as m,
+  type TargetAndTransition,
+} from "framer-motion";
 import { KimuLogo } from "../components/ui/KimuLogo";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -75,7 +80,7 @@ async function getWaitlistCount() {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         "Content-Type": "application/json",
-        "Prefer": "count=exact"
+        Prefer: "count=exact",
       },
     });
 
@@ -113,7 +118,8 @@ export default function Landing() {
   const [gitHubStars, setGitHubStars] = useState<number>(0);
   const gifMaskStyle: React.CSSProperties = {
     // backgroundImage: "url('https://i1.wp.com/68.media.tumblr.com/7c6a7e8721763add9fd8138e1a95880b/tumblr_ove0utGygC1uzwgsuo1_400.gif')",
-    backgroundImage: "url('https://cdn.dribbble.com/userupload/24426263/file/original-52cf3a971cd1054bf2985d8f34a9a056.gif')",
+    backgroundImage:
+      "url('https://cdn.dribbble.com/userupload/24426263/file/original-52cf3a971cd1054bf2985d8f34a9a056.gif')",
     backgroundSize: "cover",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
@@ -129,11 +135,13 @@ export default function Landing() {
 
     const fetchGitHubStars = async () => {
       try {
-        const res = await fetch("https://api.github.com/repos/trykimu/videoeditor");
+        const res = await fetch(
+          "https://api.github.com/repos/trykimu/videoeditor"
+        );
         const data = await res.json();
         setGitHubStars(data.stargazers_count || 0);
       } catch (error) {
-        console.log('Failed to fetch GitHub stars');
+        console.log("Failed to fetch GitHub stars");
       }
     };
 
@@ -144,119 +152,151 @@ export default function Landing() {
   // Calculate totalDuration as the end of the last asset
   const timelineAssets = [
     {
-      label: 'Intro',
-      color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+      label: "Intro",
+      color: "bg-blue-500/20 border-blue-500/30 text-blue-400",
       icon: <Video className="w-3 h-3 text-blue-400 mr-1" />, // blue
       heading: (
         <>
-          <span className="text-white">Think "vibe coding,"</span><br />
+          <span className="text-white">Think "vibe coding,"</span>
+          <br />
           <span className="text-white/80">but for video editing</span>
         </>
       ),
-      desc: 'A new way to edit. Effortless, playful, and powerful.',
-      subtext: 'Creators save time while Kimu handles the heavy lifting.',
-      subtext2: 'For creators who\'d rather be creating. If editing drains you — Kimu gives your time back.',
+      desc: "A new way to edit. Effortless, playful, and powerful.",
+      subtext: "Creators save time while Kimu handles the heavy lifting.",
+      subtext2:
+        "For creators who'd rather be creating. If editing drains you — Kimu gives your time back.",
       badges: ["AI-Powered", "Instant Preview", "Creator DNA"],
       start: 0,
       duration: 30,
-      animation: { initial: { opacity: 0, scale: 0.8, y: 40 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.8, y: -40 } },
+      animation: {
+        initial: { opacity: 0, scale: 0.8, y: 40 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.8, y: -40 },
+      },
     },
     {
-      label: 'Built for Creators',
-      color: 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400',
+      label: "Built for Creators",
+      color: "bg-yellow-500/20 border-yellow-500/30 text-yellow-400",
       icon: <Sparkles className="w-3 h-3 text-yellow-400 mr-1" />, // yellow
       heading: (
         <>
-          <span className="text-yellow-400">Built for creators,</span><br />
+          <span className="text-yellow-400">Built for creators,</span>
+          <br />
           <span className="text-white">by creators</span>
         </>
       ),
-      desc: 'Every feature designed to get out of your way and let creativity flow.',
-      subtext: 'We obsess over details so you can focus on your story.',
-      subtext2: 'A tool that feels like an extension of your imagination.',
+      desc: "Every feature designed to get out of your way and let creativity flow.",
+      subtext: "We obsess over details so you can focus on your story.",
+      subtext2: "A tool that feels like an extension of your imagination.",
       badges: ["Creator-first", "Intuitive", "Community-driven"],
       start: 30,
       duration: 30,
-      animation: { initial: { opacity: 0, x: -80, scale: 0.7 }, animate: { opacity: 1, x: 0, scale: 1 }, exit: { opacity: 0, x: 80, scale: 0.7 } },
+      animation: {
+        initial: { opacity: 0, x: -80, scale: 0.7 },
+        animate: { opacity: 1, x: 0, scale: 1 },
+        exit: { opacity: 0, x: 80, scale: 0.7 },
+      },
     },
     {
-      label: 'Instant Preview',
-      color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+      label: "Instant Preview",
+      color: "bg-blue-500/20 border-blue-500/30 text-blue-400",
       icon: <Zap className="w-3 h-3 text-blue-400 mr-1" />, // blue
       heading: (
         <>
           <span className="text-blue-400">Instant Preview</span>
         </>
       ),
-      desc: 'Real-time editing with instant preview. Every cut happens immediately.',
-      subtext: 'No more waiting. See your changes as you make them.',
-      subtext2: 'Edit at the speed of thought.',
+      desc: "Real-time editing with instant preview. Every cut happens immediately.",
+      subtext: "No more waiting. See your changes as you make them.",
+      subtext2: "Edit at the speed of thought.",
       badges: ["Instant Preview", "No Waiting", "Realtime"],
       start: 60,
       duration: 30,
-      animation: { initial: { opacity: 0, scale: 0.5, rotate: -10 }, animate: { opacity: 1, scale: 1, rotate: 0 }, exit: { opacity: 0, scale: 0.5, rotate: 10 } },
+      animation: {
+        initial: { opacity: 0, scale: 0.5, rotate: -10 },
+        animate: { opacity: 1, scale: 1, rotate: 0 },
+        exit: { opacity: 0, scale: 0.5, rotate: 10 },
+      },
     },
     {
-      label: 'AI Assistant',
-      color: 'bg-purple-500/20 border-purple-500/30 text-purple-400',
+      label: "AI Assistant",
+      color: "bg-purple-500/20 border-purple-500/30 text-purple-400",
       icon: <Wand2 className="w-3 h-3 text-purple-400 mr-1" />, // purple
       heading: (
         <>
           <span className="text-purple-400">AI Assistant</span>
         </>
       ),
-      desc: 'Smart suggestions that learn your style and automate repetitive tasks.',
-      subtext: 'Kimu Copilot helps you edit faster with smart, context-aware suggestions.',
-      subtext2: 'Automate the boring, focus on the magic.',
+      desc: "Smart suggestions that learn your style and automate repetitive tasks.",
+      subtext:
+        "Kimu Copilot helps you edit faster with smart, context-aware suggestions.",
+      subtext2: "Automate the boring, focus on the magic.",
       badges: ["AI Copilot", "Smart Suggestions", "Automation"],
       start: 90,
       duration: 30,
-      animation: { initial: { opacity: 0, y: 60, scale: 0.7 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -60, scale: 0.7 } },
+      animation: {
+        initial: { opacity: 0, y: 60, scale: 0.7 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, y: -60, scale: 0.7 },
+      },
     },
     {
-      label: 'Creator DNA',
-      color: 'bg-pink-500/20 border-pink-500/30 text-pink-400',
+      label: "Creator DNA",
+      color: "bg-pink-500/20 border-pink-500/30 text-pink-400",
       icon: <Heart className="w-3 h-3 text-pink-400 mr-1" />, // pink
       heading: (
         <>
           <span className="text-pink-400">Creator DNA</span>
         </>
       ),
-      desc: 'Intuitive interface that feels like an extension of your creativity.',
-      subtext: 'Personalized, playful, and powerful.',
-      subtext2: 'Designed for creators, by creators.',
+      desc: "Intuitive interface that feels like an extension of your creativity.",
+      subtext: "Personalized, playful, and powerful.",
+      subtext2: "Designed for creators, by creators.",
       badges: ["Personalized", "Intuitive UI", "Playful"],
       start: 120,
       duration: 34,
-      animation: { initial: { opacity: 0, scale: 0.6, x: 60 }, animate: { opacity: 1, scale: 1, x: 0 }, exit: { opacity: 0, scale: 0.6, x: -60 } },
+      animation: {
+        initial: { opacity: 0, scale: 0.6, x: 60 },
+        animate: { opacity: 1, scale: 1, x: 0 },
+        exit: { opacity: 0, scale: 0.6, x: -60 },
+      },
     },
     {
-      label: 'Vibe Engine',
-      color: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+      label: "Vibe Engine",
+      color: "bg-blue-500/20 border-blue-500/30 text-blue-400",
       icon: <Sparkles className="w-3 h-3 text-blue-400 mr-1" />, // blue
       heading: (
         <>
           <span className="text-blue-400">Vibe Engine</span>
         </>
       ),
-      desc: 'Transform raw footage into polished stories with one-click magic.',
-      subtext: 'Let Kimu handle the technicals while you focus on the vibe.',
-      subtext2: 'One-click story magic for creators.',
+      desc: "Transform raw footage into polished stories with one-click magic.",
+      subtext: "Let Kimu handle the technicals while you focus on the vibe.",
+      subtext2: "One-click story magic for creators.",
       badges: ["Vibe Engine", "One-click Magic", "Story Polishing"],
       start: 154,
       duration: 30,
-      animation: { initial: { opacity: 0, scale: 0.7, y: 80 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.7, y: -80 } },
+      animation: {
+        initial: { opacity: 0, scale: 0.7, y: 80 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.7, y: -80 },
+      },
     },
   ];
   // Calculate totalDuration as the end of the last asset
-  const totalDuration = timelineAssets.length > 0 ? (timelineAssets[timelineAssets.length - 1].start + timelineAssets[timelineAssets.length - 1].duration) : 0;
+  const totalDuration =
+    timelineAssets.length > 0
+      ? timelineAssets[timelineAssets.length - 1].start +
+        timelineAssets[timelineAssets.length - 1].duration
+      : 0;
 
   // Use totalDuration for playhead looping
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isPlaying) {
       interval = setInterval(() => {
-        setCurrentTime(prev => (prev >= totalDuration ? 0 : prev + 1));
+        setCurrentTime((prev) => (prev >= totalDuration ? 0 : prev + 1));
       }, 120); // slowed down by 20%
     }
     return () => clearInterval(interval);
@@ -268,8 +308,7 @@ export default function Landing() {
   // Use totalDuration for timeline block widths and playhead
   const activeAssetIndex = timelineAssets.findIndex(
     (asset, i) =>
-      currentTime >= asset.start &&
-      currentTime < asset.start + asset.duration
+      currentTime >= asset.start && currentTime < asset.start + asset.duration
   );
   const activeAsset = timelineAssets[activeAssetIndex] || timelineAssets[0];
 
@@ -279,19 +318,22 @@ export default function Landing() {
     setSuccess(false);
     const ip = await getIp();
     try {
-      const res = await fetch("https://<SUPABASE_URL>.supabase.co/rest/v1/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ email, ip_address: ip }),
-      });
+      const res = await fetch(
+        "https://<SUPABASE_URL>.supabase.co/rest/v1/waitlist",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email, ip_address: ip }),
+        }
+      );
       if (res.ok) {
         setSuccess(true);
         setEmail("");
-        setWaitlistCount(prev => prev + 1);
+        setWaitlistCount((prev) => prev + 1);
         toast.success("You're on the waitlist!");
       } else {
         toast.error("Failed to join waitlist. Try again.");
@@ -307,11 +349,18 @@ export default function Landing() {
     setLogoSpinning(true);
     try {
       // Use AudioContext with proper feature detection, no 'window as any'
-      const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
       if (!AudioCtx) throw new Error("Web Audio API not supported");
       const audioContext = new AudioCtx();
 
-      const createTone = (freq: number, startTime: number, duration: number) => {
+      const createTone = (
+        freq: number,
+        startTime: number,
+        duration: number
+      ) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
@@ -332,9 +381,8 @@ export default function Landing() {
       createTone(659.25, now, 0.4);
       createTone(783.99, now + 0.1, 0.3);
       createTone(987.77, now + 0.2, 0.2);
-
     } catch (error) {
-      console.log('Audio not supported');
+      console.log("Audio not supported");
     }
 
     setTimeout(() => {
@@ -346,11 +394,38 @@ export default function Landing() {
 
   // Sample copilot chat messages
   const sampleChat = [
-    { id: 1, isUser: false, content: "Hi! I'm Kimu Copilot. How can I help you edit your video today?", timestamp: new Date() },
-    { id: 2, isUser: true, content: "Can you trim the first 10 seconds?", timestamp: new Date() },
-    { id: 3, isUser: false, content: "Done! The first 10 seconds have been trimmed from your timeline.", timestamp: new Date() },
-    { id: 4, isUser: true, content: "Add a fade-in effect to the intro clip.", timestamp: new Date() },
-    { id: 5, isUser: false, content: "Fade-in effect added to the intro. Anything else?", timestamp: new Date() },
+    {
+      id: 1,
+      isUser: false,
+      content:
+        "Hi! I'm Kimu Copilot. How can I help you edit your video today?",
+      timestamp: new Date(),
+    },
+    {
+      id: 2,
+      isUser: true,
+      content: "Can you trim the first 10 seconds?",
+      timestamp: new Date(),
+    },
+    {
+      id: 3,
+      isUser: false,
+      content:
+        "Done! The first 10 seconds have been trimmed from your timeline.",
+      timestamp: new Date(),
+    },
+    {
+      id: 4,
+      isUser: true,
+      content: "Add a fade-in effect to the intro clip.",
+      timestamp: new Date(),
+    },
+    {
+      id: 5,
+      isUser: false,
+      content: "Fade-in effect added to the intro. Anything else?",
+      timestamp: new Date(),
+    },
   ];
 
   // Features array for the stepper
@@ -384,7 +459,9 @@ export default function Landing() {
   useEffect(() => {
     if (!featureAutoPlay) return;
     const interval = setInterval(() => {
-      setFeatureIndex((prev) => (isPlaying ? (prev + 1) % features.length : prev));
+      setFeatureIndex((prev) =>
+        isPlaying ? (prev + 1) % features.length : prev
+      );
     }, 3500);
     return () => clearInterval(interval);
   }, [isPlaying, featureAutoPlay, features.length]);
@@ -393,7 +470,8 @@ export default function Landing() {
   const timelineSections = features.length;
   const timelineDuration = 154; // seconds (from earlier code)
   const sectionLength = timelineDuration / timelineSections;
-  const currentFeatureIndex = Math.floor(currentTime / sectionLength) % features.length;
+  const currentFeatureIndex =
+    Math.floor(currentTime / sectionLength) % features.length;
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
@@ -402,7 +480,10 @@ export default function Landing() {
         {/* Logo and Title Section - Left Aligned */}
         <section id="hero-section" className="py-12 relative">
           {/* Decorative background */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+          >
             <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] max-w-[1000px] bg-gradient-to-br from-blue-500/15 via-purple-500/10 to-pink-500/15 blur-3xl rounded-full" />
             <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:16px_16px]" />
           </div>
@@ -423,15 +504,28 @@ export default function Landing() {
               >
                 <KimuLogo className="w-16 h-16 text-foreground" />
               </motion.div>
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground">Kimu</h1>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+                Kimu
+              </h1>
             </motion.div>
             <div className="mt-4 max-w-4xl">
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-foreground">
-                <span className="block bg-clip-text text-transparent" style={gifMaskStyle}>Supercharging</span>
-                <span className="block bg-clip-text text-transparent" style={gifMaskStyle}>Creator Productivity</span>
+                <span
+                  className="block bg-clip-text text-transparent"
+                  style={gifMaskStyle}
+                >
+                  Supercharging
+                </span>
+                <span
+                  className="block bg-clip-text text-transparent"
+                  style={gifMaskStyle}
+                >
+                  Creator Productivity
+                </span>
               </h2>
               <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-2xl">
-                Kimu is a playful, zero‑latency video editor with an AI copilot. Create, upload and edit at the speed of thought.
+                Kimu is a playful, zero‑latency video editor with an AI copilot.
+                Create, upload and edit at the speed of thought.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link to="/login">
@@ -523,7 +617,9 @@ export default function Landing() {
                       </div>
                       {/* Export Settings Card, translucent, full width, aligned */}
                       <div className="bg-background/25 backdrop-blur-sm border border-border/20 rounded-xl p-4 shadow-md flex flex-col gap-2 opacity-25 mt-2">
-                        <div className="font-semibold text-foreground mb-2">Export Settings</div>
+                        <div className="font-semibold text-foreground mb-2">
+                          Export Settings
+                        </div>
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div>Format: MP4</div>
                           <div>Quality: 4K (60fps)</div>
@@ -535,7 +631,7 @@ export default function Landing() {
 
                   {/* Center Content */}
                   <div className="flex-1 flex flex-col min-w-0 order-first sm:order-none">
-
+                    
                     {/* Mobile Player (replaces desktop preview on small screens) */}
                     <div className="sm:hidden w-full">
                       <MobileVideoEditorPreview
@@ -555,6 +651,7 @@ export default function Landing() {
                       {/* Main Content - Strictly centered, with reserved space for play bar */}
                       <div className="flex-1 flex flex-col justify-center items-center text-center px-2 md:px-6 lg:px-12 pt-8 pb-20 w-full h-full overflow-hidden">
                         <AnimatePresence mode="wait" initial={false}>
+
                           <motion.div
                             key={activeAssetIndex}
                             initial={activeAsset.animation.initial}
@@ -608,8 +705,11 @@ export default function Landing() {
                               </p>
                             </div>
                             <div className="flex flex-wrap items-center justify-center gap-3 w-full min-h-[48px] mt-6">
-                              {activeAsset.badges.map((badge) => (
-                                <Badge key={badge} className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
+                              {activeAsset.badges.map((badge, i) => (
+                                <Badge
+                                  key={i}
+                                  className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse"
+                                >
                                   {badge}
                                 </Badge>
                               ))}
@@ -647,7 +747,9 @@ export default function Landing() {
                               </button>
                             </div>
                             <span className="text-xs text-white/70 font-mono">
-                              {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / 2:34
+                              {Math.floor(currentTime / 60)}:
+                              {(currentTime % 60).toString().padStart(2, "0")} /
+                              2:34
                             </span>
                             <div className="flex items-center gap-2">
                               <button className="hover:text-white/70 transition-colors p-1">
@@ -662,44 +764,24 @@ export default function Landing() {
                       </div>
                     </div>
 
-                  {/* Tools Panel */}
-                  <div className="h-12 bg-muted/10 border-y border-border/20 flex items-center px-4 gap-2">
-                    <div className="flex items-center gap-1">
-                      {[
-                        { icon: Scissors, label: "Cut" },
-                        { icon: Copy, label: "Copy" },
-                        { icon: Undo, label: "Undo" },
-                        { icon: Redo, label: "Redo" },
-                      ].map((tool, i) => (
-                        <button
-                          key={i}
-                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
-                          title={tool.label}
-                        >
-                          <tool.icon className="w-4 h-4" />
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <div className="w-px h-6 bg-border/30 mx-2" />
-                    
-                    <div className="flex items-center gap-1">
-                      {[
-                        { icon: Layers, label: "Layers" },
-                        { icon: Sparkles, label: "Effects" },
-                        { icon: Type, label: "Text" },
-                        { icon: Wand2, label: "AI Tools" },
-                      ].map((tool, i) => (
-                        <button
-                          key={i}
-                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
-                          title={tool.label}
-                        >
-                          <tool.icon className="w-4 h-4" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                    {/* Tools Panel */}
+                    <div className="h-12 bg-muted/10 border-y border-border/20 flex items-center px-4 gap-2">
+                      <div className="flex items-center gap-1">
+                        {[
+                          { icon: Scissors, label: "Cut" },
+                          { icon: Copy, label: "Copy" },
+                          { icon: Undo, label: "Undo" },
+                          { icon: Redo, label: "Redo" },
+                        ].map((tool, i) => (
+                          <button
+                            key={i}
+                            className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
+                            title={tool.label}
+                          >
+                            <tool.icon className="w-4 h-4" />
+                          </button>
+                        ))}
+                      </div>
 
                       <div className="w-px h-6 bg-border/30 mx-2" />
 
@@ -709,9 +791,9 @@ export default function Landing() {
                           { icon: Sparkles, label: "Effects" },
                           { icon: Type, label: "Text" },
                           { icon: Wand2, label: "AI Tools" },
-                        ].map((tool) => (
+                        ].map((tool, i) => (
                           <button
-                            key={tool.label}
+                            key={i}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
                             title={tool.label}
                           >
@@ -727,7 +809,9 @@ export default function Landing() {
                         {/* Track Labels */}
                         <div className="w-20 bg-muted/10 border-r border-border/20">
                           <div className="h-12 border-b border-border/20 flex items-center px-2">
-                            <span className="text-xs text-muted-foreground">Video</span>
+                            <span className="text-xs text-muted-foreground">
+                              Video
+                            </span>
                           </div>
                         </div>
 
@@ -749,7 +833,7 @@ export default function Landing() {
                               const width = `${widthPercent}%`;
                               return (
                                 <motion.div
-                                  key={asset.label}
+                                  key={i}
                                   className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border overflow-hidden ${asset.color}`}
                                   style={{ width, minWidth: 0 }}
                                   initial={{ width: 0 }}
@@ -777,11 +861,11 @@ export default function Landing() {
                           >
                             <div className="absolute -top-2 -left-1 w-2 h-2 bg-red-500 rotate-45" />
                           </motion.div>
+
                         </div>
                       </div>
                     </div>
                   </div>
-
                   {/* Right Sidebar - Inspector Panel (wider) */}
                   <div className="min-w-[220px] max-w-[320px] w-full bg-background/25 backdrop-blur-sm border-l border-border/20 flex flex-col gap-4 p-3 h-full ipadmini:min-w-[160px] ipadmini:max-w-[220px] relative">
                     {/* Waitlist Card with reduced white glow */}
@@ -812,7 +896,11 @@ export default function Landing() {
                             disabled={loading || success || !email}
                             className="w-full h-9 text-xs bg-white/90 text-black hover:bg-white disabled:bg-white/50"
                           >
-                            {loading ? "Joining..." : success ? "✓ You're in!" : "Join Waitlist"}
+                            {loading
+                              ? "Joining..."
+                              : success
+                              ? "✓ You're in!"
+                              : "Join Waitlist"}
                           </Button>
                         </form>
                         {success && (
@@ -825,8 +913,9 @@ export default function Landing() {
                             🎉 We'll notify you when it's ready!
                           </motion.div>
                         )}
-                        <p className="text-xs leading-relaxed mt-3 text-white/20 relative z-20">
-                          Get notified when Kimu launches. No spam, just updates on the future of video editing.
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
+                          Get notified when Kimu launches. No spam, just updates
+                          on the future of video editing.
                         </p>
                       </div>
                     </div>
@@ -848,7 +937,10 @@ export default function Landing() {
                         ))}
                       </div>
                       {/* Chat input box pinned to bottom, always visible */}
-                      <form className="flex items-center gap-2 pt-2 border-t border-border/20 bg-background/80 absolute left-0 right-0 bottom-0 p-3" style={{ zIndex: 2 }}>
+                      <form
+                        className="flex items-center gap-2 pt-2 border-t border-border/20 bg-background/80 absolute left-0 right-0 bottom-0 p-3"
+                        style={{ zIndex: 2 }}
+                      >
                         <textarea
                           placeholder="Ask Kimu..."
                           className="flex-1 rounded-lg border border-border/60 bg-background px-3 pt-2.5 pb-1 text-xs placeholder:text-muted-foreground/90 focus:outline-none transition-all duration-200 shadow-sm resize-none min-h-8 max-h-20 leading-relaxed"
@@ -876,8 +968,12 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-8 flex items-end justify-between gap-6 flex-wrap">
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Built for flow</p>
-                <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">Everything you need to cut faster</h3>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Built for flow
+                </p>
+                <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                  Everything you need to cut faster
+                </h3>
               </div>
             </div>
 
@@ -885,33 +981,48 @@ export default function Landing() {
               {[
                 {
                   area: "md:[grid-area:1/1/2/7] xl:[grid-area:1/1/2/5]",
-                  icon: <Monitor className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  icon: (
+                    <Monitor className="h-4 w-4 text-black dark:text-neutral-400" />
+                  ),
                   title: "Web‑based, zero‑install",
-                  description: "Runs in your browser with instant preview — no downloads, no setup.",
+                  description:
+                    "Runs in your browser with instant preview — no downloads, no setup.",
                 },
                 {
                   area: "md:[grid-area:1/7/2/13] xl:[grid-area:2/1/3/5]",
-                  icon: <Github className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  icon: (
+                    <Github className="h-4 w-4 text-black dark:text-neutral-400" />
+                  ),
                   title: "OSS — open and community‑built",
-                  description: "Completely open‑source. Built with and for the community. Fork, extend, and make it yours.",
+                  description:
+                    "Completely open‑source. Built with and for the community. Fork, extend, and make it yours.",
                 },
                 {
                   area: "md:[grid-area:2/1/3/7] xl:[grid-area:1/5/3/8]",
-                  icon: <Sparkles className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  icon: (
+                    <Sparkles className="h-4 w-4 text-black dark:text-neutral-400" />
+                  ),
                   title: "AI Copilot built‑in",
-                  description: "Cut silence, add fades, place assets, generate titles — all with prompts.",
+                  description:
+                    "Cut silence, add fades, place assets, generate titles — all with prompts.",
                 },
                 {
                   area: "md:[grid-area:2/7/3/13] xl:[grid-area:1/8/2/13]",
-                  icon: <Cloud className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  icon: (
+                    <Cloud className="h-4 w-4 text-black dark:text-neutral-400" />
+                  ),
                   title: "Everything, On the Cloud",
-                  description: "All your assets, timelines and projects are stored securely in the cloud — access them anywhere, any device.",
+                  description:
+                    "All your assets, timelines and projects are stored securely in the cloud — access them anywhere, any device.",
                 },
                 {
                   area: "md:[grid-area:3/1/4/13] xl:[grid-area:2/8/3/13]",
-                  icon: <Shield className="h-4 w-4 text-black dark:text-neutral-400" />,
+                  icon: (
+                    <Shield className="h-4 w-4 text-black dark:text-neutral-400" />
+                  ),
                   title: "Security built‑in",
-                  description: "Private by design: Strong auth, scoped access, and server‑enforced ownership for every asset and project.",
+                  description:
+                    "Private by design: Strong auth, scoped access, and server‑enforced ownership for every asset and project.",
                 },
               ].map((item, i) => (
                 <li key={item.title} className={`min-h-[12rem] md:min-h-[14rem] list-none ${item.area}`}>
@@ -953,7 +1064,9 @@ export default function Landing() {
             {/* Left: cleaner mock plugin window */}
             <div className="rounded-2xl border border-border/20 bg-background p-0 overflow-hidden relative">
               <div className="h-10 border-b border-border/20 flex items-center px-4 gap-3">
-                <div className="text-xs text-muted-foreground">Kimu • Plugins</div>
+                <div className="text-xs text-muted-foreground">
+                  Kimu • Plugins
+                </div>
               </div>
               {/* content */}
               <div className="grid sm:grid-cols-2">
@@ -967,10 +1080,16 @@ export default function Landing() {
                   ].map((p, i) => (
                     <div key={p.name} className="rounded-lg border border-border/20 hover:border-border/40 transition p-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 grid place-items-center rounded-md bg-muted/30 border border-border/20 text-muted-foreground">{p.icon}</div>
+                        <div className="h-7 w-7 grid place-items-center rounded-md bg-muted/30 border border-border/20 text-muted-foreground">
+                          {p.icon}
+                        </div>
                         <div>
-                          <div className="text-sm font-medium text-foreground">{p.name}</div>
-                          <div className="text-[11px] text-muted-foreground">{p.sub}</div>
+                          <div className="text-sm font-medium text-foreground">
+                            {p.name}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {p.sub}
+                          </div>
                         </div>
                       </div>
                       <div className={`h-5 w-9 rounded-full border border-border/30 ${p.on ? 'bg-foreground' : 'bg-background'}`}>
@@ -981,7 +1100,9 @@ export default function Landing() {
                 </div>
                 {/* preview */}
                 <div className="p-4">
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Preview</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                    Preview
+                  </div>
                   {/* 3D stacked preview */}
                   <div className="rounded-lg border border-border/20 h-40 bg-muted/10 relative overflow-hidden [perspective:900px]">
                     <div className="absolute inset-0 grid place-items-center [transform-style:preserve-3d]">
@@ -1002,7 +1123,10 @@ export default function Landing() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 text-[11px] text-muted-foreground">Plugins can add nodes, effects, and exporters into your pipeline.</div>
+                  <div className="mt-3 text-[11px] text-muted-foreground">
+                    Plugins can add nodes, effects, and exporters into your
+                    pipeline.
+                  </div>
                 </div>
               </div>
               {/* (Removed) Overlap preview across columns */}
@@ -1010,21 +1134,52 @@ export default function Landing() {
 
             {/* Right: copy */}
             <div className="">
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">Coming soon</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                Coming soon
+              </span>
               <div className="flex items-center gap-3 mb-2 mt-3">
                 <h3 className="text-2xl font-bold text-foreground">Plugin ecosystem</h3>
-
               </div>
-              <p className="text-muted-foreground mb-6 max-w-prose">Extend Kimu without forking the editor. Install community plugins or build your own for effects, automations, and export pipelines — powered by a simple, sandboxed API.</p>
+              <p className="text-muted-foreground mb-6 max-w-prose">
+                Extend Kimu without forking the editor. Install community
+                plugins or build your own for effects, automations, and export
+                pipelines — powered by a simple, sandboxed API.
+              </p>
               <div className="grid sm:grid-cols-3 gap-4">
-                {[{ t: 'Effects & generators', d: 'Transitions, LUTs, titles, overlays, audio FX.' }, { t: 'Automations', d: 'Silence removal, transcript edits, batch cut, templates.' }, { t: 'Pipelines', d: 'Export hooks, captions, upload/publish flows.' }].map((c, i) => (
-                  <div key={c.t} className="rounded-xl border border-border/20 p-4 bg-muted/10">
-                    <h4 className="text-sm font-semibold text-foreground mb-1">{c.t}</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
+                {[
+                  {
+                    t: "Effects & generators",
+                    d: "Transitions, LUTs, titles, overlays, audio FX.",
+                  },
+                  {
+                    t: "Automations",
+                    d: "Silence removal, transcript edits, batch cut, templates.",
+                  },
+                  {
+                    t: "Pipelines",
+                    d: "Export hooks, captions, upload/publish flows.",
+                  },
+                ].map((c, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border/20 p-4 bg-muted/10"
+                  >
+                    <h4 className="text-sm font-semibold text-foreground mb-1">
+                      {c.t}
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {c.d}
+                    </p>
                   </div>
                 ))}
               </div>
-              <div className="mt-6 text-sm text-muted-foreground">Want early access to the API? <a href="mailto:hello@trykimu.com" className="underline">Get in touch</a>.</div>
+              <div className="mt-6 text-sm text-muted-foreground">
+                Want early access to the API?{" "}
+                <a href="mailto:hello@trykimu.com" className="underline">
+                  Get in touch
+                </a>
+                .
+              </div>
             </div>
           </div>
         </section>
@@ -1042,7 +1197,10 @@ export default function Landing() {
             </div>
 
             {/* Right: Multiplayer 3D Scene with pointer-follow */}
-            <FollowerPointerCard title="you" className="rounded-2xl border border-border/20 bg-background/90 p-6 relative overflow-hidden shadow-2xl">
+            <FollowerPointerCard
+              title="you"
+              className="rounded-2xl border border-border/20 bg-background/90 p-6 relative overflow-hidden shadow-2xl"
+            >
               <style>{`
         @keyframes playhead { 0%{ left:8%; } 50%{ left:92%; } 100%{ left:8%; } }
         @keyframes pulse { 0%,100%{ opacity:.5 } 50%{ opacity:1 } }
@@ -1054,10 +1212,11 @@ export default function Landing() {
               <div className="absolute -top-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.25),rgba(16,185,129,0)_70%)] blur-3xl" />
 
               <div className="relative h-72 [transform:perspective(1200px)_rotateX(12deg)_rotateY(-6deg)]">
-
                 {/* Toolbar */}
                 <div className="h-10 flex items-center justify-between px-4 rounded-md border border-border/30 bg-black/40 shadow-sm mb-4">
-                  <div className="text-[11px] text-muted-foreground">🎬 Teaser.mp4 • Project Kimu</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    🎬 Teaser.mp4 • Project Kimu
+                  </div>
                   <div className="flex items-center gap-3 text-[11px]">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]" />
                     <span className="text-muted-foreground">synced</span>
@@ -1092,21 +1251,26 @@ export default function Landing() {
                 {/* Multiplayer cursors */}
                 <div className="absolute left-[20%] top-16 flex items-center gap-1 animate-[float_4s_ease-in-out_infinite]">
                   <div className="w-3 h-3 rotate-45 bg-blue-400 animate-[glow_2s_infinite]" />
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/40">sreecha</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/40">
+                    sreecha
+                  </span>
                 </div>
                 <div className="absolute left-[58%] top-28 flex items-center gap-1 animate-[float_5s_ease-in-out_infinite]">
                   <div className="w-3 h-3 rotate-45 bg-emerald-400 animate-[glow_2.5s_infinite]" />
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">robin</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                    robin
+                  </span>
                 </div>
                 <div className="absolute left-[75%] top-40 flex items-center gap-1 animate-[float_6s_ease-in-out_infinite]">
                   <div className="w-3 h-3 rotate-45 bg-purple-400 animate-[glow_3s_infinite]" />
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-400/40">lee</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-400/40">
+                    lee
+                  </span>
                 </div>
               </div>
             </FollowerPointerCard>
           </div>
         </section>
-
 
         {/* And much more */}
         <section className="py-16">
@@ -1125,33 +1289,38 @@ export default function Landing() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-transparent to-background [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
               <ul className="flex gap-3 py-3 whitespace-nowrap animate-[tickerX_28s_linear_infinite]">
                 {[
-                  { id: '1', i: '⚡', t: 'Zero‑lag scrubbing' },
-                  { id: '2', i: '⌘', t: 'Pro shortcuts' },
-                  { id: '3', i: '🏷️', t: 'Templates' },
-                  { id: '4', i: '🗂️', t: 'Bins & tags' },
-                  { id: '5', i: '💬', t: 'Inline comments' },
-                  { id: '6', i: '🧪', t: 'Version history' },
-                  { id: '7', i: '🎚️', t: 'Audio ducking' },
-                  { id: '8', i: '🎛️', t: 'LUTs & FX' },
-                  { id: '9', i: '🤖', t: 'Smart captions' },
-                  { id: '10', i: '🔌', t: 'Plugin API' },
-                ].concat([
-                  { id: '11', i: '⚡', t: 'Zero‑lag scrubbing' },
-                  { id: '12', i: '⌘', t: 'Pro shortcuts' },
-                  { id: '13', i: '🏷️', t: 'Templates' },
-                  { id: '14', i: '🗂️', t: 'Bins & tags' },
-                  { id: '15', i: '💬', t: 'Inline comments' },
-                  { id: '16', i: '🧪', t: 'Version history' },
-                  { id: '17', i: '🎚️', t: 'Audio ducking' },
-                  { id: '18', i: '🎛️', t: 'LUTs & FX' },
-                  { id: '19', i: '🤖', t: 'Smart captions' },
-                  { id: '20', i: '🔌', t: 'Plugin API' },
-                ]).map((chip) => (
-                  <li key={chip.id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90">
-                    <span>{chip.i}</span>
-                    <span>{chip.t}</span>
-                  </li>
-                ))}
+                  { i: "⚡", t: "Zero‑lag scrubbing" },
+                  { i: "⌘", t: "Pro shortcuts" },
+                  { i: "🏷️", t: "Templates" },
+                  { i: "🗂️", t: "Bins & tags" },
+                  { i: "💬", t: "Inline comments" },
+                  { i: "🧪", t: "Version history" },
+                  { i: "🎚️", t: "Audio ducking" },
+                  { i: "🎛️", t: "LUTs & FX" },
+                  { i: "🤖", t: "Smart captions" },
+                  { i: "🔌", t: "Plugin API" },
+                ]
+                  .concat([
+                    { i: "⚡", t: "Zero‑lag scrubbing" },
+                    { i: "⌘", t: "Pro shortcuts" },
+                    { i: "🏷️", t: "Templates" },
+                    { i: "🗂️", t: "Bins & tags" },
+                    { i: "💬", t: "Inline comments" },
+                    { i: "🧪", t: "Version history" },
+                    { i: "🎚️", t: "Audio ducking" },
+                    { i: "🎛️", t: "LUTs & FX" },
+                    { i: "🤖", t: "Smart captions" },
+                    { i: "🔌", t: "Plugin API" },
+                  ])
+                  .map((chip, idx) => (
+                    <li
+                      key={idx}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90"
+                    >
+                      <span>{chip.i}</span>
+                      <span>{chip.t}</span>
+                    </li>
+                  ))}
               </ul>
             </div>
 
@@ -1172,27 +1341,39 @@ export default function Landing() {
             </div>
           </div>
         </section>
-
-
-
+                        
         {/* Bottom CTA (clean, no container gradients) */}
         <section className="py-14 text-center">
-          <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">Ready to get started?</h3>
-          <p className="mt-3 text-muted-foreground">Edit less. Create more. A fast, friendly editor that keeps up with you.</p>
+          <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+            Ready to get started?
+          </h3>
+          <p className="mt-3 text-muted-foreground">
+            Edit less. Create more. A fast, friendly editor that keeps up with
+            you.
+          </p>
           <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
-            <Link to="/login"><Button className="bg-foreground text-background hover:bg-foreground/90">Start editing</Button></Link>
-            <a href="https://github.com/trykimu/videoeditor" target="_blank" rel="noreferrer" className="text-sm underline text-muted-foreground hover:text-foreground">View on GitHub</a>
+            <Link to="/login">
+              <Button className="bg-foreground text-background hover:bg-foreground/90">
+                Start editing
+              </Button>
+            </Link>
+            <a
+              href="https://github.com/trykimu/videoeditor"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm underline text-muted-foreground hover:text-foreground"
+            >
+              View on GitHub
+            </a>
           </div>
         </section>
       </div>
 
-
       {/* Footers are now injected globally from root via MarketingFooter */}
-
 
     </div>
   );
-} 
+}
 
 // Add prop types for MobileTimelinePlayground
 interface MobileTimelinePlaygroundProps {
@@ -1207,13 +1388,21 @@ interface MobileTimelinePlaygroundProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
+    animation: {
+      initial: TargetAndTransition;
+      animate: TargetAndTransition;
+      exit?: TargetAndTransition;
+    };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
 }
 
-function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinning }: MobileTimelinePlaygroundProps) {
+function MobileTimelinePlayground({
+  timelineAssets,
+  handleLogoClick,
+  logoSpinning,
+}: MobileTimelinePlaygroundProps) {
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [exporting, setExporting] = React.useState(false);
   // Simulate export progress
@@ -1230,20 +1419,38 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
       <div className="relative w-full mb-4">
         <div className="absolute left-0 right-0 top-1/2 h-2 bg-muted/40 rounded-full -translate-y-1/2 z-0" />
         <div className="flex gap-4 overflow-x-auto pb-2 w-full snap-x snap-mandatory relative z-10">
-          {timelineAssets.map((asset: MobileTimelinePlaygroundProps['timelineAssets'][number], i: number) => (
-            <button
-              key={i}
-              onClick={() => setActiveIdx(i)}
-              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${activeIdx === i ? 'ring-2 ring-blue-400 scale-105' : 'hover:scale-105'} ${activeIdx === i ? 'z-20' : 'z-10'}`}
-              style={{ opacity: activeIdx === i ? 1 : 0.7 }}
-            >
-              <span className="text-2xl mb-1">{asset.icon}</span>
-              <span className="text-xs font-semibold text-foreground text-center whitespace-nowrap">{asset.label}</span>
-            </button>
-          ))}
+          {timelineAssets.map(
+            (
+              asset: MobileTimelinePlaygroundProps["timelineAssets"][number],
+              i: number
+            ) => (
+              <button
+                key={i}
+                onClick={() => setActiveIdx(i)}
+                className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${
+                  activeIdx === i
+                    ? "ring-2 ring-blue-400 scale-105"
+                    : "hover:scale-105"
+                } ${activeIdx === i ? "z-20" : "z-10"}`}
+                style={{ opacity: activeIdx === i ? 1 : 0.7 }}
+              >
+                <span className="text-2xl mb-1">{asset.icon}</span>
+                <span className="text-xs font-semibold text-foreground text-center whitespace-nowrap">
+                  {asset.label}
+                </span>
+              </button>
+            )
+          )}
         </div>
         {/* Playhead */}
-        <div className="absolute top-0 bottom-0 left-0 flex items-center pointer-events-none" style={{ left: `calc(${(activeIdx / (timelineAssets.length - 1)) * 100}% - 8px)` }}>
+        <div
+          className="absolute top-0 bottom-0 left-0 flex items-center pointer-events-none"
+          style={{
+            left: `calc(${
+              (activeIdx / (timelineAssets.length - 1)) * 100
+            }% - 8px)`,
+          }}
+        >
           <div className="w-4 h-4 bg-blue-500 rounded-full shadow-lg border-2 border-background" />
         </div>
       </div>
@@ -1251,47 +1458,104 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
       <div className="w-full bg-gradient-to-br from-background/95 to-muted/60 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col gap-4 relative min-h-[200px]">
         {/* Mascot and Playful Animation */}
         <div className="flex items-center gap-3 mb-2">
-          <div onClick={handleLogoClick} className="cursor-pointer select-none" style={{ display: 'inline-block' }}>
-            <KimuLogo className={`w-10 h-10 text-foreground ${logoSpinning ? 'animate-spin' : ''}`} />
+          <div
+            onClick={handleLogoClick}
+            className="cursor-pointer select-none"
+            style={{ display: "inline-block" }}
+          >
+            <KimuLogo
+              className={`w-10 h-10 text-foreground ${
+                logoSpinning ? "animate-spin" : ""
+              }`}
+            />
           </div>
           <span className="text-lg font-bold text-foreground">Kimu Editor</span>
         </div>
         {/* Animated Feature Preview */}
         <div className="flex flex-col items-start gap-1">
-          <span className="text-xl font-bold text-foreground mb-1 flex items-center gap-2">{timelineAssets[activeIdx].heading}</span>
-          <span className="text-base text-muted-foreground mb-1">{timelineAssets[activeIdx].desc}</span>
-          <span className="text-sm text-muted-foreground mb-1">{timelineAssets[activeIdx].subtext}</span>
-          <span className="text-xs text-muted-foreground mb-2">{timelineAssets[activeIdx].subtext2}</span>
+          <span className="text-xl font-bold text-foreground mb-1 flex items-center gap-2">
+            {timelineAssets[activeIdx].heading}
+          </span>
+          <span className="text-base text-muted-foreground mb-1">
+            {timelineAssets[activeIdx].desc}
+          </span>
+          <span className="text-sm text-muted-foreground mb-1">
+            {timelineAssets[activeIdx].subtext}
+          </span>
+          <span className="text-xs text-muted-foreground mb-2">
+            {timelineAssets[activeIdx].subtext2}
+          </span>
           <div className="flex flex-wrap gap-2 mt-1">
-            {timelineAssets[activeIdx].badges.map((badge: string, j: number) => (
-              <span key={j} className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm">{badge}</span>
-            ))}
+            {timelineAssets[activeIdx].badges.map(
+              (badge: string, j: number) => (
+                <span
+                  key={j}
+                  className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm"
+                >
+                  {badge}
+                </span>
+              )
+            )}
           </div>
         </div>
         {/* Playful micro-animation: e.g., a fake playhead, a sparkle, a cut, etc. */}
         <div className="absolute right-6 bottom-6 flex items-center gap-2">
-          {activeIdx === 0 && <Video className="w-7 h-7 text-blue-400 animate-pulse" />}
-          {activeIdx === 1 && <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />}
-          {activeIdx === 2 && <Zap className="w-7 h-7 text-blue-400 animate-pulse" />}
-          {activeIdx === 3 && <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />}
-          {activeIdx === 4 && <Heart className="w-7 h-7 text-pink-400 animate-pulse" />}
-          {activeIdx === 5 && <Scissors className="w-7 h-7 text-foreground animate-bounce" />}
+          {activeIdx === 0 && (
+            <Video className="w-7 h-7 text-blue-400 animate-pulse" />
+          )}
+          {activeIdx === 1 && (
+            <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />
+          )}
+          {activeIdx === 2 && (
+            <Zap className="w-7 h-7 text-blue-400 animate-pulse" />
+          )}
+          {activeIdx === 3 && (
+            <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />
+          )}
+          {activeIdx === 4 && (
+            <Heart className="w-7 h-7 text-pink-400 animate-pulse" />
+          )}
+          {activeIdx === 5 && (
+            <Scissors className="w-7 h-7 text-foreground animate-bounce" />
+          )}
         </div>
       </div>
       {/* Waitlist as Export Project - Sleek Modern */}
       <div className="w-full max-w-xs bg-gradient-to-br from-background/95 to-muted/60 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col items-start gap-3 mb-4 mt-6">
-        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-blue-400" /> Export Project</span>
-        <form className="w-full flex flex-row items-center gap-2" onSubmit={e => { e.preventDefault(); setExporting(true); }}>
+        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+          <Video className="w-5 h-5 text-blue-400" /> Export Project
+        </span>
+        <form
+          className="w-full flex flex-row items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setExporting(true);
+          }}
+        >
           <div className="flex-1 flex items-center bg-background/80 border border-border/30 rounded-lg px-2 py-1 shadow-inner">
             <Video className="w-4 h-4 text-blue-400 mr-2" />
-            <input type="email" placeholder="your@email.com.mp4" className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70" required disabled={exporting} />
+            <input
+              type="email"
+              placeholder="your@email.com.mp4"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70"
+              required
+              disabled={exporting}
+            />
           </div>
-          <Button type="submit" className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all" disabled={exporting}>
+          <Button
+            type="submit"
+            className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all"
+            disabled={exporting}
+          >
             <Download className="w-4 h-4" />
           </Button>
         </form>
         <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
-          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${exporting ? 'w-full' : 'w-0'}`} />
+          <div
+            className={`h-2 bg-blue-500 rounded transition-all duration-700 ${
+              exporting ? "w-full" : "w-0"
+            }`}
+          />
         </div>
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
@@ -1299,7 +1563,7 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
       </div>
     </div>
   );
-} 
+}
 
 interface MobileTimelinePlaygroundProps {
   timelineAssets: Array<{
@@ -1313,13 +1577,21 @@ interface MobileTimelinePlaygroundProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
+    animation: {
+      initial: TargetAndTransition;
+      animate: TargetAndTransition;
+      exit?: TargetAndTransition;
+    };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
 }
 
-function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning }: MobileStoryboardLandingProps) {
+function MobileStoryboardLanding({
+  timelineAssets,
+  handleLogoClick,
+  logoSpinning,
+}: MobileStoryboardLandingProps) {
   const [showTagline, setShowTagline] = React.useState(false);
   const [email, setEmail] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
@@ -1338,13 +1610,20 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
       <div className="flex flex-col items-start px-6 pt-8 pb-4">
         <div className="relative flex items-center gap-3 mb-2">
           <div
-            onClick={() => { setShowTagline((v) => !v); handleLogoClick(); }}
+            onClick={() => {
+              setShowTagline((v) => !v);
+              handleLogoClick();
+            }}
             className="cursor-pointer select-none flex flex-col items-center"
             style={{ width: 64 }}
           >
             {/* Clapperboard */}
-            <div className={`w-16 h-6 bg-muted/80 rounded-t-md flex items-center justify-center relative transition-transform duration-300 ${logoSpinning || showTagline ? 'rotate-[-20deg]' : ''}`}
-                 style={{ borderBottom: '4px solid #222' }}>
+            <div
+              className={`w-16 h-6 bg-muted/80 rounded-t-md flex items-center justify-center relative transition-transform duration-300 ${
+                logoSpinning || showTagline ? "rotate-[-20deg]" : ""
+              }`}
+              style={{ borderBottom: "4px solid #222" }}
+            >
               <div className="w-10 h-2 bg-muted/40 rounded absolute left-3 top-2 rotate-[-10deg]" />
               <div className="w-3 h-2 bg-muted/60 rounded absolute right-2 top-2 rotate-[10deg]" />
             </div>
@@ -1352,64 +1631,128 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
               <KimuLogo className="w-8 h-8 text-foreground" />
             </div>
           </div>
-          <span className="text-xl font-bold text-foreground ml-2">Kimu Studio</span>
+          <span className="text-xl font-bold text-foreground ml-2">
+            Kimu Studio
+          </span>
         </div>
         {showTagline && (
-          <div className="text-sm text-muted-foreground mt-2 animate-fade-in-left">Edit less. Create more. 🎬</div>
+          <div className="text-sm text-muted-foreground mt-2 animate-fade-in-left">
+            Edit less. Create more. 🎬
+          </div>
         )}
       </div>
       {/* Storyboard Scenes */}
       <div className="flex flex-col gap-6 px-4 pb-6">
-        {timelineAssets.map((asset: MobileStoryboardLandingProps['timelineAssets'][number], i: number) => (
-          <div
-            key={i}
-            className="w-full bg-background/95 border border-border/20 rounded-xl shadow-lg p-5 flex flex-col gap-2 relative overflow-hidden animate-slide-up"
-            style={{ borderLeft: `6px solid ${asset.color.split(' ')[2].replace('text-', '') || '#3b82f6'}` }}
-          >
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-2xl">{asset.icon}</span>
-              <span className="text-lg font-bold text-foreground">{asset.heading}</span>
+        {timelineAssets.map(
+          (
+            asset: MobileStoryboardLandingProps["timelineAssets"][number],
+            i: number
+          ) => (
+            <div
+              key={i}
+              className="w-full bg-background/95 border border-border/20 rounded-xl shadow-lg p-5 flex flex-col gap-2 relative overflow-hidden animate-slide-up"
+              style={{
+                borderLeft: `6px solid ${
+                  asset.color.split(" ")[2].replace("text-", "") || "#3b82f6"
+                }`,
+              }}
+            >
+              <div className="flex items-center gap-3 mb-1">
+                <span className="text-2xl">{asset.icon}</span>
+                <span className="text-lg font-bold text-foreground">
+                  {asset.heading}
+                </span>
+              </div>
+              <div className="text-base font-semibold text-foreground mb-1">
+                {asset.desc}
+              </div>
+              <div className="text-sm text-muted-foreground mb-1">
+                {asset.subtext}
+              </div>
+              <div className="text-xs text-muted-foreground mb-2">
+                {asset.subtext2}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {asset.badges.map((badge: string, j: number) => (
+                  <span
+                    key={j}
+                    className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm"
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+              {/* Animated accent: playhead, sparkle, cut, etc. */}
+              <div className="absolute right-4 bottom-4 flex items-center gap-2 opacity-70">
+                {i === 0 && (
+                  <Video className="w-7 h-7 text-blue-400 animate-pulse" />
+                )}
+                {i === 1 && (
+                  <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />
+                )}
+                {i === 2 && (
+                  <Zap className="w-7 h-7 text-blue-400 animate-pulse" />
+                )}
+                {i === 3 && (
+                  <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />
+                )}
+                {i === 4 && (
+                  <Heart className="w-7 h-7 text-pink-400 animate-pulse" />
+                )}
+                {i === 5 && (
+                  <Scissors className="w-7 h-7 text-foreground animate-bounce" />
+                )}
+              </div>
+              {/* Filmstrip edge */}
+              <div className="absolute left-0 top-0 bottom-0 w-2 bg-muted/30 rounded-l-xl flex flex-col justify-between py-2">
+                <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+                <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
+                <div className="w-1 h-1 bg-muted/60 rounded-full" />
+              </div>
             </div>
-            <div className="text-base font-semibold text-foreground mb-1">{asset.desc}</div>
-            <div className="text-sm text-muted-foreground mb-1">{asset.subtext}</div>
-            <div className="text-xs text-muted-foreground mb-2">{asset.subtext2}</div>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {asset.badges.map((badge: string, j: number) => (
-                <span key={j} className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm">{badge}</span>
-              ))}
-            </div>
-            {/* Animated accent: playhead, sparkle, cut, etc. */}
-            <div className="absolute right-4 bottom-4 flex items-center gap-2 opacity-70">
-              {i === 0 && <Video className="w-7 h-7 text-blue-400 animate-pulse" />}
-              {i === 1 && <Sparkles className="w-7 h-7 text-yellow-400 animate-bounce" />}
-              {i === 2 && <Zap className="w-7 h-7 text-blue-400 animate-pulse" />}
-              {i === 3 && <Wand2 className="w-7 h-7 text-purple-400 animate-spin-slow" />}
-              {i === 4 && <Heart className="w-7 h-7 text-pink-400 animate-pulse" />}
-              {i === 5 && <Scissors className="w-7 h-7 text-foreground animate-bounce" />}
-            </div>
-            {/* Filmstrip edge */}
-            <div className="absolute left-0 top-0 bottom-0 w-2 bg-muted/30 rounded-l-xl flex flex-col justify-between py-2">
-              <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
-              <div className="w-1 h-1 bg-muted/60 rounded-full mb-1" />
-              <div className="w-1 h-1 bg-muted/60 rounded-full" />
-            </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
       {/* Waitlist as Movie Ticket */}
-      <div className={`w-full max-w-xs mx-auto bg-background/95 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col items-start gap-3 mb-8 mt-2 relative transition-all duration-500 ${submitted ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-blue-400" /> Join the Cast</span>
-        <form className="w-full flex flex-row items-center gap-2" onSubmit={e => { e.preventDefault(); setSubmitted(true); }}>
+      <div
+        className={`w-full max-w-xs mx-auto bg-background/95 border border-border/20 rounded-2xl shadow-2xl p-6 flex flex-col items-start gap-3 mb-8 mt-2 relative transition-all duration-500 ${
+          submitted ? "opacity-0 scale-95" : "opacity-100 scale-100"
+        }`}
+      >
+        <span className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+          <Video className="w-5 h-5 text-blue-400" /> Join the Cast
+        </span>
+        <form
+          className="w-full flex flex-row items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setSubmitted(true);
+          }}
+        >
           <div className="flex-1 flex items-center bg-background/80 border border-border/30 rounded-lg px-2 py-1 shadow-inner">
             <Type className="w-4 h-4 text-blue-400 mr-2" />
-            <input type="email" placeholder="your@email.com" className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70" required disabled={submitted} />
+            <input
+              type="email"
+              placeholder="your@email.com"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70"
+              required
+              disabled={submitted}
+            />
           </div>
-          <Button type="submit" className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all" disabled={submitted}>
+          <Button
+            type="submit"
+            className="h-9 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow hover:bg-blue-600 transition-all"
+            disabled={submitted}
+          >
             <Download className="w-4 h-4" />
           </Button>
         </form>
         <div className="w-full h-2 bg-muted/30 rounded mt-2 overflow-hidden">
-          <div className={`h-2 bg-blue-500 rounded transition-all duration-700 ${submitted ? 'w-full' : 'w-0'}`} />
+          <div
+            className={`h-2 bg-blue-500 rounded transition-all duration-700 ${
+              submitted ? "w-full" : "w-0"
+            }`}
+          />
         </div>
         <p className="text-xs text-muted-foreground text-left mt-1">
           Get notified when Kimu launches. No spam, just creative updates.
@@ -1422,10 +1765,12 @@ function MobileStoryboardLanding({ timelineAssets, handleLogoClick, logoSpinning
         </div>
       </div>
       {/* Minimal Footer */}
-      <div className="w-full text-center text-xs text-muted-foreground pb-4">Made for creators, by creators.</div>
+      <div className="w-full text-center text-xs text-muted-foreground pb-4">
+        Made for creators, by creators.
+      </div>
     </div>
   );
-} 
+}
 
 // New mobile-only view: Video Editor Preview Playground
 interface MobileVideoEditorProps {
@@ -1440,7 +1785,11 @@ interface MobileVideoEditorProps {
     badges: string[];
     start: number;
     duration: number;
-    animation: { initial: TargetAndTransition; animate: TargetAndTransition; exit?: TargetAndTransition };
+    animation: {
+      initial: TargetAndTransition;
+      animate: TargetAndTransition;
+      exit?: TargetAndTransition;
+    };
   }>;
   handleLogoClick: () => void;
   logoSpinning: boolean;
@@ -1461,7 +1810,7 @@ function MobileVideoEditorPreview({
   loading,
   success,
   handleSubmit,
-  waitlistCount
+  waitlistCount,
 }: MobileVideoEditorProps) {
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [playing, setPlaying] = React.useState(true); // Auto-play by default
@@ -1471,9 +1820,12 @@ function MobileVideoEditorPreview({
   React.useEffect(() => {
     if (!playing) return;
     const interval = setInterval(() => {
-      setCurrentTime(prev => {
+      setCurrentTime((prev) => {
         const newTime = prev + 1.5; // Increased speed from 0.5 to 1.5
-        const totalDuration = timelineAssets.reduce((sum, asset) => sum + asset.duration, 0);
+        const totalDuration = timelineAssets.reduce(
+          (sum, asset) => sum + asset.duration,
+          0
+        );
         if (newTime >= totalDuration) return 0; // Loop back to start
         return newTime;
       });
@@ -1485,7 +1837,10 @@ function MobileVideoEditorPreview({
   React.useEffect(() => {
     let accumulatedTime = 0;
     for (let i = 0; i < timelineAssets.length; i++) {
-      if (currentTime >= accumulatedTime && currentTime < accumulatedTime + timelineAssets[i].duration) {
+      if (
+        currentTime >= accumulatedTime &&
+        currentTime < accumulatedTime + timelineAssets[i].duration
+      ) {
         setActiveIdx(i);
         break;
       }
@@ -1493,17 +1848,18 @@ function MobileVideoEditorPreview({
     }
   }, [currentTime, timelineAssets]);
 
-  const totalDuration = timelineAssets.reduce((sum, asset) => sum + asset.duration, 0);
+  const totalDuration = timelineAssets.reduce(
+    (sum, asset) => sum + asset.duration,
+    0
+  );
   const progress = (currentTime / totalDuration) * 100;
 
   return (
     <div className="w-full min-h-screen bg-background text-foreground">
       {/* Main Content */}
       <div className="">
-
-
+        
         {/* Desktop-style Waitlist Card for Mobile */}
-
 
         {/* Video Editor App Window */}
         <div className="px-4 py-6">
@@ -1514,7 +1870,9 @@ function MobileVideoEditorPreview({
               <div className="h-8 bg-muted/10 border-b border-border/20 flex items-center px-4">
                 <div className="flex items-center gap-2">
                   <KimuLogo className="w-4 h-4 text-foreground" />
-                  <span className="text-xs font-semibold text-foreground">Kimu Studio</span>
+                  <span className="text-xs font-semibold text-foreground">
+                    Kimu Studio
+                  </span>
                 </div>
                 <div className="flex-1" />
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -1612,77 +1970,125 @@ function MobileVideoEditorPreview({
 
                   {/* Tracks Container */}
                   <div className="space-y-1">
-                    {timelineAssets.map((asset: MobileVideoEditorProps['timelineAssets'][number], i: number) => {
-                      const trackStart = timelineAssets.slice(0, i).reduce((sum, a) => sum + a.duration, 0);
-                      const trackProgress = Math.max(0, Math.min(1, (currentTime - trackStart) / asset.duration));
-                      const isActive = i === activeIdx;
-                      const isPast = currentTime > trackStart + asset.duration;
-                      const isFuture = currentTime < trackStart;
+                    {timelineAssets.map(
+                      (
+                        asset: MobileVideoEditorProps["timelineAssets"][number],
+                        i: number
+                      ) => {
+                        const trackStart = timelineAssets
+                          .slice(0, i)
+                          .reduce((sum, a) => sum + a.duration, 0);
+                        const trackProgress = Math.max(
+                          0,
+                          Math.min(
+                            1,
+                            (currentTime - trackStart) / asset.duration
+                          )
+                        );
+                        const isActive = i === activeIdx;
+                        const isPast =
+                          currentTime > trackStart + asset.duration;
+                        const isFuture = currentTime < trackStart;
 
-                      // Calculate track width based on duration
-                      const trackWidth = `${(asset.duration / totalDuration) * 100}%`;
-                      const trackOffset = `${(trackStart / totalDuration) * 100}%`;
+                        // Calculate track width based on duration
+                        const trackWidth = `${
+                          (asset.duration / totalDuration) * 100
+                        }%`;
+                        const trackOffset = `${
+                          (trackStart / totalDuration) * 100
+                        }%`;
 
-                      return (
-                        <div key={asset.label} className="flex items-center h-8">
-                          {/* Track Label */}
-                          <div className={`w-20 h-full ${isActive ? 'bg-blue-500/20' : 'bg-muted/20'} border-r border-border/20 flex items-center px-2`}>
-                            <span className={`text-xs font-medium ${isActive ? 'text-blue-400' : 'text-foreground'} truncate`}>Track {i + 1}</span>
-                          </div>
-
-                          {/* Track Timeline */}
-                          <div className="flex-1 h-full bg-muted/10 border-b border-border/20 relative">
-                            {/* Track Background */}
+                        return (
+                          <div key={i} className="flex items-center h-8">
+                            {/* Track Label */}
                             <div
-                              className={`absolute top-0 bottom-0 ${asset.color} opacity-10 rounded-sm`}
-                              style={{
-                                left: trackOffset,
-                                width: trackWidth,
-                                minWidth: '80px'
-                              }}
-                            />
-
-                            {/* Track Content */}
-                            <div
-                              className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${isActive ? 'border-blue-400/50' : 'border-border/30'}`}
-                              style={{
-                                left: trackOffset,
-                                width: trackWidth,
-                                minWidth: '80px'
-                              }}
+                              className={`w-20 h-full ${
+                                isActive ? "bg-blue-500/20" : "bg-muted/20"
+                              } border-r border-border/20 flex items-center px-2`}
                             >
-                              <span className={`text-xs font-medium ${isActive ? 'text-blue-400' : 'text-foreground'} truncate`}>{asset.label}</span>
+                              <span
+                                className={`text-xs font-medium ${
+                                  isActive ? "text-blue-400" : "text-foreground"
+                                } truncate`}
+                              >
+                                Track {i + 1}
+                              </span>
                             </div>
 
-                            {/* Progress Fill */}
-                            {!isFuture && (
-                              <motion.div
-                                className={`absolute top-0 bottom-0 ${isActive ? 'bg-blue-500' : asset.color} opacity-40 rounded-sm`}
+                            {/* Track Timeline */}
+                            <div className="flex-1 h-full bg-muted/10 border-b border-border/20 relative">
+                              {/* Track Background */}
+                              <div
+                                className={`absolute top-0 bottom-0 ${asset.color} opacity-10 rounded-sm`}
                                 style={{
                                   left: trackOffset,
-                                  width: `${Math.min(trackProgress * 100, 100)}%`,
-                                  maxWidth: trackWidth
+                                  width: trackWidth,
+                                  minWidth: "80px",
                                 }}
-                                animate={{
-                                  width: `${Math.min(trackProgress * 100, 100)}%`
-                                }}
-                                transition={{ duration: 0.1 }}
                               />
-                            )}
 
-                            {/* Track Status Indicators */}
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                              {isPast && (
-                                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                              {/* Track Content */}
+                              <div
+                                className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${
+                                  isActive
+                                    ? "border-blue-400/50"
+                                    : "border-border/30"
+                                }`}
+                                style={{
+                                  left: trackOffset,
+                                  width: trackWidth,
+                                  minWidth: "80px",
+                                }}
+                              >
+                                <span
+                                  className={`text-xs font-medium ${
+                                    isActive
+                                      ? "text-blue-400"
+                                      : "text-foreground"
+                                  } truncate`}
+                                >
+                                  {asset.label}
+                                </span>
+                              </div>
+
+                              {/* Progress Fill */}
+                              {!isFuture && (
+                                <motion.div
+                                  className={`absolute top-0 bottom-0 ${
+                                    isActive ? "bg-blue-500" : asset.color
+                                  } opacity-40 rounded-sm`}
+                                  style={{
+                                    left: trackOffset,
+                                    width: `${Math.min(
+                                      trackProgress * 100,
+                                      100
+                                    )}%`,
+                                    maxWidth: trackWidth,
+                                  }}
+                                  animate={{
+                                    width: `${Math.min(
+                                      trackProgress * 100,
+                                      100
+                                    )}%`,
+                                  }}
+                                  transition={{ duration: 0.1 }}
+                                />
                               )}
-                              {isActive && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                              )}
+
+                              {/* Track Status Indicators */}
+                              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                {isPast && (
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                )}
+                                {isActive && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+                    )}
                   </div>
                 </div>
               </div>
@@ -1693,14 +2099,24 @@ function MobileVideoEditorPreview({
           <div className="max-w-sm mx-auto">
             <div className="bg-background/80 border border-border/20 rounded-xl shadow-lg p-6 relative">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold text-foreground">Join the waitlist</h3>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Join the waitlist
+                </h3>
                 <Sparkles className="w-5 h-5 text-muted-foreground" />
               </div>
-              {typeof formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) !== 'undefined' && formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0) && (
-                <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2">
-                  {formatCreatorCount(typeof waitlistCount !== 'undefined' ? waitlistCount : 0)} creators joined
-                </div>
-              )}
+              {typeof formatCreatorCount(
+                typeof waitlistCount !== "undefined" ? waitlistCount : 0
+              ) !== "undefined" &&
+                formatCreatorCount(
+                  typeof waitlistCount !== "undefined" ? waitlistCount : 0
+                ) && (
+                  <div className="text-xs text-muted-foreground bg-muted/10 rounded px-2 py-1 border border-border/20 mb-2">
+                    {formatCreatorCount(
+                      typeof waitlistCount !== "undefined" ? waitlistCount : 0
+                    )}{" "}
+                    creators joined
+                  </div>
+                )}
               <form onSubmit={handleSubmit} className="space-y-3">
                 <Input
                   type="email"
@@ -1728,13 +2144,13 @@ function MobileVideoEditorPreview({
                   🎉 We'll notify you when it's ready!
                 </motion.div>
               )}
-              <p className="text-xs leading-relaxed mt-3 text-white/20 relative z-20">
-                Get notified when Kimu launches. No spam, just updates on the future of video editing.
+              <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
+                Get notified when Kimu launches. No spam, just updates on the
+                future of video editing.
               </p>
             </div>
           </div>
         </div>
-
       </div>
       {/* Mobile outer outline */}
       {/* <svg className="pointer-events-none absolute -inset-[8px] w-[calc(100%+16px)] h-[calc(100%+16px)]" viewBox="0 0 1000 1000" preserveAspectRatio="none">

@@ -19,7 +19,6 @@ import { Navbar } from "~/components/ui/Navbar";
 import { MarketingFooter } from "~/components/ui/MarketingFooter";
 import type { User } from "better-auth";
 
-
 export const links = () => [
   { rel: "icon", href: "/favicon.png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -72,9 +71,17 @@ export default function App() {
   const location = useLocation();
   const matches = useMatches();
   const [showBrand, setShowBrand] = useState(true);
-  const isNotFound = (matches[matches.length - 1]?.id || "").includes("NotFound");
-  const hideNavbar = isNotFound || location.pathname === "/projects" || location.pathname.startsWith("/project/");
-  const hideFooter = isNotFound || location.pathname === "/projects" || location.pathname.startsWith("/project/");
+  const isNotFound = (matches[matches.length - 1]?.id || "").includes(
+    "NotFound"
+  );
+  const hideNavbar =
+    isNotFound ||
+    location.pathname === "/projects" ||
+    location.pathname.startsWith("/project/");
+  const hideFooter =
+    isNotFound ||
+    location.pathname === "/projects" ||
+    location.pathname.startsWith("/project/");
 
   useEffect(() => {
     // Only apply hero intersection logic on the landing page
@@ -104,7 +111,9 @@ export default function App() {
       {/* Expose initial auth user to the client to avoid extra roundtrips/flicker */}
       <script
         dangerouslySetInnerHTML={{
-          __html: `window.__AUTH_USER__ = ${JSON.stringify(data?.user ?? null)};`,
+          __html: `window.__AUTH_USER__ = ${JSON.stringify(
+            data?.user ?? null
+          )};`,
         }}
       />
       {!hideNavbar && <Navbar showBrand={showBrand} />}
@@ -125,7 +134,11 @@ export function ErrorBoundary({ error }: { error: Error }) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
-  } else if (process.env.NODE_ENV === "development" && error && error instanceof Error) {
+  } else if (
+    process.env.NODE_ENV === "development" &&
+    error &&
+    error instanceof Error
+  ) {
     details = error.message;
     stack = error.stack;
   }

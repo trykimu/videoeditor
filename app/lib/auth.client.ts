@@ -8,5 +8,3 @@ const baseURL = ((): string => {
 })();
 
 export const authClient = createAuthClient({ baseURL, basePath: "/api/auth" });
-
-
