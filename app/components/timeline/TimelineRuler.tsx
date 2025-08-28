@@ -146,7 +146,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
   const intervals = getRulerIntervals();
   return (
-    <div className="flex flex-shrink-0 h-8">
+    <div className="flex flex-shrink-0 h-6">
       {/* Track controls header with timestamp display */}
       <div className="w-12 bg-muted border-r border-border/50 flex-shrink-0 flex flex-col items-center justify-center py-0.5">
         {isEditingTime ? (
@@ -156,7 +156,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             onBlur={handleTimeInputSubmit}
             onKeyDown={handleTimeInputKeyDown}
             placeholder="00:00.00"
-            className="h-4 text-xs font-mono w-full px-1 py-0 text-center border-0 bg-transparent focus:bg-muted/50 transition-colors"
+            className="h-3 text-xs font-mono w-full px-1 py-0 text-center border-0 bg-transparent focus:bg-muted/50 transition-colors"
             autoFocus
           />
         ) : (
@@ -175,8 +175,8 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
 
       {/* Timeline Ruler */}
       <div
-        className="bg-muted/50 border-b border-border/50 cursor-pointer relative z-50 flex-1 overflow-hidden"
-        style={{ height: "32px" }}
+        className="bg-muted/30 border-b border-border/40 cursor-pointer relative z-50 flex-1 overflow-hidden"
+        style={{ height: "24px" }}
       >
         <div
           className="absolute top-0 left-0 h-full"
@@ -219,10 +219,10 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                   left: `${tick * intervals.major * pixelsPerSecond}px`,
                 }}
               >
-                <span className="text-[10px] text-muted-foreground -ml-2 mt-0.5 bg-background/90 px-1.5 py-0.5 rounded-sm border border-border/30 font-mono">
+                <span className="text-[9px] text-muted-foreground -ml-2 mt-0.5 bg-background/80 px-1 py-0.5 rounded-sm border border-border/20 font-mono">
                   {formatRulerMark(timeValue)}
                 </span>
-                <div className="w-0.5 bg-border h-7 mt-auto" />
+                <div className="w-0.5 bg-border h-4 mt-auto" />
               </div>
             );
           })}
@@ -251,7 +251,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                   left: `${tick * intervals.medium * pixelsPerSecond}px`,
                 }}
               >
-                <div className="w-px bg-border/60 h-4 mt-auto" />
+                <div className="w-px bg-border/60 h-3 mt-auto" />
               </div>
             );
           })}
@@ -282,7 +282,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
                     left: `${tick * intervals.minor * pixelsPerSecond}px`,
                   }}
                 >
-                  <div className="w-px bg-border/30 h-2 mt-auto" />
+                  <div className="w-px bg-border/30 h-1.5 mt-auto" />
                 </div>
               );
             })}
@@ -292,18 +292,18 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
             className="absolute top-0 w-0.5 bg-primary pointer-events-none z-50 shadow-sm"
             style={{
               left: `${rulerPositionPx}px`,
-              height: "32px",
+              height: "24px",
             }}
           />
 
           {/* Playhead handle - perfectly aligned with no lag or animations */}
           <div
-            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border-2 border-background shadow-lg"
+            className="absolute bg-primary cursor-grab hover:cursor-grabbing z-50 border border-background shadow-md rounded-sm"
             style={{
-              left: `${rulerPositionPx - 5}px`,
+              left: `${rulerPositionPx - 4}px`,
               top: "1px",
-              width: "12px",
-              height: "10px",
+              width: "8px",
+              height: "8px",
               borderRadius: "2px",
               transform: "none", // No transform to ensure perfect alignment
               transition: "none", // No transitions for immediate response
