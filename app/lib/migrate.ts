@@ -10,14 +10,24 @@ async function run() {
     const u = new URL(rawDbUrl);
     u.search = "";
     connectionString = u.toString();
-  } catch {}
+  } catch {
+    console.error("Invalid database URL");
+    process.exitCode = 1;
+    return;
+  }
 
-  const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  const pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+  });
   const client = await pool.connect();
   try {
     await client.query("begin");
     const dir = path.resolve("migrations");
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
     for (const file of files) {
       const sql = fs.readFileSync(path.join(dir, file), "utf8");
       console.log(`Running migration: ${file}`);
@@ -36,5 +46,3 @@ async function run() {
 }
 
 run();
-
-

@@ -122,4 +122,4 @@ export const FullscreenButton: React.FC<{
       )}
     </Button>
   );
-}; 
+};

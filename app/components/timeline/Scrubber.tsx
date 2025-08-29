@@ -25,6 +25,7 @@ export interface ScrubberProps {
   onUngroupScrubber: (scrubberId: string) => void;
   onMoveToMediaBin?: (scrubberId: string) => void;
   selectedScrubberIds: string[];
+  onBeginTransform?: () => void; // drag or resize start snapshot
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -44,6 +45,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   onUngroupScrubber,
   onMoveToMediaBin,
   selectedScrubberIds = [],
+  onBeginTransform,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -121,9 +123,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       }
 
       if (mode === "drag") {
+        if (onBeginTransform) onBeginTransform();
         setIsDragging(true);
         dragStateRef.current.offsetX = e.clientX - scrubber.left;
       } else {
+        if (onBeginTransform) onBeginTransform();
         setIsResizing(true);
         setResizeMode(mode === "resize-left" ? "left" : "right");
         dragStateRef.current.startX = e.clientX;
@@ -131,7 +135,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         dragStateRef.current.startWidth = scrubber.width;
       }
     },
-    [scrubber, onSelect]
+    [scrubber, onSelect, onBeginTransform]
   );
 
   const handleMouseMove = useCallback(

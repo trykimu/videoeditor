@@ -13,7 +13,7 @@ export interface BaseScrubber {
 
   // transitions are managed using the right transition id, as in what to add to the right. Convenient to think of. Left one is for the initial transition, first scrubber intro. we won't use it anywhere else.
   // for a middle transition, you will only see its information in the left scrubber.
-  left_transition_id: string | null;  // only use this for the first scrubber intro
+  left_transition_id: string | null; // only use this for the first scrubber intro
   right_transition_id: string | null; // this is what you use everywhere
 }
 
@@ -22,7 +22,7 @@ export interface Transition {
   presentation: "fade" | "wipe" | "clockWipe" | "slide" | "flip" | "iris";
   timing: "spring" | "linear";
   durationInFrames: number;
-  leftScrubberId: string | null;  // ID of the scrubber this transition starts from. null for the first scrubber in a track
+  leftScrubberId: string | null; // ID of the scrubber this transition starts from. null for the first scrubber in a track
   rightScrubberId: string | null; // ID of the scrubber this transition goes to. null for the last scrubber in a track
   // trackId: string;         // Track where this transition exists
 }
@@ -70,7 +70,7 @@ export interface ScrubberState extends MediaBinItem {
 export interface TrackState {
   id: string;
   scrubbers: ScrubberState[];
-  transitions: Transition[];  // Transitions between scrubbers on this track
+  transitions: Transition[]; // Transitions between scrubbers on this track
 }
 
 // state of the timeline
@@ -103,7 +103,7 @@ export interface TimelineDataItem {
 export const PIXELS_PER_SECOND = 100;
 export const DEFAULT_TRACK_HEIGHT = 52;
 export const FPS = 30;
-export const RULER_HEIGHT = 32;
+export const RULER_HEIGHT = 24;
 
 // Zoom constants
 export const MIN_ZOOM = 0.25;

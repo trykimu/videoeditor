@@ -1,11 +1,11 @@
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from pydantic import BaseModel, ConfigDict
-from typing import Any
 
 from schema import FunctionCallResponse, MediaBinItem, TimelineState
 
@@ -19,7 +19,7 @@ gemini_api = genai.Client(api_key=GEMINI_API_KEY)
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -75,7 +75,7 @@ async def process_ai_message(request: Message) -> FunctionCallResponse:
         )
         print(response)
 
-        return response.parsed
+        return FunctionCallResponse.model_validate(response.parsed)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

@@ -76,7 +76,10 @@ export async function insertAsset(params: {
   }
 }
 
-export async function listAssetsByUser(userId: string, projectId: string | null): Promise<AssetRecord[]> {
+export async function listAssetsByUser(
+  userId: string,
+  projectId: string | null
+): Promise<AssetRecord[]> {
   const client = await getPool().connect();
   try {
     const query =
@@ -84,7 +87,7 @@ export async function listAssetsByUser(userId: string, projectId: string | null)
         ? `select * from assets where user_id = $1 and project_id is null and deleted_at is null order by created_at desc`
         : `select * from assets where user_id = $1 and project_id = $2 and deleted_at is null order by created_at desc`;
     const params = projectId === null ? [userId] : [userId, projectId];
-    const { rows } = await client.query<AssetRecord>(query, params as any);
+    const { rows } = await client.query<AssetRecord>(query, params);
     return rows;
   } finally {
     client.release();
@@ -104,7 +107,10 @@ export async function getAssetById(id: string): Promise<AssetRecord | null> {
   }
 }
 
-export async function softDeleteAsset(id: string, userId: string): Promise<void> {
+export async function softDeleteAsset(
+  id: string,
+  userId: string
+): Promise<void> {
   const client = await getPool().connect();
   try {
     await client.query(
@@ -115,5 +121,3 @@ export async function softDeleteAsset(id: string, userId: string): Promise<void>
     client.release();
   }
 }
-
-

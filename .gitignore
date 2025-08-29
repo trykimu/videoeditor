@@ -28,6 +28,7 @@ ENV/
 /dist/
 /.react-router/
 out/
+project_data/
 *.egg-info/
 *.egg
 
@@ -64,3 +65,4 @@ htmlcov/
 *.temp
 .DS_Store
 learn.json
+.mypy_cache/

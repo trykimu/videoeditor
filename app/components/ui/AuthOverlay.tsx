@@ -8,7 +8,11 @@ interface AuthOverlayProps {
   onSignIn: () => void;
 }
 
-export function AuthOverlay({ isLoading: _isLoading, isSigningIn, onSignIn }: AuthOverlayProps) {
+export function AuthOverlay({
+  isLoading: _isLoading,
+  isSigningIn,
+  onSignIn,
+}: AuthOverlayProps) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/70 to-background/95 backdrop-blur-sm" />
@@ -19,11 +23,16 @@ export function AuthOverlay({ isLoading: _isLoading, isSigningIn, onSignIn }: Au
             Please log in to use the alpha editor.
           </p>
           <p className="text-xs text-muted-foreground mb-6">
-            Kimu is a minimal, AI‑assisted video editor focused on speed and clarity. We don’t post
-            anything on your behalf. Signing in only creates a private account for saving your
-            projects and enabling secure access.
+            Kimu is a minimal, AI‑assisted video editor focused on speed and
+            clarity. We don’t post anything on your behalf. Signing in only
+            creates a private account for saving your projects and enabling
+            secure access.
           </p>
-          <Button onClick={onSignIn} disabled={!!isSigningIn} className="inline-flex items-center gap-2">
+          <Button
+            onClick={onSignIn}
+            disabled={!!isSigningIn}
+            className="inline-flex items-center gap-2"
+          >
             {isSigningIn ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -41,5 +50,3 @@ export function AuthOverlay({ isLoading: _isLoading, isSigningIn, onSignIn }: Au
     </div>
   );
 }
-
-

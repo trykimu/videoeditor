@@ -1,6 +1,10 @@
-import type { Route } from "./+types/api.assets.$";
 import { auth } from "~/lib/auth.server";
-import { insertAsset, listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
+import {
+  insertAsset,
+  listAssetsByUser,
+  getAssetById,
+  softDeleteAsset,
+} from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
 
@@ -11,13 +15,21 @@ async function requireUserId(request: Request): Promise<string> {
   try {
     // @ts-ignore - runtime API may not be typed
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
+    const userId: string | undefined =
+      session?.user?.id ?? session?.session?.userId;
     if (userId) return String(userId);
-  } catch {}
+  } catch {
+    console.error("Failed to get session");
+  }
 
   // Fallback: call /api/auth/session with forwarded cookies
-  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
-  const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    "localhost:5173";
+  const proto =
+    request.headers.get("x-forwarded-proto") ||
+    (host.includes("localhost") ? "http" : "https");
   const base = `${proto}://${host}`;
   const cookie = request.headers.get("cookie") || "";
   const res = await fetch(`${base}/api/auth/session`, {
@@ -33,9 +45,14 @@ async function requireUserId(request: Request): Promise<string> {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const json = await res.json().catch(() => ({} as any));
+  const json = await res.json().catch(() => ({}));
   const uid: string | undefined =
-    json?.user?.id || json?.user?.userId || json?.session?.user?.id || json?.session?.userId || json?.data?.user?.id || json?.data?.user?.userId;
+    json?.user?.id ||
+    json?.user?.userId ||
+    json?.session?.user?.id ||
+    json?.session?.userId ||
+    json?.data?.user?.id ||
+    json?.data?.user?.userId;
   if (!uid) {
     throw new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -45,15 +62,19 @@ async function requireUserId(request: Request): Promise<string> {
   return String(uid);
 }
 
-function inferMediaTypeFromName(name: string, fallback: string = "application/octet-stream"): string {
+function inferMediaTypeFromName(
+  name: string,
+  fallback: string = "application/octet-stream"
+): string {
   const ext = path.extname(name).toLowerCase();
   if ([".mp4", ".mov", ".webm", ".mkv", ".avi"].includes(ext)) return "video/*";
   if ([".mp3", ".wav", ".aac", ".ogg", ".flac"].includes(ext)) return "audio/*";
-  if ([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"].includes(ext)) return "image/*";
+  if ([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"].includes(ext))
+    return "image/*";
   return fallback;
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
@@ -61,7 +82,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // GET /api/assets[?projectId=...] -> list assets for user
   if (pathname.endsWith("/api/assets") && request.method === "GET") {
-    const projectIdParam = new URL(request.url).searchParams.get('projectId');
+    const projectIdParam = new URL(request.url).searchParams.get("projectId");
     const projectId = projectIdParam ? String(projectIdParam) : null;
     const rows = await listAssetsByUser(userId, projectId);
     const items = rows.map((r) => ({
@@ -72,9 +93,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       width: r.width,
       height: r.height,
       duration_seconds: r.duration_seconds,
+      durationInSeconds: r.duration_seconds, // camelCase for frontend
       created_at: r.created_at,
       mediaUrlRemote: `/api/assets/${r.id}/raw`,
-      fullUrl: `http://localhost:8000/media/${encodeURIComponent(r.storage_key)}`,
+      fullUrl: `http://localhost:8000/media/${encodeURIComponent(
+        r.storage_key
+      )}`,
     }));
     return new Response(JSON.stringify({ assets: items }), {
       status: 200,
@@ -104,12 +128,19 @@ export async function loader({ request }: Route.LoaderArgs) {
     // Support range requests for video/audio
     const stat = fs.statSync(filePath);
     const range = request.headers.get("range");
-    const contentType = asset.mime_type || inferMediaTypeFromName(asset.original_name);
+    const contentType =
+      asset.mime_type || inferMediaTypeFromName(asset.original_name);
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
-      if (isNaN(start) || isNaN(end) || start > end || start < 0 || end >= stat.size) {
+      if (
+        isNaN(start) ||
+        isNaN(end) ||
+        start > end ||
+        start < 0 ||
+        end >= stat.size
+      ) {
         return new Response(undefined, { status: 416 });
       }
       const chunkSize = end - start + 1;
@@ -138,7 +169,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return new Response("Not Found", { status: 404 });
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: { request: Request }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const method = request.method.toUpperCase();
@@ -149,7 +180,8 @@ export async function action({ request }: Route.ActionArgs) {
   if (pathname.endsWith("/api/assets/upload") && method === "POST") {
     const width = Number(request.headers.get("x-media-width") || "") || null;
     const height = Number(request.headers.get("x-media-height") || "") || null;
-    const duration = Number(request.headers.get("x-media-duration") || "") || null;
+    const duration =
+      Number(request.headers.get("x-media-duration") || "") || null;
     const originalNameHeader = request.headers.get("x-original-name") || "file";
     const projectIdHeader = request.headers.get("x-project-id");
 
@@ -165,7 +197,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Reconstruct a new FormData and forward to 8000 so boundary is correct; faster and streams
     const form = new FormData();
-    const filenameFor8000 = (media as any)?.name || originalNameHeader || "upload.bin";
+    const filenameFor8000 = (media as {name?: string})?.name || originalNameHeader || "upload.bin";
     form.append("media", media, filenameFor8000);
 
     const forwardRes = await fetch("http://localhost:8000/upload", {
@@ -175,15 +207,22 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (!forwardRes.ok) {
       const errText = await forwardRes.text().catch(() => "");
-      return new Response(JSON.stringify({ error: "Upload failed", detail: errText }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Upload failed", detail: errText }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
-    const json = await forwardRes.json() as any;
+  
+    const json = await forwardRes.json();
     const filename: string = json.filename;
     const size: number = json.size;
-    const mime = inferMediaTypeFromName(filenameFor8000, "application/octet-stream");
+    const mime = inferMediaTypeFromName(
+      filenameFor8000,
+      "application/octet-stream"
+    );
 
     const record = await insertAsset({
       userId,
@@ -204,7 +243,9 @@ export async function action({ request }: Route.ActionArgs) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(filename)}`,
+          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
+            filename
+          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
@@ -217,19 +258,25 @@ export async function action({ request }: Route.ActionArgs) {
 
   // POST /api/assets/register -> register an already-uploaded file from out/
   if (pathname.endsWith("/api/assets/register") && method === "POST") {
-    const body = await request.json().catch(() => ({} as any));
+    const body = await request.json().catch(() => ({}));
     const filename: string | undefined = body.filename;
     const originalName: string | undefined = body.originalName;
     const size: number | undefined = body.size;
-    const width: number | null = typeof body.width === 'number' ? body.width : null;
-    const height: number | null = typeof body.height === 'number' ? body.height : null;
-    const duration: number | null = typeof body.duration === 'number' ? body.duration : null;
+    const width: number | null =
+      typeof body.width === "number" ? body.width : null;
+    const height: number | null =
+      typeof body.height === "number" ? body.height : null;
+    const duration: number | null =
+      typeof body.duration === "number" ? body.duration : null;
 
     if (!filename || !originalName) {
-      return new Response(JSON.stringify({ error: "filename and originalName are required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "filename and originalName are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
     const filePath = path.resolve(OUT_DIR, decodeURIComponent(filename));
     if (!filePath.startsWith(OUT_DIR) || !fs.existsSync(filePath)) {
@@ -239,14 +286,17 @@ export async function action({ request }: Route.ActionArgs) {
       });
     }
     const stat = fs.statSync(filePath);
-    const mime = inferMediaTypeFromName(originalName, "application/octet-stream");
+    const mime = inferMediaTypeFromName(
+      originalName,
+      "application/octet-stream"
+    );
 
     const record = await insertAsset({
       userId,
       originalName,
       storageKey: path.basename(filePath),
       mimeType: mime,
-      sizeBytes: typeof size === 'number' ? size : stat.size,
+      sizeBytes: typeof size === "number" ? size : stat.size,
       width,
       height,
       durationSeconds: duration,
@@ -259,7 +309,9 @@ export async function action({ request }: Route.ActionArgs) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(record.storage_key)}`,
+          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
+            record.storage_key
+          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
@@ -283,7 +335,11 @@ export async function action({ request }: Route.ActionArgs) {
     }
     const filePath = path.resolve(OUT_DIR, asset.storage_key);
     if (filePath.startsWith(OUT_DIR) && fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        /* ignore */
+      }
     }
     await softDeleteAsset(assetId, userId);
     return new Response(JSON.stringify({ success: true }), {
@@ -338,7 +394,9 @@ export async function action({ request }: Route.ActionArgs) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(newFilename)}`,
+          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
+            newFilename
+          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
@@ -351,5 +409,3 @@ export async function action({ request }: Route.ActionArgs) {
 
   return new Response("Not Found", { status: 404 });
 }
-
-

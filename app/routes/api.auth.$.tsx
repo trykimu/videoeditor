@@ -14,11 +14,13 @@ export async function loader({ request }: Route.LoaderArgs) {
         headers: { "Content-Type": "application/json" },
       });
     }
-  } catch { /* empty */ }
-  // After successful OAuth callback, redirect to /editor
+  } catch {
+    console.error("Failed to get session");
+  }
+  // After successful OAuth callback, redirect to /projects
   if (isCallback && (res.status === 200 || res.status === 302)) {
     const headers = new Headers(res.headers);
-    headers.set("Location", "/editor");
+    headers.set("Location", "/projects");
     return new Response(null, { status: 302, headers });
   }
   return res;
@@ -27,5 +29,3 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   return auth.handler(request);
 }
-
-

@@ -1,0 +1,21 @@
+
+node_modules
+build
+out
+dist
+
+# lockfiles
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# generated types
+app/routes/**/+types*
+
+coverage
+*.log
+.DS_Store
+.env*
+**/*.min.*
+
+

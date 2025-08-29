@@ -59,7 +59,12 @@ export function TimelineComposition({
   const allTransitions = timelineData[0].transitions;
 
   // Step 1: Group scrubbers by trackIndex
-  const trackGroups: { [trackIndex: number]: { content: TimelineDataItem['scrubbers'][0]; type: string }[] } = {};
+  const trackGroups: {
+    [trackIndex: number]: {
+      content: TimelineDataItem["scrubbers"][0];
+      type: string;
+    }[];
+  } = {};
 
   for (const timelineItem of timelineData) {
     for (const scrubber of timelineItem.scrubbers) {
@@ -68,14 +73,16 @@ export function TimelineComposition({
       }
       trackGroups[scrubber.trackIndex].push({
         content: scrubber,
-        type: "scrubber"
+        type: "scrubber",
       });
     }
   }
 
   // Step 2: Sort scrubbers within each track by startTime
   for (const trackIndex in trackGroups) {
-    trackGroups[parseInt(trackIndex)].sort((a, b) => a.content.startTime - b.content.startTime);
+    trackGroups[parseInt(trackIndex)].sort(
+      (a, b) => a.content.startTime - b.content.startTime
+    );
   }
 
   // Helper function to create media content
@@ -107,8 +114,7 @@ export function TimelineComposition({
                   fontSize: scrubber.text?.fontSize
                     ? `${scrubber.text.fontSize}px`
                     : "48px",
-                  fontFamily:
-                    scrubber.text?.fontFamily || "Arial, sans-serif",
+                  fontFamily: scrubber.text?.fontFamily || "Arial, sans-serif",
                   fontWeight: scrubber.text?.fontWeight || "normal",
                   margin: 0,
                   padding: "20px",
@@ -122,8 +128,8 @@ export function TimelineComposition({
         break;
       case "image": {
         const imageUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
         content = (
           <AbsoluteFill
             style={{
@@ -140,8 +146,8 @@ export function TimelineComposition({
       }
       case "video": {
         const videoUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
         content = (
           <AbsoluteFill
             style={{
@@ -151,16 +157,26 @@ export function TimelineComposition({
               height: scrubber.height_player,
             }}
           >
-            <Video src={videoUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />
+            <Video
+              src={videoUrl!}
+              trimBefore={scrubber.trimBefore || undefined}
+              trimAfter={scrubber.trimAfter || undefined}
+            />
           </AbsoluteFill>
         );
         break;
       }
       case "audio": {
         const audioUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
-        content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        content = (
+          <Audio
+            src={audioUrl!}
+            trimBefore={scrubber.trimBefore || undefined}
+            trimAfter={scrubber.trimAfter || undefined}
+          />
+        );
         break;
       }
       default:
@@ -214,7 +230,7 @@ export function TimelineComposition({
     // Calculate total duration for this track
     if (scrubbers.length > 0) {
       const lastScrubber = scrubbers[scrubbers.length - 1].content;
-      totalDurationInFrames = Math.round((lastScrubber.endTime) * FPS);
+      totalDurationInFrames = Math.round(lastScrubber.endTime * FPS);
     }
 
     for (let i = 0; i < scrubbers.length; i++) {
@@ -235,7 +251,11 @@ export function TimelineComposition({
       }
 
       // Add left transition if exists (only for first scrubber)
-      if (isFirstScrubber && scrubber.left_transition_id && allTransitions[scrubber.left_transition_id]) {
+      if (
+        isFirstScrubber &&
+        scrubber.left_transition_id &&
+        allTransitions[scrubber.left_transition_id]
+      ) {
         const transition = allTransitions[scrubber.left_transition_id];
         transitionSeriesElements.push(
           <TransitionSeries.Transition
@@ -373,7 +393,10 @@ export function TimelineComposition({
       }
 
       // Add right transition if exists
-      if (scrubber.right_transition_id && allTransitions[scrubber.right_transition_id]) {
+      if (
+        scrubber.right_transition_id &&
+        allTransitions[scrubber.right_transition_id]
+      ) {
         const transition = allTransitions[scrubber.right_transition_id];
         transitionSeriesElements.push(
           <TransitionSeries.Transition
@@ -412,9 +435,7 @@ export function TimelineComposition({
           key={`track-${trackIndex}`}
           durationInFrames={totalDurationInFrames}
         >
-          <TransitionSeries>
-            {transitionSeriesElements}
-          </TransitionSeries>
+          <TransitionSeries>{transitionSeriesElements}</TransitionSeries>
         </Sequence>
       );
     }
@@ -482,6 +503,13 @@ export function VideoPlayer({
     compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
   }
 
+  // Guard against invalid dimensions (e.g., user typed 0, only-audio timelines)
+  const safeWidth =
+    !compositionWidth || compositionWidth <= 0 ? 1920 : compositionWidth;
+  const safeHeight =
+    !compositionHeight || compositionHeight <= 0 ? 1080 : compositionHeight;
+  const safeDuration = Math.max(1, durationInFrames || 1);
+
   return (
     <Player
       ref={ref}
@@ -496,9 +524,9 @@ export function VideoPlayer({
         handleUpdateScrubber,
         getPixelsPerSecond,
       }}
-      durationInFrames={durationInFrames || 10}
-      compositionWidth={compositionWidth}
-      compositionHeight={compositionHeight}
+      durationInFrames={safeDuration}
+      compositionWidth={safeWidth}
+      compositionHeight={safeHeight}
       fps={30}
       style={{
         width: "100%",

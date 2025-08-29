@@ -26,6 +26,8 @@ services:
       # Ensure server-side code can construct proper callback URLs
       AUTH_BASE_URL: https://trykimu.com
       AUTH_TRUSTED_ORIGINS: https://trykimu.com,https://www.trykimu.com
+      AUTH_COOKIE_DOMAIN: trykimu.com
+      NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
     # ports:
@@ -43,6 +45,7 @@ services:
     environment:
       AUTH_BASE_URL: https://trykimu.com
       AUTH_TRUSTED_ORIGINS: https://trykimu.com,https://www.trykimu.com
+      AUTH_COOKIE_DOMAIN: trykimu.com
       NODE_ENV: production
       PORT: 8000
     # ports:

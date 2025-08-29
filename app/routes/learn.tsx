@@ -209,7 +209,6 @@ const TikTokStyleCaptionsExample: React.FC = () => {
   const { fps } = useVideoConfig();
 
   console.log('pages', JSON.stringify(pages, null, 2));
-
   return (
     <AbsoluteFill
       style={{
