@@ -178,6 +178,8 @@ export const useMediaBin = (
   } | null>(null);
 
   // Hydrate existing assets for the logged-in user
+  // DISABLED: Loading assets feature temporarily commented out
+  /*
   useEffect(() => {
     const loadAssets = async () => {
       try {
@@ -231,6 +233,12 @@ export const useMediaBin = (
     };
     loadAssets();
   }, [projectId]);
+  */
+
+  // Manually set loading to false since we're not loading assets
+  useEffect(() => {
+    setIsMediaLoading(false);
+  }, []);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
