@@ -269,71 +269,57 @@ export const useMediaBin = (
         left_transition_id: null,
         right_transition_id: null,
       };
-      setMediaBinItems((prev) => [...prev, newItem]);
+      setMediaBinItems(prev => [...prev, newItem]);
 
       const formData = new FormData();
-      formData.append("media", file);
+      formData.append('media', file);
 
-      console.log("Uploading file to server via authenticated proxy...");
-      const uploadResponse = await axios.post(
-        apiUrl("/api/assets/upload", false, true),
-        formData,
-        {
-          headers: {
-            "x-original-name": file.name,
-            "x-media-width": String(metadata.width ?? ""),
-            "x-media-height": String(metadata.height ?? ""),
-            "x-media-duration": String(metadata.durationInSeconds ?? ""),
-            ...(projectId ? { "x-project-id": projectId } : {}),
-          },
-          withCredentials: true,
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              console.log(`Upload progress: ${percentCompleted}%`);
+      console.log("Uploading file to server...");
+      const uploadResponse = await axios.post(apiUrl('/upload'), formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload progress: ${percentCompleted}%`);
 
-              // Update upload progress in the media bin
-              setMediaBinItems((prev) =>
-                prev.map((item) =>
-                  item.id === id
-                    ? { ...item, uploadProgress: percentCompleted }
-                    : item
-                )
-              );
-            }
-          },
+            // Update upload progress in the media bin
+            setMediaBinItems(prev =>
+              prev.map(item =>
+                item.id === id
+                  ? { ...item, uploadProgress: percentCompleted }
+                  : item
+              )
+            );
+          }
         }
-      );
+      });
 
       const uploadResult = uploadResponse.data;
       console.log("Upload successful:", uploadResult);
 
       // Update item with successful upload result and remove progress tracking
-      setMediaBinItems((prev) =>
-        prev.map((item) =>
+      setMediaBinItems(prev =>
+        prev.map(item =>
           item.id === id
             ? {
-                ...item,
-                mediaUrlRemote: uploadResult.asset?.mediaUrlRemote ?? null,
-                isUploading: false,
-                uploadProgress: null,
-              }
+              ...item,
+              mediaUrlRemote: uploadResult.fullUrl,
+              isUploading: false,
+              uploadProgress: null
+            }
             : item
         )
       );
+
     } catch (error) {
       console.error("Error adding media to bin:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       // Remove the failed item from media bin
-      setMediaBinItems((prev) => prev.filter((item) => item.id !== id));
+      setMediaBinItems(prev => prev.filter(item => item.id !== id));
 
       throw new Error(`Failed to add media: ${errorMessage}`);
     }
-  }, [projectId]);
+  }, []);
 
   const handleAddTextToBin = useCallback(
     (
