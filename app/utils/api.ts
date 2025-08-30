@@ -12,13 +12,7 @@ export const getApiBaseUrl = (fastapi: boolean = false, betterauth: boolean = fa
 
 export const apiUrl = (endpoint: string, fastapi: boolean = false, betterauth: boolean = false): string => {
   const baseUrl = getApiBaseUrl(fastapi, betterauth);
-  let path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-
-  // Normalize FastAPI when base already includes /ai/api
-  if (fastapi) {
-    if (path === "/ai") path = "";
-    else if (path.startsWith("/ai/")) path = path.slice(3);
-  }
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
 
   return path ? `${baseUrl}${path}` : `${baseUrl}`;
 };

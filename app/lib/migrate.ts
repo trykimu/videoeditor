@@ -18,9 +18,11 @@ async function run() {
 
   const pool = new Pool({
     connectionString,
-    ssl: process.env.NODE_ENV === "production" 
-      ? { rejectUnauthorized: true }
-      : { rejectUnauthorized: false }, // Only disable in development
+    ssl: connectionString.includes('supabase.co') 
+      ? { rejectUnauthorized: false } // Supabase uses certificates that may not be trusted by Node.js
+      : process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false },
   });
   const client = await pool.connect();
   try {

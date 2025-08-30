@@ -60,9 +60,11 @@ export const auth = betterAuth({
   // Let Better Auth auto-detect baseURL from the request
   database: new Pool({
     connectionString,
-    ssl: process.env.NODE_ENV === "production" 
-      ? { rejectUnauthorized: true }
-      : { rejectUnauthorized: false }, // Only disable in development
+    ssl: connectionString.includes('supabase.co') 
+      ? { rejectUnauthorized: false } // Supabase uses certificates that may not be trusted by Node.js
+      : process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false },
   }),
 
   // Add debugging and callback configuration
