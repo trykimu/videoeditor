@@ -670,7 +670,7 @@ export default function Landing() {
                             <div className="flex flex-wrap items-center justify-center gap-3 w-full min-h-[48px] mt-6">
                               {activeAsset.badges.map((badge, i) => (
                                 <Badge
-                                  key={i}
+                                  key={badge}
                                   className="bg-white/10 text-white border-white/20 backdrop-blur-sm text-xs md:text-sm py-2 px-4 animate-pulse">
                                   {badge}
                                 </Badge>
@@ -736,7 +736,7 @@ export default function Landing() {
                           { icon: Redo, label: "Redo" },
                         ].map((tool, i) => (
                           <button
-                            key={i}
+                            key={tool.label}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
                             title={tool.label}>
                             <tool.icon className="w-4 h-4" />
@@ -754,7 +754,7 @@ export default function Landing() {
                           { icon: Wand2, label: "AI Tools" },
                         ].map((tool, i) => (
                           <button
-                            key={i}
+                            key={tool.label}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted/20 transition-colors text-muted-foreground hover:text-foreground"
                             title={tool.label}>
                             <tool.icon className="w-4 h-4" />
@@ -795,7 +795,7 @@ export default function Landing() {
                               const width = `${widthPercent}%`;
                               return (
                                 <motion.div
-                                  key={i}
+                                  key={asset.label}
                                   className={`h-full rounded flex items-center px-2 pr-3 opacity-60 hover:opacity-80 transition-opacity cursor-pointer border overflow-hidden ${asset.color}`}
                                   style={{ width, minWidth: 0 }}
                                   initial={{ width: 0 }}
@@ -876,7 +876,7 @@ export default function Landing() {
                             🎉 We'll notify you when it's ready!
                           </motion.div>
                         )}
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20 relative z-20">
+                        <p className="text-xs leading-relaxed mt-3 text-white/20 relative z-20">
                           Get notified when Kimu launches. No spam, just updates on the future of video editing.
                         </p>
                       </div>
@@ -1147,7 +1147,7 @@ export default function Landing() {
                     d: "Export hooks, captions, upload/publish flows.",
                   },
                 ].map((c, i) => (
-                  <div key={i} className="rounded-xl border border-border/20 p-4 bg-muted/10">
+                  <div key={c.t} className="rounded-xl border border-border/20 p-4 bg-muted/10">
                     <h4 className="text-sm font-semibold text-foreground mb-1">{c.t}</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">{c.d}</p>
                   </div>
@@ -1155,7 +1155,7 @@ export default function Landing() {
               </div>
               <div className="mt-6 text-sm text-muted-foreground">
                 Want early access to the API?{" "}
-                <a href="mailto:hello@trykimu.com" className="underline">
+                <a href="mailto:robinroy.work@gmail.com" className="underline">
                   Get in touch
                 </a>
                 .
@@ -1299,7 +1299,8 @@ export default function Landing() {
                   ])
                   .map((chip, idx) => (
                     <li
-                      key={idx}
+                      // eslint-disable-next-line react/no-array-index-key
+                      key={`${chip.i}-${chip.t}-${idx}`}
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/30 bg-muted/10 text-xs text-foreground/90">
                       <span>{chip.i}</span>
                       <span>{chip.t}</span>
@@ -1401,11 +1402,10 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
         <div className="flex gap-4 overflow-x-auto pb-2 w-full snap-x snap-mandatory relative z-10">
           {timelineAssets.map((asset: MobileTimelinePlaygroundProps["timelineAssets"][number], i: number) => (
             <button
-              key={i}
+              key={asset.label}
               onClick={() => setActiveIdx(i)}
-              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${
-                activeIdx === i ? "ring-2 ring-blue-400 scale-105" : "hover:scale-105"
-              } ${activeIdx === i ? "z-20" : "z-10"}`}
+              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${activeIdx === i ? "ring-2 ring-blue-400 scale-105" : "hover:scale-105"
+                } ${activeIdx === i ? "z-20" : "z-10"}`}
               style={{ opacity: activeIdx === i ? 1 : 0.7 }}>
               <span className="text-2xl mb-1">{asset.icon}</span>
               <span className="text-xs font-semibold text-foreground text-center whitespace-nowrap">{asset.label}</span>
@@ -1441,7 +1441,7 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
           <div className="flex flex-wrap gap-2 mt-1">
             {timelineAssets[activeIdx].badges.map((badge: string, j: number) => (
               <span
-                key={j}
+                key={badge}
                 className="px-2 py-1 rounded bg-muted/30 text-xs text-foreground border border-border/20 font-medium shadow-sm">
                 {badge}
               </span>
@@ -1473,7 +1473,7 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
             <Video className="w-4 h-4 text-blue-400 mr-2" />
             <input
               type="email"
-              placeholder="your@email.com.mp4"
+              placeholder="your@email.com"
               className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground/70"
               required
               disabled={exporting}
@@ -1692,16 +1692,14 @@ function MobileVideoEditorPreview({
                       const trackOffset = `${(trackStart / totalDuration) * 100}%`;
 
                       return (
-                        <div key={i} className="flex items-center h-8">
+                        <div key={asset.label} className="flex items-center h-8">
                           {/* Track Label */}
                           <div
-                            className={`w-20 h-full ${
-                              isActive ? "bg-blue-500/20" : "bg-muted/20"
-                            } border-r border-border/20 flex items-center px-2`}>
+                            className={`w-20 h-full ${isActive ? "bg-blue-500/20" : "bg-muted/20"
+                              } border-r border-border/20 flex items-center px-2`}>
                             <span
-                              className={`text-xs font-medium ${
-                                isActive ? "text-blue-400" : "text-foreground"
-                              } truncate`}>
+                              className={`text-xs font-medium ${isActive ? "text-blue-400" : "text-foreground"
+                                } truncate`}>
                               Track {i + 1}
                             </span>
                           </div>
@@ -1720,18 +1718,16 @@ function MobileVideoEditorPreview({
 
                             {/* Track Content */}
                             <div
-                              className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${
-                                isActive ? "border-blue-400/50" : "border-border/30"
-                              }`}
+                              className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${isActive ? "border-blue-400/50" : "border-border/30"
+                                }`}
                               style={{
                                 left: trackOffset,
                                 width: trackWidth,
                                 minWidth: "80px",
                               }}>
                               <span
-                                className={`text-xs font-medium ${
-                                  isActive ? "text-blue-400" : "text-foreground"
-                                } truncate`}>
+                                className={`text-xs font-medium ${isActive ? "text-blue-400" : "text-foreground"
+                                  } truncate`}>
                                 {asset.label}
                               </span>
                             </div>
@@ -1739,9 +1735,8 @@ function MobileVideoEditorPreview({
                             {/* Progress Fill */}
                             {!isFuture && (
                               <motion.div
-                                className={`absolute top-0 bottom-0 ${
-                                  isActive ? "bg-blue-500" : asset.color
-                                } opacity-40 rounded-sm`}
+                                className={`absolute top-0 bottom-0 ${isActive ? "bg-blue-500" : asset.color
+                                  } opacity-40 rounded-sm`}
                                 style={{
                                   left: trackOffset,
                                   width: `${Math.min(trackProgress * 100, 100)}%`,
@@ -1807,7 +1802,7 @@ function MobileVideoEditorPreview({
                   🎉 We'll notify you when it's ready!
                 </motion.div>
               )}
-              <p className="text-xs text-muted-foreground leading-relaxed mt-3 text-white/20">
+              <p className="text-xs leading-relaxed mt-3 text-white/20">
                 Get notified when Kimu launches. No spam, just updates on the future of video editing.
               </p>
             </div>

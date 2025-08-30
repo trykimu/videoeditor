@@ -13,8 +13,7 @@ export default function Profile() {
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
   const [limitBytes, setLimitBytes] = React.useState<number>(2 * 1024 * 1024 * 1024);
   const [projectCount, setProjectCount] = React.useState<number | null>(null);
-  const initialCreated = (user as any)?.createdAt || (user as any)?.created_at || (user as any)?.created_at_ms || null;
-  const [memberSince, setMemberSince] = React.useState<string | null>(initialCreated ? String(initialCreated) : null);
+  const [memberSince, setMemberSince] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -29,7 +28,9 @@ export default function Profile() {
           setUsedBytes(Number.isFinite(u) ? u : 0);
           setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
         }
-      } catch {}
+      } catch (error) {
+        console.error('Failed to fetch storage info:', error);
+      }
     })();
     (async () => {
       try {
@@ -38,7 +39,9 @@ export default function Profile() {
         const j = await res.json();
         const created = j?.user?.createdAt || j?.user?.created_at || j?.user?.created_at_ms || null;
         if (!cancelled && created) setMemberSince(String(created));
-      } catch {}
+      } catch (error) {
+        console.error('Failed to fetch user session:', error);
+      }
     })();
     (async () => {
       try {
@@ -46,7 +49,9 @@ export default function Profile() {
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) setProjectCount(Array.isArray(j?.projects) ? j.projects.length : 0);
-      } catch {}
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      }
     })();
     return () => {
       cancelled = true;
@@ -90,7 +95,7 @@ export default function Profile() {
             <div className="text-sm text-muted-foreground">Theme</div>
             <Select
               value={theme === "light" || theme === "dark" ? theme : "system"}
-              onValueChange={(v) => setTheme(v as any)}>
+              onValueChange={(v: 'light' | 'dark' | 'system') => setTheme(v)}>
               <SelectTrigger size="sm" className="w-40">
                 <SelectValue />
               </SelectTrigger>
