@@ -269,50 +269,35 @@ export const useTimeline = () => {
     return timeline.tracks.flatMap((track) => track.scrubbers);
   }, [timeline]);
 
-const getAllTransitions = useCallback(() => {
-  const transitions: { [id: string]: Transition } = {};
-  for (const track of timeline.tracks) {
-    for (const transition of track.transitions) {
-      transitions[transition.id] = transition;
-    }
-  }
-  return transitions;
-}, [timeline]);
-
-const handleUpdateScrubber = useCallback(
-  (updatedScrubber: ScrubberState) => {
-    setTimeline((prev) => {
-      // On any new edit (not history replay), branch history:
-      if (!isApplyingHistoryRef.current) {
-        setUndoStack((u) => {
-          const clonedPrev = deepClone(prev);
-          const next = [...u, clonedPrev];
-          return next.length > 100 ? next.slice(next.length - 100) : next;
-        });
-        setRedoStack([]);
+  const getAllTransitions = useCallback(() => {
+    const transitions: { [id: string]: Transition } = {};
+    for (const track of timeline.tracks) {
+      for (const transition of track.transitions) {
+        transitions[transition.id] = transition;
       }
+    }
+    return transitions;
+  }, [timeline]);
 
-      // Find current track index of the scrubber
-      const currentTrackIndex = prev.tracks.findIndex((track) =>
-        track.scrubbers.some((scrubber) => scrubber.id === updatedScrubber.id)
-      );
+  const handleUpdateScrubber = useCallback(
+    (updatedScrubber: ScrubberState) => {
+      setTimeline((prev) => {
+        // On any new edit (not history replay), branch history:
+        if (!isApplyingHistoryRef.current) {
+          setUndoStack((u) => {
+            const clonedPrev = deepClone(prev);
+            const next = [...u, clonedPrev];
+            return next.length > 100 ? next.slice(next.length - 100) : next;
+          });
+          setRedoStack([]);
+        }
 
-      if (currentTrackIndex === -1) return prev;
+        // Find current track index of the scrubber
+        const currentTrackIndex = prev.tracks.findIndex((track) =>
+          track.scrubbers.some((scrubber) => scrubber.id === updatedScrubber.id)
+        );
 
-      const updatedTracks = [...prev.tracks];
-      updatedTracks[currentTrackIndex] = {
-        ...updatedTracks[currentTrackIndex],
-        scrubbers: updatedTracks[currentTrackIndex].scrubbers.map((scrubber) =>
-          scrubber.id === updatedScrubber.id ? updatedScrubber : scrubber
-        ),
-      };
-
-      return { ...prev, tracks: updatedTracks };
-    });
-  },
-  [setTimeline]
-);
-
+        if (currentTrackIndex === -1) return prev;
 
         const newTrackIndex = updatedScrubber.y || 0;
 
@@ -409,8 +394,7 @@ const handleUpdateScrubber = useCallback(
       // Show feedback message
       if (connectedTransitionIds.length > 0) {
         toast.success(
-          `Scrubber and ${connectedTransitionIds.length} connected transition${
-            connectedTransitionIds.length > 1 ? "s" : ""
+          `Scrubber and ${connectedTransitionIds.length} connected transition${connectedTransitionIds.length > 1 ? "s" : ""
           } deleted`
         );
       } else {
@@ -483,16 +467,13 @@ const handleUpdateScrubber = useCallback(
       if (scrubbersToDelete.length > 0) {
         if (connectedTransitionIds.length > 0) {
           toast.success(
-            `${scrubbersToDelete.length} scrubber${
-              scrubbersToDelete.length > 1 ? "s" : ""
-            } and ${connectedTransitionIds.length} connected transition${
-              connectedTransitionIds.length > 1 ? "s" : ""
+            `${scrubbersToDelete.length} scrubber${scrubbersToDelete.length > 1 ? "s" : ""
+            } and ${connectedTransitionIds.length} connected transition${connectedTransitionIds.length > 1 ? "s" : ""
             } deleted`
           );
         } else {
           toast.success(
-            `${scrubbersToDelete.length} scrubber${
-              scrubbersToDelete.length > 1 ? "s" : ""
+            `${scrubbersToDelete.length} scrubber${scrubbersToDelete.length > 1 ? "s" : ""
             } deleted`
           );
         }
@@ -526,12 +507,12 @@ const handleUpdateScrubber = useCallback(
     const transitionIdMapping: { [oldId: string]: string } = {};
     const scrubberIdMapping: { [oldId: string]: string } = {};
     const clonedTransitions: Transition[] = [];
-    
+
     // First pass: collect all transition IDs and scrubber IDs that need to be cloned
     const collectIds = (scrubberList: ScrubberState[]) => {
       for (const scrubber of scrubberList) {
         scrubberIdMapping[scrubber.id] = generateUUID();
-        
+
         if (scrubber.left_transition_id) {
           transitionIdMapping[scrubber.left_transition_id] = generateUUID();
         }
@@ -543,9 +524,9 @@ const handleUpdateScrubber = useCallback(
         }
       }
     };
-    
+
     collectIds(scrubbers);
-    
+
     // Clone transitions with new IDs and updated scrubber references if we have access to all transitions
     if (allTransitions) {
       for (const [oldTransitionId, newTransitionId] of Object.entries(transitionIdMapping)) {
@@ -554,9 +535,9 @@ const handleUpdateScrubber = useCallback(
           clonedTransitions.push({
             ...originalTransition,
             id: newTransitionId,
-            leftScrubberId: originalTransition.leftScrubberId ? 
+            leftScrubberId: originalTransition.leftScrubberId ?
               scrubberIdMapping[originalTransition.leftScrubberId] || originalTransition.leftScrubberId : null,
-            rightScrubberId: originalTransition.rightScrubberId ? 
+            rightScrubberId: originalTransition.rightScrubberId ?
               scrubberIdMapping[originalTransition.rightScrubberId] || originalTransition.rightScrubberId : null,
           });
         }
@@ -568,7 +549,7 @@ const handleUpdateScrubber = useCallback(
       return scrubberList.map((scrubber) => {
         const result = generateNewUUIDsForGroupedScrubbers(scrubber.groupped_scrubbers, allTransitions);
         clonedTransitions.push(...result.clonedTransitions);
-        
+
         return {
           ...scrubber,
           id: scrubberIdMapping[scrubber.id],
@@ -616,11 +597,11 @@ const handleUpdateScrubber = useCallback(
       const playerWidth =
         item.mediaType === "text" && item.media_width === 0
           ? Math.max(
-              200,
-              (item.text?.textContent?.length || 10) *
-                (item.text?.fontSize || 48) *
-                0.6
-            )
+            200,
+            (item.text?.textContent?.length || 10) *
+            (item.text?.fontSize || 48) *
+            0.6
+          )
           : item.media_width;
       const playerHeight =
         item.mediaType === "text" && item.media_height === 0
@@ -632,7 +613,7 @@ const handleUpdateScrubber = useCallback(
       const groupedResult = item.mediaType === "groupped_scrubber"
         ? generateNewUUIDsForGroupedScrubbers(item.groupped_scrubbers, allTransitions)
         : { scrubbers: item.groupped_scrubbers, clonedTransitions: [] };
-      
+
       const processedGroupedScrubbers = groupedResult.scrubbers;
       const clonedTransitions = groupedResult.clonedTransitions;
 
@@ -678,11 +659,11 @@ const handleUpdateScrubber = useCallback(
           ...prev,
           tracks: prev.tracks.map((track) =>
             track.id === trackId
-              ? { 
-                  ...track, 
-                  scrubbers: [...track.scrubbers, newScrubber],
-                  transitions: [...track.transitions, ...clonedTransitions]
-                }
+              ? {
+                ...track,
+                scrubbers: [...track.scrubbers, newScrubber],
+                transitions: [...track.transitions, ...clonedTransitions]
+              }
               : track
           ),
         }));
@@ -690,13 +671,13 @@ const handleUpdateScrubber = useCallback(
         handleAddScrubberToTrack(trackId, newScrubber);
       }
     }, [
-  timeline.tracks,
-  handleAddScrubberToTrack,
-  getPixelsPerSecond,
-  generateNewUUIDsForGroupedScrubbers,
-  getAllTransitions,
-  snapshotTimeline,
-]
+    timeline.tracks,
+    handleAddScrubberToTrack,
+    getPixelsPerSecond,
+    generateNewUUIDsForGroupedScrubbers,
+    getAllTransitions,
+    snapshotTimeline,
+  ]
   );
 
   const handleSplitScrubberAtRuler = useCallback(
@@ -1000,21 +981,21 @@ const handleUpdateScrubber = useCallback(
         return;
       }
 
-// Validate grouped scrubbers
-if (
-  leftScrubber?.mediaType === "groupped_scrubber" ||
-  rightScrubber?.mediaType === "groupped_scrubber"
-) {
-  toast.error("Grouped scrubbers cannot have transitions");
-  return;
-}
+      // Validate grouped scrubbers
+      if (
+        leftScrubber?.mediaType === "groupped_scrubber" ||
+        rightScrubber?.mediaType === "groupped_scrubber"
+      ) {
+        toast.error("Grouped scrubbers cannot have transitions");
+        return;
+      }
 
-// Update transition with scrubber IDs
-const updatedTransition: Transition = {
-  ...transition,
-  leftScrubberId: leftScrubber?.id || null,
-  rightScrubberId: rightScrubber?.id || null,
-};
+      // Update transition with scrubber IDs
+      const updatedTransition: Transition = {
+        ...transition,
+        leftScrubberId: leftScrubber?.id || null,
+        rightScrubberId: rightScrubber?.id || null,
+      };
 
       // Validate placement
       const validation = validateTransitionPlacement(
@@ -1091,142 +1072,128 @@ const updatedTransition: Transition = {
         }),
       }));
 
-toast.success("Transition added successfully");
-}, [
-  getPixelsPerSecond,
-  timeline.tracks,
-  validateTransitionPlacement,
-  snapshotTimeline,
-]);
+      toast.success("Transition added successfully");
+    }, [
+    getPixelsPerSecond,
+    timeline.tracks,
+    validateTransitionPlacement,
+    snapshotTimeline,
+  ]);
 
-const handleDeleteTransition = useCallback(
-  (transitionId: string) => {
-    snapshotTimeline();
-    setTimeline((prev) => {
-      // First, find which track contains the transition
-      let transitionToDelete: Transition | null = null;
-      let targetTrackId: string | null = null;
+  const handleDeleteTransition = useCallback(
+    (transitionId: string) => {
+      snapshotTimeline();
+      setTimeline((prev) => {
+        // 1. Locate the transition and its track
+        let transitionToDelete: Transition | null = null;
+        let targetTrackId: string | null = null;
 
-      for (const track of prev.tracks) {
-        const foundTransition = track.transitions.find(
-          (t) => t.id === transitionId
-        );
-        if (foundTransition) {
-          transitionToDelete = foundTransition;
-          targetTrackId = track.id;
-          break;
-        }
-      }
-
-      // If transition not found in any track, return unchanged timeline
-      if (!transitionToDelete || !targetTrackId) {
-        console.warn(`Transition with ID ${transitionId} not found in any track`);
-        return prev;
-      }
-
-      // Calculate movement parameters for the track that contains the transition
-      let movementDistance = 0;
-      let rightScrubberNewLeft = 0;
-      let shouldRestorePosition = false;
-      let rightScrubber: ScrubberState | null = null;
-      let leftScrubber: ScrubberState | null = null;
-
-      // Find the target track to get scrubber movement information
-      const targetTrack = prev.tracks.find((track) => track.id === targetTrackId);
-      if (targetTrack && transitionToDelete) {
-        // Calculate the overlap distance to restore
-        const pixelsPerSecond = getPixelsPerSecond();
-        const transitionWidthPx =
-          (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
-
-        // Define snap distance threshold (same as in creation logic)
-        const SNAP_DISTANCE = 10;
-
-        // Find the right scrubber and calculate its movement
-        rightScrubber =
-          targetTrack.scrubbers.find(
-            (s) => s.id === transitionToDelete.rightScrubberId
-          ) || null;
-        leftScrubber =
-          targetTrack.scrubbers.find(
-            (s) => s.id === transitionToDelete.leftScrubberId
-          ) || null;
-
-        if (rightScrubber && leftScrubber) {
-          const currentGap =
-            rightScrubber.left - (leftScrubber.left + leftScrubber.width);
-          const originalGap = currentGap + transitionWidthPx;
-
-          if (originalGap <= SNAP_DISTANCE) {
-            // Scrubbers were moved together during creation, so restore them
-            shouldRestorePosition = true;
-            rightScrubberNewLeft =
-              leftScrubber.left + leftScrubber.width + originalGap;
-            movementDistance = rightScrubberNewLeft - rightScrubber.left;
+        for (const track of prev.tracks) {
+          const foundTransition = track.transitions.find(
+            (t) => t.id === transitionId
+          );
+          if (foundTransition) {
+            transitionToDelete = foundTransition;
+            targetTrackId = track.id;
+            break;
           }
         }
-      }
 
-      const updatedTracks = prev.tracks.map((track) => {
-        const isTargetTrack = track.id === targetTrackId;
+        if (!transitionToDelete || !targetTrackId) {
+          console.warn(`Transition with ID ${transitionId} not found in any track`);
+          return prev;
+        }
 
-        return {
-          ...track,
-          // Only remove transition from the track that contains it
-          transitions: isTargetTrack
-            ? track.transitions.filter((t) => t.id !== transitionId)
-            : track.transitions,
-          scrubbers: track.scrubbers.map((scrubber) => {
-            // Reset transition references across ALL tracks
-            const baseScrubber = {
-              ...scrubber,
-              left_transition_id:
-                scrubber.left_transition_id === transitionId
-                  ? null
-                  : scrubber.left_transition_id,
-              right_transition_id:
-                scrubber.right_transition_id === transitionId
-                  ? null
-                  : scrubber.right_transition_id,
-            };
+        // 2. Prepare scrubber movement calculations
+        let movementDistance = 0;
+        let rightScrubberNewLeft = 0;
+        let shouldRestorePosition = false;
+        let rightScrubber: ScrubberState | null = null;
+        let leftScrubber: ScrubberState | null = null;
 
-            // Only apply movement logic to scrubbers in the target track
-            if (isTargetTrack && shouldRestorePosition && transitionToDelete) {
-              if (scrubber.id === transitionToDelete.rightScrubberId) {
+        const targetTrack = prev.tracks.find((t) => t.id === targetTrackId);
+        if (targetTrack && transitionToDelete) {
+          const pixelsPerSecond = getPixelsPerSecond();
+          const transitionWidthPx =
+            (transitionToDelete.durationInFrames / FPS) * pixelsPerSecond;
+
+          const SNAP_DISTANCE = 10;
+
+          rightScrubber =
+            targetTrack.scrubbers.find(
+              (s) => s.id === transitionToDelete.rightScrubberId
+            ) || null;
+          leftScrubber =
+            targetTrack.scrubbers.find(
+              (s) => s.id === transitionToDelete.leftScrubberId
+            ) || null;
+
+          if (rightScrubber && leftScrubber) {
+            const currentGap =
+              rightScrubber.left - (leftScrubber.left + leftScrubber.width);
+            const originalGap = currentGap + transitionWidthPx;
+
+            if (originalGap <= SNAP_DISTANCE) {
+              shouldRestorePosition = true;
+              rightScrubberNewLeft =
+                leftScrubber.left + leftScrubber.width + originalGap;
+              movementDistance = rightScrubberNewLeft - rightScrubber.left;
+            }
+          }
+        }
+
+        // 3. Build updated tracks
+        const updatedTracks = prev.tracks.map((track) => {
+          const isTargetTrack = track.id === targetTrackId;
+
+          return {
+            ...track,
+            transitions: isTargetTrack
+              ? track.transitions.filter((t) => t.id !== transitionId)
+              : track.transitions,
+
+            scrubbers: track.scrubbers.map((scrubber) => {
+              // Always clear transition references
+              const baseScrubber: ScrubberState = {
+                ...scrubber,
+                left_transition_id:
+                  scrubber.left_transition_id === transitionId
+                    ? null
+                    : scrubber.left_transition_id,
+                right_transition_id:
+                  scrubber.right_transition_id === transitionId
+                    ? null
+                    : scrubber.right_transition_id,
+              };
+
+              // Restore right scrubber position if snapped
+              if (
+                isTargetTrack &&
+                shouldRestorePosition &&
+                transitionToDelete &&
+                scrubber.id === transitionToDelete.rightScrubberId
+              ) {
                 return { ...baseScrubber, left: rightScrubberNewLeft };
               }
-            }
 
-            return baseScrubber;
-          }),
-        };
-      });
+              // Shift later scrubbers on the same track if needed
+              if (
+                isTargetTrack &&
+                rightScrubber &&
+                scrubber.id !== rightScrubber.id &&
+                movementDistance > 0
+              ) {
+                const rightScrubberOriginalEnd =
+                  rightScrubber.left + rightScrubber.width;
 
-      return { ...prev, tracks: updatedTracks };
-    });
-  },
-  [getPixelsPerSecond, snapshotTimeline]
-);
-
-
-                // If this scrubber comes after where the right scrubber originally ended, move it by the same distance
                 if (
-                  rightScrubber &&
-                  scrubber.id !== rightScrubber.id &&
-                  movementDistance > 0
+                  scrubber.y === rightScrubber.y &&
+                  scrubber.left >= rightScrubberOriginalEnd
                 ) {
-                  // Check if this scrubber is on the same track as the transition
-                  if (scrubber.y === rightScrubber.y) {
-                    // Check if this scrubber starts at or after where the right scrubber originally ended
-                    const rightScrubberOriginalEnd =
-                      rightScrubber.left + rightScrubber.width;
-                    if (scrubber.left >= rightScrubberOriginalEnd) {
-                      return {
-                        ...baseScrubber,
-                        left: scrubber.left + movementDistance,
-                      };
-                    }
-                  }
+                  return {
+                    ...baseScrubber,
+                    left: scrubber.left + movementDistance,
+                  };
                 }
               }
 
@@ -1235,16 +1202,14 @@ const handleDeleteTransition = useCallback(
           };
         });
 
-        return {
-          ...prev,
-          tracks: updatedTracks,
-        };
+        return { ...prev, tracks: updatedTracks };
       });
 
       toast.success("Transition deleted");
     },
     [getPixelsPerSecond, snapshotTimeline]
   );
+
 
   // Check if there's a transition between two scrubbers that allows overlap
   const hasTransitionBetween = useCallback(
@@ -1343,12 +1308,12 @@ const handleDeleteTransition = useCallback(
           mouseCenter < collidingCenter
             ? { ...updatedScrubber, left: Math.max(0, snapToLeft) }
             : {
-                ...updatedScrubber,
-                left: Math.min(
-                  snapToRight,
-                  timelineWidth - updatedScrubber.width
-                ),
-              };
+              ...updatedScrubber,
+              left: Math.min(
+                snapToRight,
+                timelineWidth - updatedScrubber.width
+              ),
+            };
 
         if (!checkCollisionWithTrack(preferredScrubber, updatedScrubber.id)) {
           return preferredScrubber;
@@ -1357,12 +1322,12 @@ const handleDeleteTransition = useCallback(
           const alternateScrubber =
             mouseCenter < collidingCenter
               ? {
-                  ...updatedScrubber,
-                  left: Math.min(
-                    snapToRight,
-                    timelineWidth - updatedScrubber.width
-                  ),
-                }
+                ...updatedScrubber,
+                left: Math.min(
+                  snapToRight,
+                  timelineWidth - updatedScrubber.width
+                ),
+              }
               : { ...updatedScrubber, left: Math.max(0, snapToLeft) };
 
           if (!checkCollisionWithTrack(alternateScrubber, updatedScrubber.id)) {

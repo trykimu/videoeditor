@@ -18,6 +18,17 @@ type Caption = {
   confidence: number | null;
 };
 
+type CaptionPageData = {
+  text: string;
+  startMs: number;
+  durationMs: number;
+  tokens: Array<{
+    text: string;
+    fromMs: number;
+    toMs: number;
+  }>;
+};
+
 
 const captions: Caption[] = [
   {
@@ -99,16 +110,7 @@ const { pages } = createTikTokStyleCaptions({
 });
 
 interface CaptionPageProps {
-  page: {
-    text: string;
-    startMs: number;
-    durationMs: number;
-    tokens: Array<{
-      text: string;
-      fromMs: number;
-      toMs: number;
-    }>;
-  };
+  page: CaptionPageData;
 }
 
 const CaptionPage = ({ page }: CaptionPageProps) => {
@@ -219,7 +221,7 @@ const TikTokStyleCaptionsExample: React.FC = () => {
       }}
     >
       {/* Render each caption page as a sequence */}
-      {pages.map((page, index) => (
+      {pages.map((page: CaptionPageData, index: number) => (
         <Sequence
           key={`page-${page.startMs}`}
           from={(page.startMs / 1000) * fps}
@@ -360,7 +362,7 @@ const GlassySubtitlesExample: React.FC = () => {
         alignItems: 'center',
       }}
     >
-      {pages.map((page) => (
+      {pages.map((page: CaptionPageData) => (
         <Sequence
           key={`glass-page-${page.startMs}`}
           from={(page.startMs / 1000) * fps}
@@ -387,7 +389,7 @@ const AlternatingCaptionsExample: React.FC = () => {
         alignItems: 'center',
       }}
     >
-      {pages.map((page, index) => (
+      {pages.map((page: CaptionPageData, index: number) => (
         <Sequence
           key={`alternating-page-${page.startMs}`}
           from={(page.startMs / 1000) * fps}
@@ -428,7 +430,7 @@ export const CaptionsShowcase: React.FC = () => {
       }}
     >
       {/* Main TikTok-style captions */}
-      {pages.map((page, index) => (
+      {pages.map((page: CaptionPageData, index: number) => (
         <Sequence
           key={`main-${page.startMs}`}
           from={(page.startMs / 1000) * fps}
@@ -439,7 +441,7 @@ export const CaptionsShowcase: React.FC = () => {
       ))}
 
       {/* Alternative style captions */}
-      {quickPages.map((page, index) => (
+      {quickPages.map((page: CaptionPageData, index: number) => (
         <Sequence
           key={`alt-${page.startMs}`}
           from={(page.startMs / 1000) * fps}

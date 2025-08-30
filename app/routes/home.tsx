@@ -226,6 +226,7 @@ export default function TimelineEditor() {
             uploadProgress: null,
             left_transition_id: null,
             right_transition_id: null,
+            groupped_scrubbers: t.groupped_scrubbers || null,
           }));
           setTextItems(textItems);
         } else {
@@ -248,6 +249,7 @@ export default function TimelineEditor() {
               uploadProgress: null,
               left_transition_id: null,
               right_transition_id: null,
+              groupped_scrubbers: null,
             }));
           if (textItems.length) setTextItems(textItems);
         }
@@ -866,63 +868,21 @@ export default function TimelineEditor() {
 
                   {/* Custom Video Controls - Below Player */}
                   <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                    {/* Left side controls */}
                     <div className="flex items-center gap-1">
                       <MuteButton playerRef={playerRef} />
                     </div>
+
+                    {/* Center play/pause button */}
                     <div className="flex items-center">
                       <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
                         {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                       </Button>
                     </div>
-                    {/* Video Preview */}
-                    <div
-                      className={`flex-1 ${theme === "dark" ? "bg-zinc-900" : "bg-zinc-200/70"
-                        } flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative`}
-                    >
-                      <div
-                        className="flex-1 flex items-center justify-center w-full">
-                        <VideoPlayer
-                          timelineData={timelineData}
-                          durationInFrames={durationInFrames}
-                          ref={playerRef}
-                          compositionWidth={isAutoSize ? null : width}
-                          compositionHeight={isAutoSize ? null : height}
-                          timeline={timeline}
-                          handleUpdateScrubber={handleUpdateScrubber}
-                          selectedItem={selectedItem}
-                          setSelectedItem={setSelectedItem}
-                          getPixelsPerSecond={getPixelsPerSecond}
-                        />
-                      </div>
 
-                      {/* Custom Video Controls - Below Player */}
-                      <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                        {/* Left side controls */}
-                        <div className="flex items-center gap-1">
-                          <MuteButton playerRef={playerRef} />
-                        </div>
-
-                        {/* Center play/pause button */}
-                        <div className="flex items-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={togglePlayback}
-                            className="h-6 w-6 p-0"
-                          >
-                            {isPlaying ? (
-                              <Pause className="h-3 w-3" />
-                            ) : (
-                              <Play className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-
-                        {/* Right side controls */}
-                        <div className="flex items-center gap-1">
-                          <FullscreenButton playerRef={playerRef} />
-                        </div>
-                      </div>
+                    {/* Right side controls */}
+                    <div className="flex items-center gap-1">
+                      <FullscreenButton playerRef={playerRef} />
                     </div>
                   </div>
                 </div>
