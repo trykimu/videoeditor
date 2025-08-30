@@ -69,7 +69,9 @@ export async function loader({ request }: { request: Request }) {
     }
     const pool = new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false }, // Only disable in development
     });
 
     let usedBytes = 0;

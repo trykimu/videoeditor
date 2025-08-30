@@ -31,7 +31,9 @@ function getPool(): Pool {
     }
     pool = new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false }, // Only disable in development
     });
   }
   return pool;

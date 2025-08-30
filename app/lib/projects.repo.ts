@@ -14,7 +14,12 @@ function getPool(): Pool {
     } catch {
       throw new Error("Invalid database URL");
     }
-    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    pool = new Pool({ 
+      connectionString, 
+      ssl: process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false } // Only disable in development
+    });
   }
   return pool;
 }

@@ -108,12 +108,6 @@ export default function App() {
 
   return (
     <>
-      {/* Expose initial auth user to the client to avoid extra roundtrips/flicker */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `window.__AUTH_USER__ = ${JSON.stringify(data?.user ?? null)};`,
-        }}
-      />
       {!hideNavbar && <Navbar showBrand={showBrand} />}
       <Outlet />
       {!hideFooter && <MarketingFooter />}

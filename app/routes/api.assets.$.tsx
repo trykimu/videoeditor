@@ -117,7 +117,9 @@ export async function loader({ request }: { request: Request }) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const filePath = path.resolve(OUT_DIR, asset.storage_key);
+    // Sanitize storage_key to prevent path traversal
+    const sanitizedKey = path.basename(asset.storage_key);
+    const filePath = path.resolve(OUT_DIR, sanitizedKey);
     if (!filePath.startsWith(OUT_DIR) || !fs.existsSync(filePath)) {
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -200,7 +202,12 @@ export async function action({ request }: { request: Request }) {
     const filenameFor8000 = (media as {name?: string})?.name || originalNameHeader || "upload.bin";
     form.append("media", media, filenameFor8000);
 
-    const forwardRes = await fetch("http://localhost:8000/upload", {
+    // Use HTTPS in production, HTTP only for local development
+    const uploadUrl = process.env.NODE_ENV === "production" 
+      ? process.env.UPLOAD_SERVICE_URL || "https://localhost:8000/upload"
+      : "http://localhost:8000/upload";
+    
+    const forwardRes = await fetch(uploadUrl, {
       method: "POST",
       body: form,
     });
@@ -333,7 +340,9 @@ export async function action({ request }: { request: Request }) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const filePath = path.resolve(OUT_DIR, asset.storage_key);
+    // Sanitize storage_key to prevent path traversal
+    const sanitizedKey = path.basename(asset.storage_key);
+    const filePath = path.resolve(OUT_DIR, sanitizedKey);
     if (filePath.startsWith(OUT_DIR) && fs.existsSync(filePath)) {
       try {
         fs.unlinkSync(filePath);
@@ -360,7 +369,9 @@ export async function action({ request }: { request: Request }) {
         headers: { "Content-Type": "application/json" },
       });
     }
-    const srcPath = path.resolve(OUT_DIR, asset.storage_key);
+    // Sanitize storage_key to prevent path traversal
+    const sanitizedKey = path.basename(asset.storage_key);
+    const srcPath = path.resolve(OUT_DIR, sanitizedKey);
     if (!srcPath.startsWith(OUT_DIR) || !fs.existsSync(srcPath)) {
       return new Response(JSON.stringify({ error: "Source missing" }), {
         status: 404,
@@ -368,9 +379,11 @@ export async function action({ request }: { request: Request }) {
       });
     }
     const timestamp = Date.now();
-    const ext = path.extname(asset.storage_key);
-    const base = path.basename(asset.storage_key, ext);
-    const newFilename = `${base}_${suffix}_${timestamp}${ext}`;
+    const ext = path.extname(sanitizedKey);
+    const base = path.basename(sanitizedKey, ext);
+    // Sanitize suffix to prevent path traversal in filename
+    const sanitizedSuffix = suffix.replace(/[^a-zA-Z0-9_-]/g, '');
+    const newFilename = `${base}_${sanitizedSuffix}_${timestamp}${ext}`;
     const destPath = path.resolve(OUT_DIR, newFilename);
     fs.copyFileSync(srcPath, destPath);
 

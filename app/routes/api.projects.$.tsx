@@ -96,7 +96,14 @@ export async function loader({ request }: { request: Request }) {
       for (const a of assets) {
         // Remove file from out/
         try {
-          const filePath = path.resolve("out", a.storage_key);
+          // Validate storage_key to prevent path traversal
+          if (!a.storage_key || typeof a.storage_key !== 'string') {
+            console.error("Invalid storage key");
+            continue;
+          }
+          // Sanitize the storage key to prevent path traversal
+          const sanitizedKey = path.basename(a.storage_key);
+          const filePath = path.resolve("out", sanitizedKey);
           if (
             filePath.startsWith(path.resolve("out")) &&
             fs.existsSync(filePath)
@@ -221,7 +228,9 @@ export async function action({ request }: { request: Request }) {
     }
     const pool = new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false },
+      ssl: process.env.NODE_ENV === "production" 
+        ? { rejectUnauthorized: true }
+        : { rejectUnauthorized: false }, // Only disable in development
     });
     try {
       if (name) {

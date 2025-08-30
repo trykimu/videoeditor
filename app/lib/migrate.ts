@@ -18,7 +18,9 @@ async function run() {
 
   const pool = new Pool({
     connectionString,
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.NODE_ENV === "production" 
+      ? { rejectUnauthorized: true }
+      : { rejectUnauthorized: false }, // Only disable in development
   });
   const client = await pool.connect();
   try {

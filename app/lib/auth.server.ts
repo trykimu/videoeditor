@@ -2,10 +2,6 @@ import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 
-// Only disable TLS verification in development environment
-if (process.env.NODE_ENV === "development") {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-}
 process.env.PGSSLMODE = "no-verify";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -65,8 +61,9 @@ export const auth = betterAuth({
   // Let Better Auth auto-detect baseURL from the request
   database: new Pool({
     connectionString,
-    // Temporarily disable SSL verification for development
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.NODE_ENV === "production" 
+      ? { rejectUnauthorized: true }
+      : { rejectUnauthorized: false }, // Only disable in development
   }),
 
   // Add debugging and callback configuration

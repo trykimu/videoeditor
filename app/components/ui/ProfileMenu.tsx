@@ -183,7 +183,8 @@ export function ProfileMenu({
           onClick={() => {
             onSignOut();
             setTimeout(() => {
-              window.location.href = "/";
+              // Use navigation API or router instead of direct href assignment
+              window.location.assign("/");
             }, 100);
           }}
           variant="destructive">

@@ -11,7 +11,21 @@ function ensureDir(): void {
 
 function getFilePath(projectId: string): string {
   ensureDir();
-  return path.resolve(TIMELINE_DIR, `${projectId}.json`);
+  // Validate and sanitize projectId to prevent path traversal
+  if (!projectId || typeof projectId !== 'string') {
+    throw new Error('Invalid project ID');
+  }
+  // Remove any path traversal attempts and invalid characters
+  const sanitizedId = projectId.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (sanitizedId !== projectId || sanitizedId.length === 0) {
+    throw new Error('Invalid project ID format');
+  }
+  const filePath = path.resolve(TIMELINE_DIR, `${sanitizedId}.json`);
+  // Ensure the resolved path is still within TIMELINE_DIR
+  if (!filePath.startsWith(path.resolve(TIMELINE_DIR))) {
+    throw new Error('Invalid path');
+  }
+  return filePath;
 }
 
 export type ProjectStateFile = {

@@ -156,11 +156,14 @@ export function useAuth(): UseAuthResult {
       // Clean up URL by removing OAuth params after processing
       setTimeout(() => {
         const url = new URL(window.location.href);
-        url.searchParams.delete("code");
-        url.searchParams.delete("state");
-        url.searchParams.delete("error");
-        console.log("🧹 Cleaning up URL:", url.toString());
-        window.history.replaceState({}, "", url.toString());
+        // Validate that we're only modifying search params and not changing origin
+        if (url.origin === window.location.origin) {
+          url.searchParams.delete("code");
+          url.searchParams.delete("state");
+          url.searchParams.delete("error");
+          console.log("🧹 Cleaning up URL:", url.toString());
+          window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+        }
       }, 5000);
       initialCheck();
     } else {
