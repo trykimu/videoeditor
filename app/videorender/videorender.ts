@@ -262,7 +262,8 @@ app.post('/render', async (req, res) => {
       durationInFrames: req.body.durationInFrames,
       compositionWidth: req.body.compositionWidth,
       compositionHeight: req.body.compositionHeight,
-      isRendering: true
+      getPixelsPerSecond: req.body.getPixelsPerSecond,
+      isRendering: true,
     };
 
     // console.log("Input props:", typeof inputProps.compositionWidth);

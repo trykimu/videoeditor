@@ -201,7 +201,9 @@ export default function Projects() {
       try {
         const isMobile = window.matchMedia("(max-width: 639px)").matches;
         setDrawerDirection(isMobile ? "bottom" : "right");
-      } catch {}
+      } catch {
+        console.error("Failed to update drawer direction");
+      }
     };
     update();
     window.addEventListener("resize", update);
@@ -239,6 +241,7 @@ export default function Projects() {
           setStarCount(typeof data.stargazers_count === "number" ? data.stargazers_count : null);
         }
       } catch {
+        console.error("Failed to fetch star count");
         setStarCount(null);
       }
     };

@@ -98,7 +98,7 @@ export default function TimelineEditor() {
   const [starCount, setStarCount] = useState<number | null>(null);
   // Avoid initial blank render; don't delay render on a 'mounted' gate
 
-  const [selectedScrubberId, setSelectedScrubberId] = useState<string | null>(null);
+  const [selectedScrubberIds, setSelectedScrubberIds] = useState<string[]>([]);
 
   // video player media selection state
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -122,6 +122,9 @@ export default function TimelineEditor() {
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    handleGroupScrubbers,
+    handleUngroupScrubber,
+    handleMoveGroupToMediaBin,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -143,6 +146,7 @@ export default function TimelineEditor() {
     setTextItems,
     handleAddMediaToBin,
     handleAddTextToBin,
+    handleAddGroupToMediaBin,
     contextMenu,
     handleContextMenu,
     handleDeleteFromContext,
@@ -222,6 +226,7 @@ export default function TimelineEditor() {
             uploadProgress: null,
             left_transition_id: null,
             right_transition_id: null,
+            groupped_scrubbers: t.groupped_scrubbers || null,
           }));
           setTextItems(textItems);
         } else {
@@ -244,6 +249,7 @@ export default function TimelineEditor() {
               uploadProgress: null,
               left_transition_id: null,
               right_transition_id: null,
+              groupped_scrubbers: null,
             }));
           if (textItems.length) setTextItems(textItems);
         }
@@ -405,9 +411,9 @@ export default function TimelineEditor() {
       return;
     }
 
-    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height);
+    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height, getPixelsPerSecond);
     toast.info("Starting render...");
-  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData]);
+  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData, getPixelsPerSecond]);
 
   const handleLogTimelineData = useCallback(() => {
     if (timelineData.length === 0) {
@@ -452,25 +458,79 @@ export default function TimelineEditor() {
     handleAddTrack();
   }, [handleAddTrack]);
 
+  // Handler for multi-selection with Ctrl+click support
+  const handleSelectScrubber = useCallback((scrubberId: string | null, ctrlKey: boolean = false) => {
+    if (scrubberId === null) {
+      setSelectedScrubberIds([]);
+      return;
+    }
+
+    if (ctrlKey) {
+      setSelectedScrubberIds(prev => {
+        if (prev.includes(scrubberId)) {
+          // If already selected, remove it
+          return prev.filter(id => id !== scrubberId);
+        } else {
+          // If not selected, add it
+          return [...prev, scrubberId];
+        }
+      });
+    } else {
+      // Normal click - select only this scrubber
+      setSelectedScrubberIds([scrubberId]);
+    }
+  }, []);
+
   const handleSplitClick = useCallback(() => {
-    if (!selectedScrubberId) {
+    if (selectedScrubberIds.length === 0) {
       toast.error("Please select a scrubber to split first!");
       return;
     }
 
-    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
+    if (selectedScrubberIds.length > 1) {
+      toast.error("Please select only one scrubber to split!");
+      return;
+    }
+
+    if (timelineData.length === 0 ||
+      timelineData.every((item) => item.scrubbers.length === 0)) {
       toast.error("No scrubbers to split. Add some media first!");
       return;
     }
 
-    const splitCount = handleSplitScrubberAtRuler(rulerPositionPx, selectedScrubberId);
+    const splitCount = handleSplitScrubberAtRuler(rulerPositionPx, selectedScrubberIds[0]);
     if (splitCount === 0) {
       toast.info("Cannot split: ruler is not positioned within the selected scrubber");
     } else {
-      setSelectedScrubberId(null); // Clear selection since original scrubber is replaced
+      setSelectedScrubberIds([]); // Clear selection since original scrubber is replaced
       toast.success(`Split the selected scrubber at ruler position`);
     }
-  }, [handleSplitScrubberAtRuler, rulerPositionPx, selectedScrubberId, timelineData]);
+  }, [handleSplitScrubberAtRuler, rulerPositionPx, selectedScrubberIds, timelineData]);
+
+  // Handler for grouping selected scrubbers
+  const handleGroupSelected = useCallback(() => {
+    if (selectedScrubberIds.length < 2) {
+      toast.error("Please select at least 2 scrubbers to group!");
+      return;
+    }
+
+    handleGroupScrubbers(selectedScrubberIds);
+    setSelectedScrubberIds([]); // Clear selection after grouping
+    toast.success(`Grouped ${selectedScrubberIds.length} scrubbers`);
+  }, [selectedScrubberIds, handleGroupScrubbers]);
+
+  // Handler for ungrouping a grouped scrubber
+  const handleUngroupSelected = useCallback((scrubberId: string) => {
+    handleUngroupScrubber(scrubberId);
+    setSelectedScrubberIds([]); // Clear selection after ungrouping
+    toast.success("Ungrouped scrubber");
+  }, [handleUngroupScrubber]);
+
+  // Handler for moving grouped scrubber to media bin
+  const handleMoveToMediaBinSelected = useCallback((scrubberId: string) => {
+    handleMoveGroupToMediaBin(scrubberId, handleAddGroupToMediaBin);
+    setSelectedScrubberIds([]); // Clear selection after moving
+  }, [handleMoveGroupToMediaBin, handleAddGroupToMediaBin]);
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef);
@@ -802,19 +862,25 @@ export default function TimelineEditor() {
                       handleUpdateScrubber={handleUpdateScrubber}
                       selectedItem={selectedItem}
                       setSelectedItem={setSelectedItem}
+                      getPixelsPerSecond={getPixelsPerSecond}
                     />
                   </div>
 
                   {/* Custom Video Controls - Below Player */}
                   <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                    {/* Left side controls */}
                     <div className="flex items-center gap-1">
                       <MuteButton playerRef={playerRef} />
                     </div>
+
+                    {/* Center play/pause button */}
                     <div className="flex items-center">
                       <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
                         {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                       </Button>
                     </div>
+
+                    {/* Right side controls */}
                     <div className="flex items-center gap-1">
                       <FullscreenButton playerRef={playerRef} />
                     </div>
@@ -928,8 +994,11 @@ export default function TimelineEditor() {
                   expandTimeline={expandTimelineCallback}
                   onRulerMouseDown={handleRulerMouseDown}
                   pixelsPerSecond={getPixelsPerSecond()}
-                  selectedScrubberId={selectedScrubberId}
-                  onSelectScrubber={setSelectedScrubberId}
+                  selectedScrubberIds={selectedScrubberIds}
+                  onSelectScrubber={handleSelectScrubber}
+                  onGroupScrubbers={handleGroupSelected}
+                  onUngroupScrubber={handleUngroupSelected}
+                  onMoveToMediaBin={handleMoveToMediaBinSelected}
                   onBeginScrubberTransform={snapshotTimeline}
                 />
               </div>

@@ -1,12 +1,15 @@
 // base type for all scrubbers
 export interface BaseScrubber {
   id: string;
-  mediaType: "video" | "image" | "audio" | "text";
+  mediaType: "video" | "image" | "audio" | "text" | "groupped_scrubber";
   mediaUrlLocal: string | null; // null for text
   mediaUrlRemote: string | null;
   media_width: number; // width of the media in pixels
   media_height: number; // height of the media in pixels
+
   text: TextProperties | null;
+  groupped_scrubbers: ScrubberState[] | null; // null for not grouped
+  //  groupped_scrubber_transitions: Transition[] | null; // null for no transitions / not groupped scrubbers [this is written to help with deepcopy]
 
   // transitions are managed using the right transition id, as in what to add to the right. Convenient to think of. Left one is for the initial transition, first scrubber intro. we won't use it anywhere else.
   // for a middle transition, you will only see its information in the left scrubber.
@@ -31,6 +34,7 @@ export interface TextProperties {
   color: string;
   textAlign: "left" | "center" | "right";
   fontWeight: "normal" | "bold";
+  template: "normal" | "glassy" | null;          // template uses tiktok style pages. null for normal text. templates might override the text properties.
 }
 
 // state of the scrubber in the media bin

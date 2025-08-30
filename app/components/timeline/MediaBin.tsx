@@ -108,7 +108,7 @@ const AudioPreview = ({ src }: { src: string }) => {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) {
-      el.play().catch(() => {});
+      el.play().catch(() => { });
     } else {
       el.pause();
     }
@@ -194,11 +194,10 @@ const AudioPreview = ({ src }: { src: string }) => {
         <div
           className="absolute left-0 top-0 h-full bg-primary rounded"
           style={{
-            width: `${
-              duration > 0
-                ? (Math.min(currentTime, duration) / duration) * 100
-                : 0
-            }%`,
+            width: `${duration > 0
+              ? (Math.min(currentTime, duration) / duration) * 100
+              : 0
+              }%`,
           }}
         />
       </div>
@@ -428,7 +427,6 @@ export default function MediaBin() {
       text: maybeSort(text),
     };
   }, [mediaBinItems, sortBy]);
-
   const renderThumbnail = (item: MediaBinItem) => {
     const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
 
@@ -546,11 +544,10 @@ export default function MediaBin() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
-                  arrangeMode === "default"
-                    ? "text-primary"
-                    : "text-muted-foreground/70 hover:text-foreground"
-                }`}
+                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${arrangeMode === "default"
+                  ? "text-primary"
+                  : "text-muted-foreground/70 hover:text-foreground"
+                  }`}
                 onClick={() => setArrangeMode("default")}
                 title="Default order"
                 aria-pressed={arrangeMode === "default"}
@@ -560,11 +557,10 @@ export default function MediaBin() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
-                  arrangeMode === "group"
-                    ? "text-primary"
-                    : "text-muted-foreground/70 hover:text-foreground"
-                }`}
+                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${arrangeMode === "group"
+                  ? "text-primary"
+                  : "text-muted-foreground/70 hover:text-foreground"
+                  }`}
                 onClick={() => setArrangeMode("group")}
                 title="Smart Group"
                 aria-pressed={arrangeMode === "group"}
@@ -594,43 +590,37 @@ export default function MediaBin() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setSortBy("default")}
-                  className={`text-[12px] gap-2 ${
-                    sortBy === "default" ? "text-primary" : ""
-                  }`}
+                  className={`text-[12px] gap-2 ${sortBy === "default" ? "text-primary" : ""
+                    }`}
                   data-variant="ghost"
                 >
                   <ArrowUpDown
-                    className={`h-3 w-3 ${
-                      sortBy === "default" ? "text-primary" : ""
-                    }`}
+                    className={`h-3 w-3 ${sortBy === "default" ? "text-primary" : ""
+                      }`}
                   />{" "}
                   Original order
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setSortBy("name_asc")}
-                  className={`text-[12px] gap-2 ${
-                    sortBy === "name_asc" ? "text-primary" : ""
-                  }`}
+                  className={`text-[12px] gap-2 ${sortBy === "name_asc" ? "text-primary" : ""
+                    }`}
                   data-variant="ghost"
                 >
                   <ChevronUp
-                    className={`h-3 w-3 ${
-                      sortBy === "name_asc" ? "text-primary" : ""
-                    }`}
+                    className={`h-3 w-3 ${sortBy === "name_asc" ? "text-primary" : ""
+                      }`}
                   />{" "}
                   Name A–Z
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setSortBy("name_desc")}
-                  className={`text-[12px] gap-2 ${
-                    sortBy === "name_desc" ? "text-primary" : ""
-                  }`}
+                  className={`text-[12px] gap-2 ${sortBy === "name_desc" ? "text-primary" : ""
+                    }`}
                   data-variant="ghost"
                 >
                   <ChevronDown
-                    className={`h-3 w-3 ${
-                      sortBy === "name_desc" ? "text-primary" : ""
-                    }`}
+                    className={`h-3 w-3 ${sortBy === "name_desc" ? "text-primary" : ""
+                      }`}
                   />{" "}
                   Name Z–A
                 </DropdownMenuItem>
@@ -652,11 +642,10 @@ export default function MediaBin() {
             {defaultArrangedItems.map((item) => (
               <div
                 key={item.id}
-                className={`group p-2 border border-border/50 rounded-md transition-colors ${
-                  item.isUploading
-                    ? "bg-accent/30 cursor-default"
-                    : "bg-card cursor-grab hover:bg-accent/50"
-                }`}
+                className={`group p-2 border border-border/50 rounded-md transition-colors ${item.isUploading
+                  ? "bg-accent/30 cursor-default"
+                  : "bg-card cursor-grab hover:bg-accent/50"
+                  }`}
                 draggable={!item.isUploading}
                 onDragStart={(e) => {
                   if (!item.isUploading) {
@@ -676,11 +665,10 @@ export default function MediaBin() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p
-                        className={`text-xs font-medium truncate transition-colors ${
-                          item.isUploading
-                            ? "text-muted-foreground"
-                            : "text-foreground group-hover:text-accent-foreground"
-                        }`}
+                        className={`text-xs font-medium truncate transition-colors ${item.isUploading
+                          ? "text-muted-foreground"
+                          : "text-foreground group-hover:text-accent-foreground"
+                          }`}
                       >
                         {item.name}
                       </p>
@@ -710,16 +698,12 @@ export default function MediaBin() {
                       >
                         {item.isUploading ? "uploading" : item.mediaType}
                       </Badge>
-
-                      {(item.mediaType === "video" ||
-                        item.mediaType === "audio") &&
-                        item.durationInSeconds > 0 &&
-                        !item.isUploading && (
-                          <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                            <Clock className="h-2.5 w-2.5" />
-                            {item.durationInSeconds.toFixed(1)}s
-                          </div>
-                        )}
+                      {(item.mediaType === "video" || item.mediaType === "audio" || item.mediaType === "groupped_scrubber") && item.durationInSeconds > 0 && !item.isUploading && (
+                        <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                          <Clock className="h-2.5 w-2.5" />
+                          {item.durationInSeconds.toFixed(1)}s
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -822,11 +806,10 @@ export default function MediaBin() {
                       {section.items.map((item) => (
                         <div
                           key={item.id}
-                          className={`group p-2 rounded-md border border-border/40 transition-colors ${
-                            item.isUploading
-                              ? "bg-accent/30 cursor-default"
-                              : "bg-card hover:bg-accent/30"
-                          }`}
+                          className={`group p-2 rounded-md border border-border/40 transition-colors ${item.isUploading
+                            ? "bg-accent/30 cursor-default"
+                            : "bg-card hover:bg-accent/30"
+                            }`}
                           draggable={!item.isUploading}
                           onDragStart={(e) => {
                             if (!item.isUploading) {
@@ -847,11 +830,10 @@ export default function MediaBin() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p
-                                  className={`text-xs font-medium truncate ${
-                                    item.isUploading
-                                      ? "text-muted-foreground"
-                                      : "text-foreground"
-                                  }`}
+                                  className={`text-xs font-medium truncate ${item.isUploading
+                                    ? "text-muted-foreground"
+                                    : "text-foreground"
+                                    }`}
                                 >
                                   {item.name}
                                 </p>

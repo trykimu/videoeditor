@@ -64,4 +64,7 @@ htmlcov/
 *.tmp
 *.temp
 .DS_Store
+learn.json
 .mypy_cache/
+idk.tsx
+idk.ts

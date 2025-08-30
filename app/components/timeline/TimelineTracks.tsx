@@ -38,8 +38,11 @@ interface TimelineTracksProps {
   expandTimeline: () => boolean;
   onRulerMouseDown: (e: React.MouseEvent) => void;
   pixelsPerSecond: number;
-  selectedScrubberId: string | null;
-  onSelectScrubber: (scrubberId: string | null) => void;
+  selectedScrubberIds: string[];
+  onSelectScrubber: (scrubberId: string | null, ctrlKey: boolean) => void;
+  onGroupScrubbers: () => void;
+  onUngroupScrubber: (scrubberId: string) => void;
+  onMoveToMediaBin?: (scrubberId: string) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -59,8 +62,11 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   expandTimeline,
   onRulerMouseDown,
   pixelsPerSecond,
-  selectedScrubberId,
+  selectedScrubberIds,
   onSelectScrubber,
+  onGroupScrubbers,
+  onUngroupScrubber,
+  onMoveToMediaBin,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -85,15 +91,15 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     const handleGlobalClick = (e: MouseEvent) => {
       const timelineContainer = containerRef.current;
       if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
-        onSelectScrubber(null);
+        onSelectScrubber(null, false);
       }
     };
 
-    if (selectedScrubberId) {
+    if (selectedScrubberIds.length > 0) {
       document.addEventListener("click", handleGlobalClick);
       return () => document.removeEventListener("click", handleGlobalClick);
     }
-  }, [selectedScrubberId, containerRef, onSelectScrubber]);
+  }, [selectedScrubberIds, containerRef, onSelectScrubber]);
 
   return (
     <div className="flex flex-1 min-h-0">
@@ -168,7 +174,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               onClick={(e) => {
                 // Deselect scrubber when clicking on empty timeline area
                 if (e.target === e.currentTarget) {
-                  onSelectScrubber(null);
+                  onSelectScrubber(null, false);
                 }
               }}
               onDrop={(e) => {
@@ -235,7 +241,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     onClick={(e) => {
                       // Deselect scrubber when clicking on track background
                       if (e.target === e.currentTarget) {
-                        onSelectScrubber(null);
+                        onSelectScrubber(null, false);
                       }
                     }}
                   />
@@ -286,8 +292,12 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     )}
                     onUpdate={onUpdateScrubber}
                     onDelete={onDeleteScrubber}
-                    isSelected={selectedScrubberId === scrubber.id}
+                    isSelected={selectedScrubberIds.includes(scrubber.id)}
                     onSelect={onSelectScrubber}
+                    onGroupScrubbers={onGroupScrubbers}
+                    onUngroupScrubber={onUngroupScrubber}
+                    onMoveToMediaBin={onMoveToMediaBin}
+                    selectedScrubberIds={selectedScrubberIds}
                     containerRef={containerRef}
                     expandTimeline={expandTimeline}
                     snapConfig={{ enabled: true, distance: 10 }}
@@ -301,12 +311,19 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {/* Transitions */}
               {(() => {
                 const transitionComponents = [];
+                // Get all scrubbers across all tracks for transition lookup
+                const allScrubbers = getAllScrubbers();
+                
                 for (const track of timeline.tracks) {
                   for (const transition of track.transitions) {
                     const leftScrubber = transition.leftScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
                     const rightScrubber = transition.rightScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+
+                    if (leftScrubber == null && rightScrubber == null) {
+                      continue;
+                    }
 
                     transitionComponents.push(
                       <TransitionOverlay
