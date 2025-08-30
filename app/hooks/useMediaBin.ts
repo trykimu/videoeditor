@@ -365,6 +365,27 @@ export const useMediaBin = (
     setMediaBinItems(prev => [...prev, newItem]);
   }, []);
 
+  const getMediaBinItems = useCallback(() => mediaBinItems, [mediaBinItems]);
+
+  const setTextItems = useCallback((textItems: MediaBinItem[]) => {
+    setMediaBinItems((prev) => {
+      const withoutText = prev.filter((i) => i.mediaType !== "text");
+      return [
+        ...withoutText,
+        ...textItems.map(
+          (t): MediaBinItem => ({
+            ...t,
+            mediaType: "text" as const,
+            mediaUrlLocal: null,
+            mediaUrlRemote: null,
+            isUploading: false,
+            uploadProgress: null,
+          })
+        ),
+      ];
+    });
+  }, []);
+
   const handleDeleteMedia = useCallback(async (item: MediaBinItem) => {
     try {
       if (item.mediaType === "text" || item.mediaType === "groupped_scrubber") {
@@ -379,31 +400,30 @@ export const useMediaBin = (
           console.error("No remote URL found for media item");
           return;
         }
-        // Call authenticated delete by asset id
-        const assetId = item.id;
-        const res = await fetch(apiUrl(`/api/assets/${assetId}`, false, true), {
-          method: "DELETE",
-          credentials: "include",
-        });
-        if (res.ok) {
-          console.log(`Media deleted: ${item.name}`);
-          // Remove from media bin state
-          setMediaBinItems((prev) =>
-            prev.filter((binItem) => binItem.id !== item.id)
-          );
-          // Also remove any scrubbers from the timeline that use this media
-          if (handleDeleteScrubbersByMediaBinId) {
-            handleDeleteScrubbersByMediaBinId(item.id);
-          }
-        } else {
-          console.error("Failed to delete media:", await res.text());
-        }
-      } catch (error) {
-        console.error("Error deleting media:", error);
       }
-    },
-    [handleDeleteScrubbersByMediaBinId]
-  );
+      // Call authenticated delete by asset id
+      const assetId = item.id;
+      const res = await fetch(apiUrl(`/api/assets/${assetId}`, false, true), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        console.log(`Media deleted: ${item.name}`);
+        // Remove from media bin state
+        setMediaBinItems((prev) =>
+          prev.filter((binItem) => binItem.id !== item.id)
+        );
+        // Also remove any scrubbers from the timeline that use this media
+        if (handleDeleteScrubbersByMediaBinId) {
+          handleDeleteScrubbersByMediaBinId(item.id);
+        }
+      } else {
+        console.error("Failed to delete media:", await res.text());
+      }
+    } catch (error) {
+      console.error("Error deleting media:", error);
+    }
+  }, [handleDeleteScrubbersByMediaBinId]);
 
   const handleSplitAudio = useCallback(async (videoItem: MediaBinItem) => {
     if (videoItem.mediaType !== "video") {
@@ -495,7 +515,7 @@ export const useMediaBin = (
     // by the current zoom-adjusted pixels per second - this gives us the true duration
     // regardless of zoom level
     const actualDurationInSeconds = groupedScrubber.width / currentPixelsPerSecond;
-    
+
     // Create a new media bin item from the grouped scrubber
     const newItem: MediaBinItem = {
       id: groupedScrubber.id,
@@ -513,7 +533,7 @@ export const useMediaBin = (
       right_transition_id: null,
       groupped_scrubbers: groupedScrubber.groupped_scrubbers,
     };
-    
+
     setMediaBinItems(prev => [...prev, newItem]);
     console.log("Added grouped scrubber to media bin:", newItem.name);
   }, []);
