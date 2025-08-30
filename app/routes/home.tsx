@@ -411,9 +411,9 @@ export default function TimelineEditor() {
       return;
     }
 
-    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height);
+    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height, getPixelsPerSecond);
     toast.info("Starting render...");
-  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData]);
+  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData, getPixelsPerSecond]);
 
   const handleLogTimelineData = useCallback(() => {
     if (timelineData.length === 0) {

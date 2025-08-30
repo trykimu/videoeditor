@@ -29,7 +29,7 @@ type TimelineCompositionProps = {
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   timeline: TimelineState;
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
-  getPixelsPerSecond: () => number;
+  getPixelsPerSecond: number | (() => number);
 };
 
 // props for the preview mode player
@@ -43,7 +43,7 @@ export type VideoPlayerProps = {
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
-  getPixelsPerSecond: () => number;
+  getPixelsPerSecond: number | (() => number);
 };
 
 export function TimelineComposition({
@@ -55,6 +55,10 @@ export function TimelineComposition({
   handleUpdateScrubber,
   getPixelsPerSecond,
 }: TimelineCompositionProps) {
+  // Resolve pixels per second based on rendering mode
+  const resolvedPixelsPerSecond = isRendering
+    ? (getPixelsPerSecond as number)
+    : (getPixelsPerSecond as () => number)();
   // Get all transitions from timelineData
   const allTransitions = timelineData[0].transitions;
 
@@ -299,7 +303,7 @@ export function TimelineComposition({
           scrubberStack.push({
             scrubber: grouppedScrubber,
             keyPrefix: `grouped-${grouppedScrubber.id}`,
-            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / getPixelsPerSecond()) * FPS), 1)
+            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
           });
 
           // Process the stack for this grouped scrubber
@@ -314,7 +318,7 @@ export function TimelineComposition({
                 scrubberStack.push({
                   scrubber: nestedScrubber,
                   keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
-                  durationCalculation: () => Math.max(Math.round((nestedScrubber.width / getPixelsPerSecond()) * FPS), 1)
+                  durationCalculation: () => Math.max(Math.round((nestedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
                 });
               }
             } else {
@@ -372,7 +376,7 @@ export function TimelineComposition({
               scrubberStack.push({
                 scrubber: nestedScrubber,
                 keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
-                durationCalculation: () => Math.max(Math.round((nestedScrubber.width / getPixelsPerSecond()) * FPS), 1)
+                durationCalculation: () => Math.max(Math.round((nestedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
               });
             }
           } else {
