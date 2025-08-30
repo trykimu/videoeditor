@@ -4,11 +4,7 @@ import { KimuLogo } from "~/components/ui/KimuLogo";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 
 export default function Terms() {
-  const lastUpdated = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const lastUpdated = `30th August 2025`
 
   return (
     <div className="min-h-screen bg-background text-foreground pt-20">
@@ -418,10 +414,10 @@ export default function Terms() {
                 <div className="space-y-2 ml-8 text-sm text-muted-foreground">
                   <p>
                     Questions? Contact us at{" "}
-                    <a href="mailto:hello@trykimu.com" className="underline">
-                      hello@trykimu.com
+                    <a href="mailto:robinroy.work@gmail.com" className="underline">
+                      robinroy.work@gmail.com
                     </a>{" "}
-                    or via Discord.
+                    or via <a href="https://discord.com/invite/GSknuxubZK" target="_blank" rel="noreferrer" className="underline">Discord</a>.
                   </p>
                 </div>
               </section>

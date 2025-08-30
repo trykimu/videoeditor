@@ -18,12 +18,6 @@ import { KimuLogo } from "~/components/ui/KimuLogo";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 
 export default function Privacy() {
-  const lastUpdated = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <div className="min-h-screen bg-background text-foreground pt-20">
       {/* Hero / Masthead */}
@@ -45,7 +39,7 @@ export default function Privacy() {
           </p>
           <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Calendar className="w-4 h-4" /> Updated {lastUpdated}
+              <Calendar className="w-4 h-4" /> Updated 30th August 2025
             </span>
             <span className="w-1 h-1 rounded-full bg-current/60" />
             <span>Version 2.0</span>
@@ -417,10 +411,10 @@ export default function Privacy() {
                       Open Discord
                     </a>
                     <a
-                      href="mailto:privacy@trykimu.com"
+                      href="mailto:robinroy.work@gmail.com"
                       className="text-xs px-3 py-1.5 rounded-md border border-border/30 hover:bg-muted/20"
                     >
-                      privacy@trykimu.com
+                      robinroy.work@gmail.com
                     </a>
                   </div>
                 </div>
@@ -452,7 +446,7 @@ export default function Privacy() {
               <span className="uppercase tracking-wider text-muted-foreground">
                 Last updated
               </span>{" "}
-              <span className="font-medium">{lastUpdated}</span>
+              <span className="font-medium">30th August 2025</span>
             </div>
             <a
               href="/"

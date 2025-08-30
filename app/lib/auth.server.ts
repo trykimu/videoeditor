@@ -2,7 +2,6 @@ import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 
-process.env.PGSSLMODE = "no-verify";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
