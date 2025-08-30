@@ -14,6 +14,7 @@ import { slide } from "@remotion/transitions/slide";
 import React from "react";
 import {
   FPS,
+  PIXELS_PER_SECOND,
   type ScrubberState,
   type TimelineDataItem,
   type TimelineState,
@@ -28,6 +29,7 @@ type TimelineCompositionProps = {
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   timeline: TimelineState;
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
+  getPixelsPerSecond: number | (() => number);
 };
 
 // props for the preview mode player
@@ -41,6 +43,7 @@ export type VideoPlayerProps = {
   handleUpdateScrubber: (updateScrubber: ScrubberState) => void;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
+  getPixelsPerSecond: number | (() => number);
 };
 
 export function TimelineComposition({
@@ -50,12 +53,22 @@ export function TimelineComposition({
   setSelectedItem,
   timeline,
   handleUpdateScrubber,
+  getPixelsPerSecond,
 }: TimelineCompositionProps) {
+  // Resolve pixels per second based on rendering mode
+  const resolvedPixelsPerSecond = isRendering
+    ? (getPixelsPerSecond as number)
+    : (getPixelsPerSecond as () => number)();
   // Get all transitions from timelineData
   const allTransitions = timelineData[0].transitions;
 
   // Step 1: Group scrubbers by trackIndex
-  const trackGroups: { [trackIndex: number]: { content: TimelineDataItem['scrubbers'][0]; type: string }[] } = {};
+  const trackGroups: {
+    [trackIndex: number]: {
+      content: TimelineDataItem["scrubbers"][0];
+      type: string;
+    }[];
+  } = {};
 
   for (const timelineItem of timelineData) {
     for (const scrubber of timelineItem.scrubbers) {
@@ -64,18 +77,20 @@ export function TimelineComposition({
       }
       trackGroups[scrubber.trackIndex].push({
         content: scrubber,
-        type: "scrubber"
+        type: "scrubber",
       });
     }
   }
 
   // Step 2: Sort scrubbers within each track by startTime
   for (const trackIndex in trackGroups) {
-    trackGroups[parseInt(trackIndex)].sort((a, b) => a.content.startTime - b.content.startTime);
+    trackGroups[parseInt(trackIndex)].sort(
+      (a, b) => a.content.startTime - b.content.startTime
+    );
   }
 
   // Helper function to create media content
-  const createMediaContent = (scrubber: TimelineDataItem['scrubbers'][0]): React.ReactNode => {
+  const createMediaContent = (scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState): React.ReactNode => {
     let content: React.ReactNode = null;
 
     switch (scrubber.mediaType) {
@@ -103,8 +118,7 @@ export function TimelineComposition({
                   fontSize: scrubber.text?.fontSize
                     ? `${scrubber.text.fontSize}px`
                     : "48px",
-                  fontFamily:
-                    scrubber.text?.fontFamily || "Arial, sans-serif",
+                  fontFamily: scrubber.text?.fontFamily || "Arial, sans-serif",
                   fontWeight: scrubber.text?.fontWeight || "normal",
                   margin: 0,
                   padding: "20px",
@@ -118,8 +132,8 @@ export function TimelineComposition({
         break;
       case "image": {
         const imageUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
         content = (
           <AbsoluteFill
             style={{
@@ -136,8 +150,8 @@ export function TimelineComposition({
       }
       case "video": {
         const videoUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
         content = (
           <AbsoluteFill
             style={{
@@ -147,16 +161,26 @@ export function TimelineComposition({
               height: scrubber.height_player,
             }}
           >
-            <Video src={videoUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined} />
+            <Video
+              src={videoUrl!}
+              trimBefore={scrubber.trimBefore || undefined}
+              trimAfter={scrubber.trimAfter || undefined}
+            />
           </AbsoluteFill>
         );
         break;
       }
       case "audio": {
         const audioUrl = isRendering
-          ? scrubber.mediaUrlRemote
-          : scrubber.mediaUrlLocal;
-        content = <Audio src={audioUrl!} trimBefore={scrubber.trimBefore || undefined} trimAfter={scrubber.trimAfter || undefined}/>;
+          ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
+          : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        content = (
+          <Audio
+            src={audioUrl!}
+            trimBefore={scrubber.trimBefore || undefined}
+            trimAfter={scrubber.trimAfter || undefined}
+          />
+        );
         break;
       }
       default:
@@ -210,7 +234,7 @@ export function TimelineComposition({
     // Calculate total duration for this track
     if (scrubbers.length > 0) {
       const lastScrubber = scrubbers[scrubbers.length - 1].content;
-      totalDurationInFrames = Math.round((lastScrubber.endTime) * FPS);
+      totalDurationInFrames = Math.round(lastScrubber.endTime * FPS);
     }
 
     for (let i = 0; i < scrubbers.length; i++) {
@@ -231,7 +255,11 @@ export function TimelineComposition({
       }
 
       // Add left transition if exists (only for first scrubber)
-      if (isFirstScrubber && scrubber.left_transition_id && allTransitions[scrubber.left_transition_id]) {
+      if (
+        isFirstScrubber &&
+        scrubber.left_transition_id &&
+        allTransitions[scrubber.left_transition_id]
+      ) {
         const transition = allTransitions[scrubber.left_transition_id];
         transitionSeriesElements.push(
           <TransitionSeries.Transition
@@ -243,21 +271,136 @@ export function TimelineComposition({
         );
       }
 
-      // Add the scrubber content
-      const mediaContent = createMediaContent(scrubber);
-      if (mediaContent) {
-        transitionSeriesElements.push(
-          <TransitionSeries.Sequence
-            key={`scrubber-${scrubber.id}`}
-            durationInFrames={Math.max(Math.round(scrubber.duration * FPS), 1)}
-          >
-            {mediaContent}
-          </TransitionSeries.Sequence>
-        );
+      // NOTE: groupped nested transitions are not supported yet. I'm too tired to implement it. idc. just dont use it. wtv.
+      // Process grouped scrubbers with transitions, then use stack approach for recursion
+      if (scrubber.mediaType === "groupped_scrubber") {
+        // For grouped scrubbers, handle transitions between grouped items
+        const groupedScrubbers = scrubber.groupped_scrubbers || [];
+
+        for (let j = 0; j < groupedScrubbers.length; j++) {
+          const grouppedScrubber = groupedScrubbers[j];
+          
+          // Add left transition for the first grouped scrubber
+          if (j === 0 && grouppedScrubber.left_transition_id && allTransitions[grouppedScrubber.left_transition_id]) {
+            const transition = allTransitions[grouppedScrubber.left_transition_id];
+            transitionSeriesElements.push(
+              <TransitionSeries.Transition
+                key={`grouped-${grouppedScrubber.id}-left-transition`}
+                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+                presentation={getTransitionPresentation(transition)}
+                timing={getTransitionTiming(transition)}
+              />
+            );
+          }
+
+          // Use stack approach for each grouped scrubber to handle potential nesting
+          const scrubberStack: Array<{
+            scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState;
+            keyPrefix: string;
+            durationCalculation: () => number;
+          }> = [];
+
+          scrubberStack.push({
+            scrubber: grouppedScrubber,
+            keyPrefix: `grouped-${grouppedScrubber.id}`,
+            durationCalculation: () => Math.max(Math.round((grouppedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
+          });
+
+          // Process the stack for this grouped scrubber
+          while (scrubberStack.length > 0) {
+            const stackItem = scrubberStack.pop()!;
+            const { scrubber: currentScrubber, keyPrefix, durationCalculation } = stackItem;
+
+            if (currentScrubber.mediaType === "groupped_scrubber") {
+              // Add nested grouped scrubbers to the stack in reverse order
+              for (let k = (currentScrubber.groupped_scrubbers || []).length - 1; k >= 0; k--) {
+                const nestedScrubber = (currentScrubber.groupped_scrubbers || [])[k];
+                scrubberStack.push({
+                  scrubber: nestedScrubber,
+                  keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
+                  durationCalculation: () => Math.max(Math.round((nestedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
+                });
+              }
+            } else {
+              // Create media content for non-grouped scrubber
+              const mediaContent = createMediaContent(currentScrubber);
+              if (mediaContent) {
+                transitionSeriesElements.push(
+                  <TransitionSeries.Sequence
+                    key={keyPrefix}
+                    durationInFrames={durationCalculation()}
+                  >
+                    {mediaContent}
+                  </TransitionSeries.Sequence>
+                );
+              }
+            }
+          }
+
+          // Add right transition between grouped scrubbers or at the end
+          if (grouppedScrubber.right_transition_id && allTransitions[grouppedScrubber.right_transition_id]) {
+            const transition = allTransitions[grouppedScrubber.right_transition_id];
+            transitionSeriesElements.push(
+              <TransitionSeries.Transition
+                key={`grouped-${grouppedScrubber.id}-right-transition`}
+                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
+                presentation={getTransitionPresentation(transition)}
+                timing={getTransitionTiming(transition)}
+              />
+            );
+          }
+        }
+      } else {
+        // Process regular scrubbers using the stack approach
+        const scrubberStack: Array<{
+          scrubber: TimelineDataItem['scrubbers'][0] | ScrubberState;
+          keyPrefix: string;
+          durationCalculation: () => number;
+        }> = [];
+
+        scrubberStack.push({
+          scrubber: scrubber,
+          keyPrefix: `scrubber-${scrubber.id}`,
+          durationCalculation: () => Math.max(Math.round(scrubber.duration * FPS), 1)
+        });
+
+        // Process the stack
+        while (scrubberStack.length > 0) {
+          const stackItem = scrubberStack.pop()!;
+          const { scrubber: currentScrubber, keyPrefix, durationCalculation } = stackItem;
+
+          if (currentScrubber.mediaType === "groupped_scrubber") {
+            // Add nested grouped scrubbers to the stack in reverse order
+            for (let k = (currentScrubber.groupped_scrubbers || []).length - 1; k >= 0; k--) {
+              const nestedScrubber = (currentScrubber.groupped_scrubbers || [])[k];
+              scrubberStack.push({
+                scrubber: nestedScrubber,
+                keyPrefix: `${keyPrefix}-nested-${nestedScrubber.id}`,
+                durationCalculation: () => Math.max(Math.round((nestedScrubber.width / resolvedPixelsPerSecond) * FPS), 1)
+              });
+            }
+          } else {
+            // Create media content for non-grouped scrubber
+            const mediaContent = createMediaContent(currentScrubber);
+            if (mediaContent) {
+              transitionSeriesElements.push(
+                <TransitionSeries.Sequence
+                  key={keyPrefix}
+                  durationInFrames={durationCalculation()}
+                >
+                  {mediaContent}
+                </TransitionSeries.Sequence>
+              );
+            }
+          }
+        }
       }
 
       // Add right transition if exists
-      if (scrubber.right_transition_id && allTransitions[scrubber.right_transition_id]) {
+      if (
+        scrubber.right_transition_id &&
+        allTransitions[scrubber.right_transition_id]
+      ) {
         const transition = allTransitions[scrubber.right_transition_id];
         transitionSeriesElements.push(
           <TransitionSeries.Transition
@@ -296,9 +439,7 @@ export function TimelineComposition({
           key={`track-${trackIndex}`}
           durationInFrames={totalDurationInFrames}
         >
-          <TransitionSeries>
-            {transitionSeriesElements}
-          </TransitionSeries>
+          <TransitionSeries>{transitionSeriesElements}</TransitionSeries>
         </Sequence>
       );
     }
@@ -335,6 +476,7 @@ export function VideoPlayer({
   handleUpdateScrubber,
   selectedItem,
   setSelectedItem,
+  getPixelsPerSecond,
 }: VideoPlayerProps) {
   // Calculate composition width if not provided
   if (compositionWidth === null) {
@@ -365,6 +507,13 @@ export function VideoPlayer({
     compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
   }
 
+  // Guard against invalid dimensions (e.g., user typed 0, only-audio timelines)
+  const safeWidth =
+    !compositionWidth || compositionWidth <= 0 ? 1920 : compositionWidth;
+  const safeHeight =
+    !compositionHeight || compositionHeight <= 0 ? 1080 : compositionHeight;
+  const safeDuration = Math.max(1, durationInFrames || 1);
+
   return (
     <Player
       ref={ref}
@@ -377,10 +526,11 @@ export function VideoPlayer({
         setSelectedItem,
         timeline,
         handleUpdateScrubber,
+        getPixelsPerSecond,
       }}
-      durationInFrames={durationInFrames || 10}
-      compositionWidth={compositionWidth}
-      compositionHeight={compositionHeight}
+      durationInFrames={safeDuration}
+      compositionWidth={safeWidth}
+      compositionHeight={safeHeight}
       fps={30}
       style={{
         width: "100%",

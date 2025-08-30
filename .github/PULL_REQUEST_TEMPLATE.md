@@ -1,23 +1,23 @@
-# Please read this section carefully then remove
+## Summary
+<!--Briefly explain the purpose of this PR and the user impact.-->
 
-Thank you for your contribution. We ❤️ you! 🤗🫂
+## Changes
+- What changed at a high level?
+- Any notable design/architecture decisions?
 
-PLEASE REFRAIN FROM USING AI TO WRITE YOUR CODE AND PR DESCRIPTION. IF YOU DO USE AI TO WRITE YOUR CODE PLEASE PROVIDE A DESCRIPTION AND REVIEW IT CAREFULLY. MAKE SURE YOU UNDERSTAND THE CODE YOU ARE SUBMITTING USING AI.
+## Testing
+<!--Testing done to ensure it works as intended-->
 
-- Pull requests that do not follow these guidelines will be closed without review or comment.
-- If you use AI to write your PR description your PR will be close without review or comment.
-- If this section is not removed, your PR will be closed without review or comment.
-- If you are unsure about anything, feel free to ask for clarification.
+## Screenshots / Recordings (if UI)
+<!--Attach images or short videos/GIFs showcasing changes. -->
 
-This is to prevent spam and ensure that the code is written by the person who submitted the PR.
+## Related Issues
+<!-- Link to any relevant issues. Use "Closes #<issue_number>" to automatically close an issue when this PR is merged. -->
+Closes #
+Refs #
 
-## Description
+## Breaking Changes
+<!--Describe any breaking behavior and required follow-up actions.-->
 
-Fixes #(issue number)
-
-Please provide a description of the changes you made.
-
-_By submitting this pull request, I confirm that my contribution is made under the terms of the [project's license](https://github.com/trykimu/videoeditor/blob/main/CONTRIBUTING.md#contributor-license-agreement)._
-
-
-## Screenshots (if applicable)
+## Deployment Notes
+<!--Mention any infra/config changes (Dockerfiles, docker-compose, Nginx, env vars).-->

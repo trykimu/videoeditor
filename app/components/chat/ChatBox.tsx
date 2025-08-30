@@ -10,15 +10,25 @@ import {
   Type,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { type MediaBinItem, type TimelineState } from "../timeline/types";
+import {
+  type MediaBinItem,
+  type TimelineState,
+  type ScrubberState,
+} from "../timeline/types";
 import { cn } from "~/lib/utils";
 import axios from "axios";
 import { apiUrl } from "~/utils/api";
 
 // llm tools
-import { llmAddScrubberToTimeline } from "~/utils/llm-handler";
+import {
+  llmAddScrubberToTimeline,
+  llmMoveScrubber,
+  llmAddScrubberByName,
+  llmDeleteScrubbersInTrack,
+} from "~/utils/llm-handler";
 
 interface Message {
   id: string;
@@ -40,6 +50,8 @@ interface ChatBoxProps {
   messages: Message[];
   onMessagesChange: (messages: Message[]) => void;
   timelineState: TimelineState;
+  handleUpdateScrubber: (updatedScrubber: ScrubberState) => void;
+  handleDeleteScrubber?: (scrubberId: string) => void;
 }
 
 export function ChatBox({
@@ -51,6 +63,8 @@ export function ChatBox({
   messages,
   onMessagesChange,
   timelineState,
+  handleUpdateScrubber,
+  handleDeleteScrubber,
 }: ChatBoxProps) {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -115,10 +129,16 @@ export function ChatBox({
 
     // Clean up mentioned items that are no longer in the text
     const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const currentMentions = Array.from(value.matchAll(mentionPattern)).map(match => match[1]);
-    setMentionedItems(prev => prev.filter(item => 
-      currentMentions.some(mention => mention.toLowerCase() === item.name.toLowerCase())
-    ));
+    const currentMentions = Array.from(value.matchAll(mentionPattern)).map(
+      (match) => match[1]
+    );
+    setMentionedItems((prev) =>
+      prev.filter((item) =>
+        currentMentions.some(
+          (mention) => mention.toLowerCase() === item.name.toLowerCase()
+        )
+      )
+    );
 
     // Check for @ mentions
     const beforeCursor = value.slice(0, cursorPos);
@@ -155,9 +175,9 @@ export function ChatBox({
     setShowMentions(false);
 
     // Store the actual item reference for later use
-    setMentionedItems(prev => {
+    setMentionedItems((prev) => {
       // Avoid duplicates
-      if (!prev.find(existingItem => existingItem.id === item.id)) {
+      if (!prev.find((existingItem) => existingItem.id === item.id)) {
         return [...prev, item];
       }
       return prev;
@@ -182,9 +202,13 @@ export function ChatBox({
       const mediaList = mediaBinItems.map((item) => `@${item.name}`).join(" ");
       messageContent = `${messageContent} ${mediaList}`;
       // Add all media items to the items to send
-      itemsToSend = [...mentionedItems, ...mediaBinItems.filter(item => 
-        !mentionedItems.find(mentioned => mentioned.id === item.id)
-      )];
+      itemsToSend = [
+        ...mentionedItems,
+        ...mediaBinItems.filter(
+          (item) =>
+            !mentionedItems.find((mentioned) => mentioned.id === item.id)
+        ),
+      ];
     }
 
     const userMessage: Message = {
@@ -207,7 +231,14 @@ export function ChatBox({
 
     try {
       // Use the stored mentioned items to get their IDs
-      const mentionedScrubberIds = itemsToSend.map(item => item.id);
+      const mentionedScrubberIds = itemsToSend.map((item) => item.id);
+
+      // Build short chat history to give context to the backend
+      const history = messages.slice(-10).map((m) => ({
+        role: m.isUser ? "user" : "assistant",
+        content: m.content,
+        timestamp: m.timestamp,
+      }));
 
       // Make API call to the backend
       const response = await axios.post(apiUrl("/ai", true), {
@@ -215,6 +246,7 @@ export function ChatBox({
         mentioned_scrubber_ids: mentionedScrubberIds,
         timeline_state: timelineState,
         mediabin_items: mediaBinItems,
+        chat_history: history,
       });
 
       const functionCallResponse = response.data;
@@ -223,12 +255,12 @@ export function ChatBox({
       // Handle the function call based on function_name
       if (functionCallResponse.function_call) {
         const { function_call } = functionCallResponse;
-        
+
         try {
           if (function_call.function_name === "LLMAddScrubberToTimeline") {
             // Find the media item by ID
             const mediaItem = mediaBinItems.find(
-              item => item.id === function_call.scrubber_id
+              (item) => item.id === function_call.scrubber_id
             );
 
             if (!mediaItem) {
@@ -245,6 +277,50 @@ export function ChatBox({
 
               aiResponseContent = `✅ Successfully added "${mediaItem.name}" to ${function_call.track_id} at position ${function_call.drop_left_px}px.`;
             }
+          } else if (function_call.function_name === "LLMMoveScrubber") {
+            // Execute move scrubber operation
+            llmMoveScrubber(
+              function_call.scrubber_id,
+              function_call.new_position_seconds,
+              function_call.new_track_number,
+              function_call.pixels_per_second,
+              timelineState,
+              handleUpdateScrubber
+            );
+
+            // Try to locate the scrubber name for a nicer message
+            const allScrubbers = timelineState.tracks.flatMap(
+              (t) => t.scrubbers
+            );
+            const moved = allScrubbers.find(
+              (s) => s.id === function_call.scrubber_id
+            );
+            const movedName = moved ? moved.name : function_call.scrubber_id;
+            aiResponseContent = `✅ Moved "${movedName}" to track ${function_call.new_track_number} at ${function_call.new_position_seconds}s.`;
+          } else if (function_call.function_name === "LLMAddScrubberByName") {
+            // Add media by name with defaults
+            llmAddScrubberByName(
+              function_call.scrubber_name,
+              mediaBinItems,
+              function_call.track_number,
+              function_call.position_seconds,
+              function_call.pixels_per_second ?? 100,
+              handleDropOnTrack
+            );
+
+            aiResponseContent = `✅ Added "${function_call.scrubber_name}" to track ${function_call.track_number} at ${function_call.position_seconds}s.`;
+          } else if (
+            function_call.function_name === "LLMDeleteScrubbersInTrack"
+          ) {
+            if (!handleDeleteScrubber) {
+              throw new Error("Delete handler is not available");
+            }
+            llmDeleteScrubbersInTrack(
+              function_call.track_number,
+              timelineState,
+              handleDeleteScrubber
+            );
+            aiResponseContent = `✅ Removed all scrubbers in track ${function_call.track_number}.`;
           } else {
             aiResponseContent = `❌ Unknown function: ${function_call.function_name}`;
           }
@@ -253,8 +329,11 @@ export function ChatBox({
             error instanceof Error ? error.message : "Unknown error"
           }`;
         }
+      } else if (functionCallResponse.assistant_message) {
+        aiResponseContent = functionCallResponse.assistant_message;
       } else {
-        aiResponseContent = "I understand your request, but I couldn't determine a specific action to take. Could you please be more specific?";
+        aiResponseContent =
+          "I understand your request, but I couldn't determine a specific action to take. Could you please be more specific?";
       }
 
       const aiMessage: Message = {
@@ -267,14 +346,14 @@ export function ChatBox({
       onMessagesChange([...messages, userMessage, aiMessage]);
     } catch (error) {
       console.error("Error calling AI API:", error);
-      
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: `❌ Sorry, I encountered an error while processing your request. Please try again.`,
         isUser: false,
         timestamp: new Date(),
       };
-      
+
       onMessagesChange([...messages, userMessage, errorMessage]);
     } finally {
       setIsTyping(false);
@@ -334,21 +413,32 @@ export function ChatBox({
           <span className="text-sm font-medium tracking-tight">Ask Kimu</span>
         </div>
 
-        {onToggleMinimize && (
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={onToggleMinimize}
+            onClick={() => onMessagesChange([])}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-            title={isMinimized ? "Expand chat" : "Minimize chat"}
+            title="Clear chat"
           >
-            {isMinimized ? (
-              <ChevronLeft className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
+            <RotateCcw className="h-3 w-3" />
           </Button>
-        )}
+          {onToggleMinimize && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleMinimize}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              title={isMinimized ? "Expand chat" : "Minimize chat"}
+            >
+              {isMinimized ? (
+                <ChevronLeft className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Content Area */}

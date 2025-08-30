@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { Trash2 } from "lucide-react";
+import { Trash2, Group, Ungroup, Archive } from "lucide-react";
 
 // something something for the css not gonna bother with it for now
 export interface SnapConfig {
@@ -20,7 +20,12 @@ export interface ScrubberProps {
   trackCount: number;
   pixelsPerSecond: number;
   isSelected?: boolean;
-  onSelect?: (scrubberId: string) => void;
+  onSelect: (scrubberId: string, ctrlKey: boolean) => void;
+  onGroupScrubbers: () => void;
+  onUngroupScrubber: (scrubberId: string) => void;
+  onMoveToMediaBin?: (scrubberId: string) => void;
+  selectedScrubberIds: string[];
+  onBeginTransform?: () => void; // drag or resize start snapshot
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -36,6 +41,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   pixelsPerSecond,
   isSelected = false,
   onSelect,
+  onGroupScrubbers,
+  onUngroupScrubber,
+  onMoveToMediaBin,
+  selectedScrubberIds = [],
+  onBeginTransform,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -104,7 +114,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
       // Select the scrubber when clicked
       if (onSelect) {
-        onSelect(scrubber.id);
+        onSelect(scrubber.id, e.ctrlKey);
       }
 
       // Prevent resizing for video and audio media
@@ -113,9 +123,11 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       }
 
       if (mode === "drag") {
+        if (onBeginTransform) onBeginTransform();
         setIsDragging(true);
         dragStateRef.current.offsetX = e.clientX - scrubber.left;
       } else {
+        if (onBeginTransform) onBeginTransform();
         setIsResizing(true);
         setResizeMode(mode === "resize-left" ? "left" : "right");
         dragStateRef.current.startX = e.clientX;
@@ -123,7 +135,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         dragStateRef.current.startWidth = scrubber.width;
       }
     },
-    [scrubber, onSelect]
+    [scrubber, onSelect, onBeginTransform]
   );
 
   const handleMouseMove = useCallback(
@@ -292,6 +304,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       text: "bg-purple-600 border-purple-500 text-white",
       default: "bg-primary border-primary/60 text-primary-foreground",
       audio: "bg-blue-600 border-blue-400 text-white",
+      groupped_scrubber: "bg-gray-600 border-gray-400 text-white",
     };
 
     const selectedColors = {
@@ -304,6 +317,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         "bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50",
       default:
         "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
+      groupped_scrubber:
+        "bg-gray-600 border-gray-400 text-white ring-2 ring-gray-400/50",
     };
 
     const colorSet = isSelected ? selectedColors : baseColors;
@@ -317,7 +332,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
     // Select the scrubber when right-clicked
     if (onSelect) {
-      onSelect(scrubber.id);
+      onSelect(scrubber.id, e.ctrlKey);
     }
 
     // Get the position relative to the viewport
@@ -347,6 +362,45 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     // Close context menu
     setContextMenu({ visible: false, x: 0, y: 0 });
   }, [onDelete, scrubber.id]);
+
+  // Handle context menu group action
+  const handleContextMenuGroup = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onGroupScrubbers) {
+      onGroupScrubbers();
+    }
+
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [onGroupScrubbers]);
+
+  // Handle context menu ungroup action
+  const handleContextMenuUngroup = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onUngroupScrubber) {
+      onUngroupScrubber(scrubber.id);
+    }
+
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [onUngroupScrubber, scrubber.id]);
+
+  // Handle context menu move to media bin action
+  const handleContextMenuMoveToMediaBin = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onMoveToMediaBin) {
+      onMoveToMediaBin(scrubber.id);
+    }
+
+    // Close context menu
+    setContextMenu({ visible: false, x: 0, y: 0 });
+  }, [onMoveToMediaBin, scrubber.id]);
 
   // Add click outside listener for context menu
   useEffect(() => {
@@ -382,6 +436,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           {scrubber.mediaType === "image" && "I"}
           {scrubber.mediaType === "text" && "T"}
           {scrubber.mediaType === "audio" && "A"}
+          {scrubber.mediaType === "groupped_scrubber" && "G"}
         </div>
 
         {/* Media name */}
@@ -390,7 +445,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         </div>
 
         {/* Left resize handle - more visible */}
-        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
+        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && scrubber.mediaType !== "groupped_scrubber" && (
           <div
             className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
             onMouseDown={(e) => handleMouseDown(e, "resize-left")}
@@ -399,7 +454,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         )}
 
         {/* Right resize handle - more visible */}
-        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && (
+        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && scrubber.mediaType !== "groupped_scrubber" && (
           <div
             className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
             onMouseDown={(e) => handleMouseDown(e, "resize-right")}
@@ -448,6 +503,39 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             top: `${contextMenu.y}px`,
           }}
         >
+          {/* Show Group option if multiple scrubbers are selected but this isn't grouped */}
+          {selectedScrubberIds.length > 1 && scrubber.mediaType !== "groupped_scrubber" && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuGroup}
+            >
+              <Group className="h-3 w-3" />
+              Group Selected
+            </button>
+          )}
+
+          {/* Show Ungroup option if this is a grouped scrubber */}
+          {scrubber.mediaType === "groupped_scrubber" && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuUngroup}
+            >
+              <Ungroup className="h-3 w-3" />
+              Ungroup
+            </button>
+          )}
+
+          {/* Show Move to Media Bin option only for grouped scrubbers */}
+          {scrubber.mediaType === "groupped_scrubber" && (
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+              onClick={handleContextMenuMoveToMediaBin}
+            >
+              <Archive className="h-3 w-3" />
+              Move to Media Bin
+            </button>
+          )}
+
           <button
             className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
             onClick={handleContextMenuDelete}

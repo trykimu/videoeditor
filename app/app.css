@@ -10,11 +10,7 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+  /* Background now derives strictly from theme tokens via body classes */
 }
 
 @theme inline {
@@ -470,4 +466,30 @@ body {
 
 .shadow-glow-lg {
   box-shadow: 0 0 40px rgba(37, 99, 235, 0.2);
+}
+
+/* Indeterminate top loader */
+.indeterminate-line {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+.indeterminate-line::before {
+  content: "";
+  position: absolute;
+  left: -40%;
+  top: 0;
+  height: 100%;
+  width: 40%;
+  background: currentColor;
+  border-radius: 2px;
+  animation: indeterminate-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes indeterminate-slide {
+  0% { left: -40%; width: 40%; }
+  50% { left: 20%; width: 60%; }
+  100% { left: 100%; width: 40%; }
 }

@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "./components/ui/button";
 import {
-  Home,
   ArrowRight,
-  Bot,
   MessageCircle,
   Play,
-  Pause,
   SkipBack,
   SkipForward,
   Volume2,
@@ -19,7 +16,14 @@ import {
   Sparkles,
   Stars,
 } from "lucide-react";
+import { KimuLogo } from "~/components/ui/KimuLogo";
+import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { useNavigate } from "react-router";
+
+const MEDIA_KEYS = Array.from({ length: 10 }, (_, i) => `media-item-${i}`);
+const TIMELINE_KEYS = Array.from({ length: 15 }, (_, i) => `timeline-mark-${i}`);
+const TOOL_KEYS = Array.from({ length: 12 }, (_, i) => `tool-${i}`);
+const TYPING_KEYS = Array.from({ length: 3 }, (_, i) => `typing-dot-${i}`);
 
 export default function NotFound(): React.ReactElement {
   const navigate = useNavigate();
@@ -62,7 +66,7 @@ export default function NotFound(): React.ReactElement {
       <div className="absolute inset-0 pointer-events-none">
         {/* Top Menu Bar - Wave 1 */}
         <motion.div
-          className="absolute top-0 left-0 right-0 h-12 border-b-2 border-muted-foreground/30 bg-muted/20"
+          className="absolute top-0 left-0 right-0 h-12 border-b border-border/30 bg-muted/10"
           animate={{
             opacity: [0.08, 0.12, 0.08],
           }}
@@ -73,16 +77,16 @@ export default function NotFound(): React.ReactElement {
           }}
         >
           <div className="flex items-center h-full px-4 gap-6">
-            <div className="w-20 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-16 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-18 h-7 bg-muted-foreground/40 rounded"></div>
-            <div className="w-14 h-7 bg-muted-foreground/40 rounded"></div>
+            <div className="w-20 h-7 bg-muted-foreground/40 rounded" />
+            <div className="w-16 h-7 bg-muted-foreground/40 rounded" />
+            <div className="w-18 h-7 bg-muted-foreground/40 rounded" />
+            <div className="w-14 h-7 bg-muted-foreground/40 rounded" />
           </div>
         </motion.div>
 
         {/* Left Panel - Media Bin - Wave 2 */}
         <motion.div
-          className="absolute top-12 left-0 w-72 bottom-48 border-r-2 border-muted-foreground/30 bg-muted/15"
+          className="absolute top-12 left-0 w-72 bottom-48 border-r border-border/30 bg-muted/10"
           animate={{
             opacity: [0.06, 0.1, 0.06],
           }}
@@ -94,11 +98,11 @@ export default function NotFound(): React.ReactElement {
           }}
         >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
+            <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
           <div className="p-4 space-y-3">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
+            {MEDIA_KEYS.map((key, i) => (
+              <div key={key} className="flex items-center gap-3">
                 {i % 3 === 0 ? (
                   <Video className="w-5 h-5 text-muted-foreground/60" />
                 ) : i % 3 === 1 ? (
@@ -106,8 +110,8 @@ export default function NotFound(): React.ReactElement {
                 ) : (
                   <Music className="w-5 h-5 text-muted-foreground/60" />
                 )}
-                <div className="w-24 h-4 bg-muted-foreground/40 rounded"></div>
-                <div className="w-12 h-3 bg-muted-foreground/30 rounded text-xs"></div>
+                <div className="w-24 h-4 bg-muted-foreground/40 rounded" />
+                <div className="w-12 h-3 bg-muted-foreground/30 rounded text-xs" />
               </div>
             ))}
           </div>
@@ -115,7 +119,7 @@ export default function NotFound(): React.ReactElement {
 
         {/* Right Panel - Preview - Wave 3 */}
         <motion.div
-          className="absolute top-12 right-0 w-96 h-80 border-l-2 border-b-2 border-muted-foreground/30 bg-muted/15"
+          className="absolute top-12 right-0 w-96 h-80 border-l border-b border-border/30 bg-muted/10"
           animate={{
             opacity: [0.05, 0.09, 0.05],
           }}
@@ -127,10 +131,10 @@ export default function NotFound(): React.ReactElement {
           }}
         >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-16 h-5 bg-muted-foreground/40 rounded"></div>
+            <div className="w-16 h-5 bg-muted-foreground/40 rounded" />
           </div>
           <div className="p-6">
-            <div className="w-full h-48 border-2 border-muted-foreground/40 rounded-lg bg-muted/20 flex items-center justify-center">
+            <div className="w-full h-48 border border-border/30 rounded-lg bg-muted/10 flex items-center justify-center">
               <motion.div
                 animate={{
                   scale: [1, 1.05, 1],
@@ -156,7 +160,7 @@ export default function NotFound(): React.ReactElement {
 
         {/* Bottom Timeline - Wave 4 */}
         <motion.div
-          className="absolute bottom-0 left-0 right-0 h-48 border-t-2 border-muted-foreground/30 bg-muted/15"
+          className="absolute bottom-0 left-0 right-0 h-48 border-t border-border/30 bg-muted/10"
           animate={{
             opacity: [0.07, 0.11, 0.07],
           }}
@@ -169,9 +173,9 @@ export default function NotFound(): React.ReactElement {
         >
           {/* Timeline ruler */}
           <div className="h-8 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-6">
-            {[...Array(15)].map((_, i) => (
+            {TIMELINE_KEYS.map((key, i) => (
               <div
-                key={i}
+                key={key}
                 className="flex-1 text-sm text-muted-foreground/60 border-l border-muted-foreground/30 pl-2"
               >
                 {i * 10}s
@@ -183,7 +187,7 @@ export default function NotFound(): React.ReactElement {
           <div className="flex-1 space-y-1 p-2">
             {/* Video track */}
             <motion.div
-              className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4"
+              className="h-10 border border-border/30 bg-muted/10 rounded flex items-center px-4"
               animate={{
                 opacity: [1, 0.7, 1],
               }}
@@ -196,16 +200,16 @@ export default function NotFound(): React.ReactElement {
             >
               <Video className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
-                <div className="w-20 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-16 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-24 h-6 bg-blue-500/50 rounded"></div>
-                <div className="w-12 h-6 bg-blue-500/50 rounded"></div>
+                <div className="w-20 h-6 bg-blue-500/50 rounded" />
+                <div className="w-16 h-6 bg-blue-500/50 rounded" />
+                <div className="w-24 h-6 bg-blue-500/50 rounded" />
+                <div className="w-12 h-6 bg-blue-500/50 rounded" />
               </div>
             </motion.div>
 
             {/* Audio track */}
             <motion.div
-              className="h-10 border border-muted-foreground/30 bg-muted/10 rounded flex items-center px-4"
+              className="h-10 border border-border/30 bg-muted/10 rounded flex items-center px-4"
               animate={{
                 opacity: [1, 0.6, 1],
               }}
@@ -218,15 +222,15 @@ export default function NotFound(): React.ReactElement {
             >
               <Music className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
-                <div className="w-32 h-6 bg-green-500/50 rounded"></div>
-                <div className="w-20 h-6 bg-green-500/50 rounded"></div>
-                <div className="w-16 h-6 bg-green-500/50 rounded"></div>
+                <div className="w-32 h-6 bg-green-500/50 rounded" />
+                <div className="w-20 h-6 bg-green-500/50 rounded" />
+                <div className="w-16 h-6 bg-green-500/50 rounded" />
               </div>
             </motion.div>
 
             {/* Effects track */}
             <motion.div
-              className="h-10 border border-muted-foreground/30 bg-muted/20 rounded flex items-center px-4"
+              className="h-10 border border-border/30 bg-muted/10 rounded flex items-center px-4"
               animate={{
                 opacity: [1, 0.8, 1],
               }}
@@ -239,10 +243,10 @@ export default function NotFound(): React.ReactElement {
             >
               <Scissors className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
-                <div className="w-12 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-8 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-14 h-6 bg-purple-500/50 rounded"></div>
-                <div className="w-10 h-6 bg-purple-500/50 rounded"></div>
+                <div className="w-12 h-6 bg-purple-500/50 rounded" />
+                <div className="w-8 h-6 bg-purple-500/50 rounded" />
+                <div className="w-14 h-6 bg-purple-500/50 rounded" />
+                <div className="w-10 h-6 bg-purple-500/50 rounded" />
               </div>
             </motion.div>
           </div>
@@ -264,7 +268,7 @@ export default function NotFound(): React.ReactElement {
 
         {/* Tools Panel - Wave 5 */}
         <motion.div
-          className="absolute top-96 right-0 w-96 h-40 border-l-2 border-t-2 border-muted-foreground/30 bg-muted/15"
+          className="absolute top-96 right-0 w-96 h-40 border-l border-t border-border/30 bg-muted/10"
           animate={{
             opacity: [0.04, 0.08, 0.04],
           }}
@@ -276,12 +280,12 @@ export default function NotFound(): React.ReactElement {
           }}
         >
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
-            <div className="w-20 h-5 bg-muted-foreground/40 rounded"></div>
+            <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
           <div className="p-4 grid grid-cols-6 gap-3">
-            {[...Array(12)].map((_, i) => (
+            {TOOL_KEYS.map((key, i) => (
               <motion.div
-                key={i}
+                key={key}
                 className="w-full h-10 border border-muted-foreground/30 rounded bg-muted/20"
                 animate={{
                   opacity: [1, 0.5, 1],
@@ -400,7 +404,7 @@ export default function NotFound(): React.ReactElement {
 
         {/* Subtle gradient orbs for depth */}
         <motion.div
-          className="absolute top-16 right-16 w-12 h-12 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-sm"
+          className="absolute top-16 right-16 w-12 h-12 bg-gradient-to-br from-muted/40 to-transparent rounded-full blur-sm"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3],
@@ -408,7 +412,7 @@ export default function NotFound(): React.ReactElement {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute bottom-20 left-12 w-8 h-8 bg-gradient-to-br from-accent/8 to-transparent rounded-full blur-sm"
+          className="absolute bottom-20 left-12 w-8 h-8 bg-gradient-to-br from-muted/30 to-transparent rounded-full blur-sm"
           animate={{
             scale: [1, 1.3, 1],
             opacity: [0.2, 0.5, 0.2],
@@ -466,7 +470,7 @@ export default function NotFound(): React.ReactElement {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <motion.div
-              className="w-8 h-8 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-primary/25 shadow-sm"
+              className="w-8 h-8 bg-muted/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-border/30 shadow-sm"
               animate={{
                 scale: [1, 1.05, 1],
               }}
@@ -476,14 +480,26 @@ export default function NotFound(): React.ReactElement {
                 ease: "easeInOut",
               }}
             >
-              <Bot className="w-4 h-4 text-primary" />
+              <KimuLogo className="w-4 h-4" />
             </motion.div>
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-sm font-semibold text-primary">Kimu</span>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-semibold text-foreground">
+                  Kimu
+                </span>
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               </div>
-              <div className="bg-muted/15 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[280px] sm:max-w-xs">
+              <div className="bg-muted/15 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[280px] sm:max-w-xs relative">
+                <div className="absolute -inset-1 rounded-2xl pointer-events-none">
+                  <GlowingEffect
+                    disabled={false}
+                    spread={36}
+                    proximity={64}
+                    glow
+                    borderWidth={2}
+                    hoverBorderWidth={4}
+                  />
+                </div>
                 <p className="text-sm text-foreground">Hey there! 👋</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   I couldn't find that page for you. It seems to have
@@ -495,7 +511,7 @@ export default function NotFound(): React.ReactElement {
 
           {/* Second message - consecutive message */}
           <div className="flex items-start gap-3 mb-1">
-            <div className="w-8 h-8 flex-shrink-0"></div>
+            <div className="w-8 h-8 flex-shrink-0" />
             <div className="flex flex-col flex-1 min-w-0 relative">
               {/* Typing indicator */}
               <motion.div
@@ -507,9 +523,9 @@ export default function NotFound(): React.ReactElement {
                 <div className="bg-muted/20 rounded-2xl px-4 py-3 shadow-sm border border-border/30 w-fit">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
-                      {[0, 1, 2].map((i) => (
+                      {TYPING_KEYS.map((key, i) => (
                         <motion.div
-                          key={i}
+                          key={key}
                           className="w-2 h-2 bg-muted-foreground/60 rounded-full"
                           animate={{
                             scale: [1, 1.4, 1],
@@ -540,13 +556,20 @@ export default function NotFound(): React.ReactElement {
                 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
               >
-                <div className="bg-muted/15 rounded-2xl px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[300px] sm:max-w-sm">
+                <div className="bg-muted/15 rounded-2xl px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[300px] sm:max-w-sm relative">
+                  <div className="absolute -inset-1 rounded-2xl pointer-events-none">
+                    <GlowingEffect
+                      disabled={false}
+                      spread={28}
+                      proximity={48}
+                      glow
+                      borderWidth={2}
+                      hoverBorderWidth={4}
+                    />
+                  </div>
                   <p className="text-sm text-foreground mb-2">
                     But hey! 🎬 Need some{" "}
-                    <span className="font-bold text-primary">
-                      video editing magic
-                    </span>
-                    ?
+                    <span className="font-bold">video editing magic</span>?
                   </p>
                   <p className="text-sm text-muted-foreground mb-2">
                     I'm your AI-powered creative partner, ready to transform
@@ -556,7 +579,7 @@ export default function NotFound(): React.ReactElement {
                     </span>
                     ! ✨
                   </p>
-                  <p className="text-sm font-bold text-primary">
+                  <p className="text-sm font-bold">
                     Let's create something amazing together! 🚀
                   </p>
                 </div>
@@ -566,7 +589,7 @@ export default function NotFound(): React.ReactElement {
 
           {/* Third message - Button as message */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 flex-shrink-0"></div>
+            <div className="w-8 h-8 flex-shrink-0" />
             <div className="flex flex-col flex-1 min-w-0 mt-2">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -578,7 +601,7 @@ export default function NotFound(): React.ReactElement {
               >
                 <Button
                   onClick={handleGoHome}
-                  className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-primary-foreground hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/25 border border-primary/30 rounded-2xl font-semibold text-sm relative overflow-hidden px-4 py-3 h-auto w-fit max-w-[300px] sm:max-w-sm"
+                  className="bg-foreground text-background hover:bg-foreground/90 transition-all duration-300 shadow-lg hover:shadow-xl border border-transparent rounded-2xl font-semibold text-sm relative overflow-hidden px-4 py-3 h-auto w-fit max-w-[300px] sm:max-w-sm"
                 >
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"

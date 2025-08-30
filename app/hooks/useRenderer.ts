@@ -16,7 +16,8 @@ export const useRenderer = () => {
       getTimelineData: () => TimelineDataItem[],
       timeline: TimelineState,
       compositionWidth: number | null,
-      compositionHeight: number | null
+      compositionHeight: number | null,
+      getPixelsPerSecond: () => number
     ) => {
       setIsRendering(true);
       setRenderStatus("Starting render...");
@@ -100,6 +101,7 @@ export const useRenderer = () => {
               console.log("Max end time:", maxEndTime * 30);
               return Math.ceil(maxEndTime * FPS);
             })(),
+            getPixelsPerSecond: getPixelsPerSecond(),
           },
           {
             responseType: "blob",

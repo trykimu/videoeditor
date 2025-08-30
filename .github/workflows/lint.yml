@@ -1,0 +1,67 @@
+name: Lint and Typecheck
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  frontend:
+    name: Frontend ESLint and TS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "pnpm"
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate router types & TS typecheck (tsc)
+        run: pnpm run typecheck --noEmit
+
+      - name: ESLint
+        run: pnpm eslint . --ext .ts,.tsx --fix
+
+      - name: Prettier format (auto-fix)
+        run: pnpm format
+
+  backend:
+    name: Backend Ruff and mypy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python (uv)
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install deps (with dev extras)
+        run: uv sync --extra dev --dev
+
+      - name: Ruff check
+        run: uv run python -m ruff check .
+
+      - name: Ruff format (auto-fix)
+        run: uv run python -m ruff format .
+
+      - name: mypy
+        run: uv run mypy .

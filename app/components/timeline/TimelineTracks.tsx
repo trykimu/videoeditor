@@ -22,6 +22,7 @@ interface TimelineTracksProps {
   onDeleteTrack: (trackId: string) => void;
   onUpdateScrubber: (updatedScrubber: ScrubberState) => void;
   onDeleteScrubber?: (scrubberId: string) => void;
+  onBeginScrubberTransform?: () => void;
   onDropOnTrack: (
     item: MediaBinItem,
     trackId: string,
@@ -37,8 +38,11 @@ interface TimelineTracksProps {
   expandTimeline: () => boolean;
   onRulerMouseDown: (e: React.MouseEvent) => void;
   pixelsPerSecond: number;
-  selectedScrubberId: string | null;
-  onSelectScrubber: (scrubberId: string | null) => void;
+  selectedScrubberIds: string[];
+  onSelectScrubber: (scrubberId: string | null, ctrlKey: boolean) => void;
+  onGroupScrubbers: () => void;
+  onUngroupScrubber: (scrubberId: string) => void;
+  onMoveToMediaBin?: (scrubberId: string) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -50,6 +54,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onDeleteTrack,
   onUpdateScrubber,
   onDeleteScrubber,
+  onBeginScrubberTransform,
   onDropOnTrack,
   onDropTransitionOnTrack,
   onDeleteTransition,
@@ -57,10 +62,14 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   expandTimeline,
   onRulerMouseDown,
   pixelsPerSecond,
-  selectedScrubberId,
+  selectedScrubberIds,
   onSelectScrubber,
+  onGroupScrubbers,
+  onUngroupScrubber,
+  onMoveToMediaBin,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   // Sync track controls with timeline scroll
   useEffect(() => {
@@ -69,6 +78,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
 
     const handleScroll = () => {
       setScrollTop(container.scrollTop);
+      setScrollLeft(container.scrollLeft);
       onScroll();
     };
 
@@ -81,20 +91,20 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     const handleGlobalClick = (e: MouseEvent) => {
       const timelineContainer = containerRef.current;
       if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
-        onSelectScrubber(null);
+        onSelectScrubber(null, false);
       }
     };
 
-    if (selectedScrubberId) {
+    if (selectedScrubberIds.length > 0) {
       document.addEventListener("click", handleGlobalClick);
       return () => document.removeEventListener("click", handleGlobalClick);
     }
-  }, [selectedScrubberId, containerRef, onSelectScrubber]);
+  }, [selectedScrubberIds, containerRef, onSelectScrubber]);
 
   return (
     <div className="flex flex-1 min-h-0">
       {/* Track controls column - scrolls with tracks */}
-      <div className="w-12 bg-muted border-r border-border/50 flex-shrink-0 overflow-hidden">
+      <div className="w-28 bg-muted border-r border-border/50 flex-shrink-0 overflow-hidden">
         <div
           className="flex flex-col"
           style={{
@@ -105,18 +115,20 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
           {timeline.tracks.map((track, index) => (
             <div
               key={`control-${track.id}`}
-              className="flex items-center justify-center border-b border-border/30 bg-muted/30 relative"
+              className="flex items-center justify-start gap-2 px-2 border-b border-border/30 bg-muted/30 relative"
               style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}
             >
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onDeleteTrack(track.id)}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 relative z-10"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-sm"
                 title={`Delete Track ${index + 1}`}
+                aria-label={`Delete Track ${index + 1}`}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </Button>
+              <span className="text-xs text-foreground font-medium select-none">Track {index + 1}</span>
               {/* Track indicator line */}
               <div className="absolute right-0 top-0 bottom-0 w-px bg-border/50" />
             </div>
@@ -162,7 +174,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               onClick={(e) => {
                 // Deselect scrubber when clicking on empty timeline area
                 if (e.target === e.currentTarget) {
-                  onSelectScrubber(null);
+                  onSelectScrubber(null, false);
                 }
               }}
               onDrop={(e) => {
@@ -229,18 +241,18 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     onClick={(e) => {
                       // Deselect scrubber when clicking on track background
                       if (e.target === e.currentTarget) {
-                        onSelectScrubber(null);
+                        onSelectScrubber(null, false);
                       }
                     }}
                   />
 
-                  {/* Track label - positioned behind scrubbers */}
+                  {/* Track label - positioned behind scrubbers
                   <div
                     className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-[5]"
                     style={{ userSelect: "none" }}
                   >
                     Track {trackIndex + 1}
-                  </div>
+                  </div> */}
 
                   {/* Grid lines */}
                   {Array.from(
@@ -280,13 +292,18 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     )}
                     onUpdate={onUpdateScrubber}
                     onDelete={onDeleteScrubber}
-                    isSelected={selectedScrubberId === scrubber.id}
+                    isSelected={selectedScrubberIds.includes(scrubber.id)}
                     onSelect={onSelectScrubber}
+                    onGroupScrubbers={onGroupScrubbers}
+                    onUngroupScrubber={onUngroupScrubber}
+                    onMoveToMediaBin={onMoveToMediaBin}
+                    selectedScrubberIds={selectedScrubberIds}
                     containerRef={containerRef}
                     expandTimeline={expandTimeline}
                     snapConfig={{ enabled: true, distance: 10 }}
                     trackCount={timeline.tracks.length}
                     pixelsPerSecond={pixelsPerSecond}
+                    onBeginTransform={onBeginScrubberTransform}
                   />
                 );
               })}
@@ -294,12 +311,19 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
               {/* Transitions */}
               {(() => {
                 const transitionComponents = [];
+                // Get all scrubbers across all tracks for transition lookup
+                const allScrubbers = getAllScrubbers();
+                
                 for (const track of timeline.tracks) {
                   for (const transition of track.transitions) {
                     const leftScrubber = transition.leftScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.leftScrubberId) || null : null;
                     const rightScrubber = transition.rightScrubberId ?
-                      track.scrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+                      allScrubbers.find(s => s.id === transition.rightScrubberId) || null : null;
+
+                    if (leftScrubber == null && rightScrubber == null) {
+                      continue;
+                    }
 
                     transitionComponents.push(
                       <TransitionOverlay
