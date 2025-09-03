@@ -7,7 +7,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro  # Mount certs read-only
+      - /etc/letsencrypt:/etc/letsencrypt:ro # Mount certs read-only
     depends_on:
       - frontend
       - backend
@@ -29,9 +29,9 @@ services:
       AUTH_COOKIE_DOMAIN: trykimu.com
       NODE_ENV: production
       HOST: 0.0.0.0
-      PORT: 3000
+      PORT: 5173
     # ports:
-    #   - "3000:3000"
+    #   - "5173:5173"
     depends_on:
       - backend
 
