@@ -5,6 +5,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import fs from "fs";
 import multer from "multer";
+import { safeResolveOutPath, createSafeFilename, ensureDirectoryExists, isValidFilename } from "~/utils/path-security";
 
 // The composition you want to render
 const compositionId = "TimelineComposition";
@@ -20,9 +21,7 @@ const bundleLocation = await bundle({
 console.log(bundleLocation);
 
 // Ensure output directory exists
-if (!fs.existsSync("out")) {
-  fs.mkdirSync("out", { recursive: true });
-}
+ensureDirectoryExists("out");
 
 const app = express();
 app.use(express.json());
@@ -39,18 +38,12 @@ app.use(cors());
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // Ensure out directory exists
-    if (!fs.existsSync("out")) {
-      fs.mkdirSync("out", { recursive: true });
-    }
+    ensureDirectoryExists("out");
     cb(null, "out/");
   },
   filename: (req, file, cb) => {
-    // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const originalName = file.originalname;
-    const extension = path.extname(originalName);
-    const nameWithoutExt = path.basename(originalName, extension);
-    const uniqueName = `${nameWithoutExt}_${timestamp}${extension}`;
+    // Generate unique filename with timestamp using utility function
+    const uniqueName = createSafeFilename(file.originalname);
     cb(null, uniqueName);
   },
 });
@@ -76,11 +69,11 @@ app.get("/media/:filename", (req: Request, res: Response): void => {
   try {
     const filename = req.params.filename;
     const decodedFilename = decodeURIComponent(filename);
-    const filePath = path.resolve("out", decodedFilename);
 
-    // Security check - ensure file is in the out directory
-    if (!filePath.startsWith(path.resolve("out"))) {
-      res.status(403).json({ error: "Access denied" });
+    // Safely resolve the file path
+    const filePath = safeResolveOutPath(decodedFilename);
+    if (!filePath) {
+      res.status(403).json({ error: "Invalid filename" });
       return;
     }
 
@@ -102,6 +95,13 @@ app.post("/upload", upload.single("media"), (req: Request, res: Response): void 
   try {
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
+      return;
+    }
+
+    // Validate the uploaded file path is safe
+    const safePath = safeResolveOutPath(req.file.filename);
+    if (!safePath) {
+      res.status(400).json({ error: "Invalid filename generated" });
       return;
     }
 
@@ -133,14 +133,22 @@ app.post("/upload-multiple", upload.array("media", 10), (req: Request, res: Resp
       return;
     }
 
-    const uploadedFiles = (req.files as Express.Multer.File[]).map((file) => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      url: `/media/${encodeURIComponent(file.filename)}`,
-      fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`, // For internal Remotion composition only
-      size: file.size,
-      path: file.path,
-    }));
+    const uploadedFiles = (req.files as Express.Multer.File[]).map((file) => {
+      // Validate each uploaded file path is safe
+      const safePath = safeResolveOutPath(file.filename);
+      if (!safePath) {
+        throw new Error(`Invalid filename generated: ${file.filename}`);
+      }
+
+      return {
+        filename: file.filename,
+        originalName: file.originalname,
+        url: `/media/${encodeURIComponent(file.filename)}`,
+        fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`, // For internal Remotion composition only
+        size: file.size,
+        path: file.path,
+      };
+    });
 
     console.log(`📁 ${uploadedFiles.length} files uploaded`);
 
@@ -164,12 +172,10 @@ app.post("/clone-media", (req: Request, res: Response): void => {
       return;
     }
 
-    const decodedFilename = decodeURIComponent(filename);
-    const sourcePath = path.resolve("out", decodedFilename);
-
-    // Security check - ensure source file is in the out directory
-    if (!sourcePath.startsWith(path.resolve("out"))) {
-      res.status(403).json({ error: "Access denied" });
+    // Safely resolve the source file path
+    const sourcePath = safeResolveOutPath(filename);
+    if (!sourcePath) {
+      res.status(403).json({ error: "Invalid filename" });
       return;
     }
 
@@ -179,11 +185,14 @@ app.post("/clone-media", (req: Request, res: Response): void => {
     }
 
     // Generate new filename with timestamp and suffix
-    const timestamp = Date.now();
-    const sourceExtension = path.extname(decodedFilename);
-    const sourceNameWithoutExt = path.basename(decodedFilename, sourceExtension);
-    const newFilename = `${sourceNameWithoutExt}_${suffix}_${timestamp}${sourceExtension}`;
-    const destPath = path.resolve("out", newFilename);
+    const newFilename = createSafeFilename(filename, suffix);
+
+    // Safely resolve the destination path
+    const destPath = safeResolveOutPath(newFilename);
+    if (!destPath) {
+      res.status(400).json({ error: "Invalid destination filename generated" });
+      return;
+    }
 
     // Copy the file
     fs.copyFileSync(sourcePath, destPath);
@@ -192,12 +201,12 @@ app.post("/clone-media", (req: Request, res: Response): void => {
     const fileUrl = `/media/${encodeURIComponent(newFilename)}`;
     const fullUrl = `http://localhost:${port}${fileUrl}`; // For internal Remotion composition only
 
-    console.log(`📋 File cloned: ${decodedFilename} -> ${newFilename}`);
+    console.log(`📋 File cloned: ${filename} -> ${newFilename}`);
 
     res.json({
       success: true,
       filename: newFilename,
-      originalName: originalName || decodedFilename,
+      originalName: originalName || filename,
       url: fileUrl,
       fullUrl: fullUrl,
       size: fileStats.size,
@@ -212,12 +221,12 @@ app.post("/clone-media", (req: Request, res: Response): void => {
 // Delete file endpoint
 app.delete("/media/:filename", (req: Request, res: Response): void => {
   try {
-    const filename = decodeURIComponent(req.params.filename);
-    const filePath = path.resolve("out", filename);
+    const filename = req.params.filename;
 
-    // Security check - ensure file is in the out directory
-    if (!filePath.startsWith(path.resolve("out"))) {
-      res.status(403).json({ error: "Access denied" });
+    // Safely resolve the file path
+    const filePath = safeResolveOutPath(filename);
+    if (!filePath) {
+      res.status(403).json({ error: "Invalid filename" });
       return;
     }
 
