@@ -383,30 +383,26 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
   const handleDeleteMedia = useCallback(
     async (item: MediaBinItem) => {
       try {
+        // For text and grouped scrubbers, which are UI-only constructs, just remove them from the local state.
         if (item.mediaType === "text" || item.mediaType === "groupped_scrubber") {
           setMediaBinItems((prev) => prev.filter((binItem) => binItem.id !== item.id));
-
-          // Also remove any scrubbers from the timeline that use this media
           if (handleDeleteScrubbersByMediaBinId) {
             handleDeleteScrubbersByMediaBinId(item.id);
           }
-
-          if (!item.mediaUrlRemote) {
-            console.error("No remote URL found for media item");
-            return;
-          }
+          return; // Exit early as there's no backend asset to delete.
         }
-        // Call authenticated delete by asset id
+
+        // For other media types, call the authenticated delete endpoint.
         const assetId = item.id;
         const res = await fetch(apiUrl(`/api/assets/${assetId}`, false, true), {
           method: "DELETE",
           credentials: "include",
         });
+
         if (res.ok) {
           console.log(`Media deleted: ${item.name}`);
-          // Remove from media bin state
+          // On successful backend deletion, remove the item from the UI state.
           setMediaBinItems((prev) => prev.filter((binItem) => binItem.id !== item.id));
-          // Also remove any scrubbers from the timeline that use this media
           if (handleDeleteScrubbersByMediaBinId) {
             handleDeleteScrubbersByMediaBinId(item.id);
           }
