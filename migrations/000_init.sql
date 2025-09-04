@@ -1,89 +1,94 @@
 -- 000_init.sql - initial auth tables
 
 -- Users table
-create table if not exists "user" (
-  id text primary key,
-  name text null,
-  email text unique not null,
-  emailVerified boolean default false not null,
-  image text null,
-  createdAt timestamptz not null default now(),
-  updatedAt timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS "user" (
+  id text PRIMARY KEY,
+  name text NULL,
+  email text UNIQUE NOT NULL,
+  "emailVerified" boolean DEFAULT false NOT NULL,
+  image text NULL,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now()
 );
 
 -- Sessions table
-create table if not exists session (
-  id text primary key,
-  expiresAt timestamptz not null,
-  token text unique not null,
-  createdAt timestamptz not null default now(),
-  updatedAt timestamptz not null default now(),
-  ipAddress text null,
-  userAgent text null,
-  userId text not null references "user"(id) on delete cascade
+CREATE TABLE IF NOT EXISTS session (
+  id text PRIMARY KEY,
+  "expiresAt" timestamptz NOT NULL,
+  token text UNIQUE NOT NULL,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now(),
+  "ipAddress" text NULL,
+  "userAgent" text NULL,
+  "userId" text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
 );
-create index if not exists idx_session_userId on session(userId);
-create index if not exists idx_session_token on session(token);
+CREATE INDEX IF NOT EXISTS idx_session_userId ON session("userId");
+CREATE INDEX IF NOT EXISTS idx_session_token ON session(token);
 
 -- Accounts table
-create table if not exists account (
-  id text primary key,
-  accountId text null,
-  providerId text null,
-  userId text not null references "user"(id) on delete cascade,
-  accessToken text null,
-  refreshToken text null,
-  idToken text null,
-  accessTokenExpiresAt timestamptz null,
-  refreshTokenExpiresAt timestamptz null,
-  scope text null,
-  password text null,
-  createdAt timestamptz not null default now(),
-  updatedAt timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS account (
+  id text PRIMARY KEY,
+  "accountId" text NULL,
+  "providerId" text NULL,
+  "userId" text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  "accessToken" text NULL,
+  "refreshToken" text NULL,
+  "idToken" text NULL,
+  "accessTokenExpiresAt" timestamptz NULL,
+  "refreshTokenExpiresAt" timestamptz NULL,
+  scope text NULL,
+  password text NULL,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now()
 );
-create index if not exists idx_account_userId on account(userId);
+CREATE INDEX IF NOT EXISTS idx_account_userId ON account("userId");
 
 -- Verification table
-create table if not exists verification (
-  id text primary key,
-  identifier text not null,
-  value text not null,
-  expiresAt timestamptz not null,
-  createdAt timestamptz not null default now(),
-  updatedAt timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS verification (
+  id text PRIMARY KEY,
+  identifier text NOT NULL,
+  value text NOT NULL,
+  "expiresAt" timestamptz NOT NULL,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now()
 );
 
--- Trigger to auto-update updatedAt fields (Postgres example)
-do $$
-begin
-  if not exists (select 1 from pg_proc where proname = 'set_updated_at') then
-    create function set_updated_at() returns trigger as $$
-    begin
-      new."updatedAt" = now();
-      return new;
-    end;
-    $$ language plpgsql;
-  end if;
-end$$;
+-- Trigger function to auto-update updatedAt
+CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
+BEGIN
+  NEW."updatedAt" = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Attach triggers where appropriate
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname='trg_user_updated_at') then
-    create trigger trg_user_updated_at before update on "user"
-    for each row execute function set_updated_at();
-  end if;
-  if not exists (select 1 from pg_trigger where tgname='trg_session_updated_at') then
-    create trigger trg_session_updated_at before update on session
-    for each row execute function set_updated_at();
-  end if;
-  if not exists (select 1 from pg_trigger where tgname='trg_account_updated_at') then
-    create trigger trg_account_updated_at before update on account
-    for each row execute function set_updated_at();
-  end if;
-  if not exists (select 1 from pg_trigger where tgname='trg_verification_updated_at') then
-    create trigger trg_verification_updated_at before update on verification
-    for each row execute function set_updated_at();
-  end if;
-end $$;
+-- Attach triggers to update updatedAt automatically
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_user_updated_at') THEN
+    CREATE TRIGGER trg_user_updated_at
+    BEFORE UPDATE ON "user"
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+  END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_session_updated_at') THEN
+    CREATE TRIGGER trg_session_updated_at
+    BEFORE UPDATE ON session
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+  END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_account_updated_at') THEN
+    CREATE TRIGGER trg_account_updated_at
+    BEFORE UPDATE ON account
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_verification_updated_at') THEN
+    CREATE TRIGGER trg_verification_updated_at
+    BEFORE UPDATE ON verification
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+  END IF;
+END $$;
