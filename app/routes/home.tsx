@@ -411,7 +411,13 @@ export default function TimelineEditor() {
       return;
     }
 
-    handleRenderVideo(getTimelineData, timeline, isAutoSize ? null : width, isAutoSize ? null : height, getPixelsPerSecond);
+    handleRenderVideo(
+      getTimelineData,
+      timeline,
+      isAutoSize ? null : width,
+      isAutoSize ? null : height,
+      getPixelsPerSecond,
+    );
     toast.info("Starting render...");
   }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData, getPixelsPerSecond]);
 
@@ -466,10 +472,10 @@ export default function TimelineEditor() {
     }
 
     if (ctrlKey) {
-      setSelectedScrubberIds(prev => {
+      setSelectedScrubberIds((prev) => {
         if (prev.includes(scrubberId)) {
           // If already selected, remove it
-          return prev.filter(id => id !== scrubberId);
+          return prev.filter((id) => id !== scrubberId);
         } else {
           // If not selected, add it
           return [...prev, scrubberId];
@@ -492,8 +498,7 @@ export default function TimelineEditor() {
       return;
     }
 
-    if (timelineData.length === 0 ||
-      timelineData.every((item) => item.scrubbers.length === 0)) {
+    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
       toast.error("No scrubbers to split. Add some media first!");
       return;
     }
@@ -520,17 +525,23 @@ export default function TimelineEditor() {
   }, [selectedScrubberIds, handleGroupScrubbers]);
 
   // Handler for ungrouping a grouped scrubber
-  const handleUngroupSelected = useCallback((scrubberId: string) => {
-    handleUngroupScrubber(scrubberId);
-    setSelectedScrubberIds([]); // Clear selection after ungrouping
-    toast.success("Ungrouped scrubber");
-  }, [handleUngroupScrubber]);
+  const handleUngroupSelected = useCallback(
+    (scrubberId: string) => {
+      handleUngroupScrubber(scrubberId);
+      setSelectedScrubberIds([]); // Clear selection after ungrouping
+      toast.success("Ungrouped scrubber");
+    },
+    [handleUngroupScrubber],
+  );
 
   // Handler for moving grouped scrubber to media bin
-  const handleMoveToMediaBinSelected = useCallback((scrubberId: string) => {
-    handleMoveGroupToMediaBin(scrubberId, handleAddGroupToMediaBin);
-    setSelectedScrubberIds([]); // Clear selection after moving
-  }, [handleMoveGroupToMediaBin, handleAddGroupToMediaBin]);
+  const handleMoveToMediaBinSelected = useCallback(
+    (scrubberId: string) => {
+      handleMoveGroupToMediaBin(scrubberId, handleAddGroupToMediaBin);
+      setSelectedScrubberIds([]); // Clear selection after moving
+    },
+    [handleMoveGroupToMediaBin, handleAddGroupToMediaBin],
+  );
 
   const expandTimelineCallback = useCallback(() => {
     return expandTimeline(containerRef);
@@ -838,7 +849,7 @@ export default function TimelineEditor() {
                           onClick={() => setIsChatMinimized(false)}
                           className="h-6 w-6 p-0 text-primary"
                           title="Open Chat">
-                          <KimuLogo className="h-3 w-3" />
+                          <Bot className="h-3 w-3" />
                         </Button>
                       </>
                     )}
@@ -1022,6 +1033,8 @@ export default function TimelineEditor() {
                   timelineState={timeline}
                   handleUpdateScrubber={handleUpdateScrubberWithLocking}
                   handleDeleteScrubber={handleDeleteScrubber}
+                  pixelsPerSecond={getPixelsPerSecond()}
+                  restoreTimeline={setTimelineFromServer}
                 />
               </div>
             </ResizablePanel>

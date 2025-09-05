@@ -13,6 +13,7 @@ dependencies = [
     "google-genai>=1.22.0",
     "mypy>=1.16.1",
     "ruff>=0.12.1",
+    "parsedatetime (>=2.6,<3.0)",
 ]
 
 [project.optional-dependencies]

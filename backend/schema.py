@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,11 +20,11 @@ class TextProperties(BaseSchema):
 class BaseScrubber(BaseSchema):
     id: str = Field(description="Unique identifier for the scrubber")
     mediaType: Literal["video", "image", "audio", "text"] = Field(description="Type of media")
-    mediaUrlLocal: str | None = Field(description="Local URL for the media file", default=None)
-    mediaUrlRemote: str | None = Field(description="Remote URL for the media file", default=None)
+    mediaUrlLocal: str | None = Field(default=None, description="Local URL for the media file")
+    mediaUrlRemote: str | None = Field(default=None, description="Remote URL for the media file")
     media_width: int = Field(description="Width of the media in pixels")
     media_height: int = Field(description="Height of the media in pixels")
-    text: TextProperties | None = Field(description="Text properties if mediaType is text", default=None)
+    text: TextProperties | None = Field(default=None, description="Text properties if mediaType is text")
 
 
 class MediaBinItem(BaseScrubber):
@@ -36,7 +36,7 @@ class ScrubberState(MediaBinItem):
     left: int = Field(description="Left position in pixels on the timeline")
     y: int = Field(description="Track position (0-based index)")
     width: int = Field(description="Width of the scrubber in pixels")
-    
+
     # Player properties
     left_player: int = Field(description="Left position in the player view")
     top_player: int = Field(description="Top position in the player view")
@@ -54,46 +54,23 @@ class TimelineState(BaseSchema):
     tracks: list[TrackState] = Field(description="List of tracks in the timeline")
 
 
-class LLMAddScrubberToTimelineArgs(BaseSchema):
-    function_name: Literal["LLMAddScrubberToTimeline"] = Field(
-        description="The name of the function to call"
-    )
-    scrubber_id: str = Field(
-        description="The id of the scrubber to add to the timeline"
-    )
-    track_id: str = Field(description="The id of the track to add the scrubber to")
-    drop_left_px: int = Field(description="The left position of the scrubber in pixels")
+class UniversalToolCall(BaseSchema):
+    """V2 universal tool-call envelope.
 
+    - function_name: name of the tool to execute
+    - arguments: free-form args specific to the tool (extensible without code changes)
+    """
 
-class LLMMoveScrubberArgs(BaseSchema):
-    function_name: Literal["LLMMoveScrubber"] = Field(
-        description="The name of the function to call"
-    )
-    scrubber_id: str = Field(description="The id of the scrubber to move")
-    new_position_seconds: float = Field(
-        description="The new position of the scrubber in seconds"
-    )
-    new_track_number: int = Field(description="The new track number of the scrubber")
-    pixels_per_second: int = Field(description="The number of pixels per second")
-
-
-class LLMAddScrubberByNameArgs(BaseSchema):
-    function_name: Literal["LLMAddScrubberByName"] = Field(
-        description="The name of the function to call"
-    )
-    scrubber_name: str = Field(description="The partial or full name of the media to add")
-    track_number: int = Field(description="1-based track number to add to")
-    position_seconds: float = Field(description="Timeline time in seconds to place the media at")
-    pixels_per_second: int = Field(description="Pixels per second to convert time to pixels")
-
-
-class LLMDeleteScrubbersInTrackArgs(BaseSchema):
-    function_name: Literal["LLMDeleteScrubbersInTrack"] = Field(
-        description="The name of the function to call"
-    )
-    track_number: int = Field(description="1-based track number whose scrubbers will be removed")
+    function_name: str = Field(description="The name of the function to call")
+    arguments: dict[str, Any] | None = Field(default=None, description="Arguments for the function call")
 
 
 class FunctionCallResponse(BaseSchema):
-    function_call: LLMAddScrubberToTimelineArgs | LLMMoveScrubberArgs | LLMAddScrubberByNameArgs | LLMDeleteScrubbersInTrackArgs | None = None
+    """V2 AI response shape (universal schema).
+
+    - function_call: UniversalToolCall when an action is requested
+    - assistant_message: text response when no action is needed
+    """
+
+    function_call: UniversalToolCall | None = None
     assistant_message: str | None = None
