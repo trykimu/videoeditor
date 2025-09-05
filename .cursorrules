@@ -1,0 +1,75 @@
+# Cursor Rules for Kimu Video Editor
+
+project:
+  name: "Kimu Video Editor"
+  language: "TypeScript/React (React Router) + Python FastAPI"
+  package_manager: pnpm
+
+conventions:
+  - Prefer central Zod schemas in app/schemas/**; do not define inline schemas in components or routes.
+  - Always validate external boundaries: AI responses, API inputs/outputs, localStorage, drag-and-drop payloads.
+  - Keep UI components presentational; move parsing/validation to hooks or route loaders/actions when possible.
+  - Use named exports and barrel files under app/schemas for discoverability.
+
+imports:
+  zod:
+    source: "zod"
+    identifier: "z"
+  schemas:
+    source: "~/schemas"
+
+editor:
+  formatting:
+    - Match existing indentation and code style.
+    - Avoid reformatting unrelated code during edits.
+  typescript:
+    - Prefer explicit types for exported APIs; avoid any.
+    - Use narrow schemas and safeParse for user/LLM data.
+
+testing:
+  - Add schema unit tests when adding complex schemas.
+  - Validate response shapes in API route tests.
+
+commit_messages:
+  - Use scope tags: feat(schemas), refactor(chat), fix(api), chore(tooling).
+
+typescript_guidelines:
+  - Always enable strict type checking
+  - Export interfaces and types from dedicated type files
+  - Leverage a common module for shared types and utilities when possible
+  - Use proper type imports from @types packages when available
+  - Follow framework conventions for typing (e.g., Remix loaders/actions, React types)
+  - DO NOT use the any type
+  - Prefer importing types from packages before declaring your own
+  - Avoid type casting; prefer precise types and narrowing
+  - Prefer inferring types from Zod schemas using z.infer instead of manual type definitions
+  - For Zod schemas, prefer .nullish().transform((val) => val ?? undefined) over .optional() for null handling; do not combine .nullish() with .default()
+
+project_structure:
+  overview:
+    - Frontend (Remix/React) lives under app/
+    - Backend (FastAPI) lives under backend/
+    - Centralized Zod schemas live under app/schemas/** with barrel exports in app/schemas/index.ts
+    - Database/sql migrations under migrations/
+    - Shared UI primitives under app/components/ui/**
+    - Timeline/editor components under app/components/timeline/**
+    - Chat/AI components under app/components/chat/**
+    - Hooks under app/hooks/**
+    - Utilities under app/utils/** and app/lib/**
+
+code_organization_rules:
+  - Keep feature-specific code within its respective directory (timeline, chat, media, etc.)
+  - Place all Zod schemas under app/schemas/** (components/, apis/, domain files) and import from there (no inline schemas in components/routes)
+  - Maintain consistent file naming:
+      - index.ts for barrel exports
+      - types.ts or types/index.ts for type definitions when schema inference is not applicable
+  - Remix routes:
+      - Validate params in loaders/actions with Zod
+      - Validate request bodies and response payloads (APIs under app/routes/api.*)
+  - Components:
+      - Keep presentational; parse/validate data in hooks or route loaders
+      - Import schemas from app/schemas/components/**
+  - APIs:
+      - Import request/response schemas from app/schemas/apis/**
+      - Validate inputs (safeParse) and outputs (parse) at boundaries
+  - Prefer z.infer<typeof Schema> to derive TS types from Zod

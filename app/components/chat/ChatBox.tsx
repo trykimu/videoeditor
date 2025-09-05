@@ -43,6 +43,18 @@ import { type MediaBinItem, type TimelineState, type ScrubberState } from "../ti
 import { cn } from "~/lib/utils";
 import axios from "axios";
 import { apiUrl } from "~/utils/api";
+import {
+  AiResponseSchema,
+  MoveScrubberArgsSchema,
+  ResizeScrubberArgsSchema,
+  AddScrubberByNameArgsSchema,
+  AddMediaByIdArgsSchema,
+  DeleteScrubbersInTrackArgsSchema,
+  UpdateTextContentArgsSchema,
+  UpdateTextStyleArgsSchema,
+  MoveScrubbersByOffsetArgsSchema,
+  ChatTabsStorageSchema,
+} from "~/schemas/components/chat";
 
 // llm tools
 import {
@@ -149,8 +161,20 @@ export function ChatBox({
   const mentionsRef = useRef<HTMLDivElement>(null);
   const sendOptionsRef = useRef<HTMLDivElement>(null);
   const latestTimelineRef = useRef<TimelineState>(timelineState);
-  const STORAGE_KEY = "kimu.chat.tabs.v1";
-  const ACTIVE_TAB_KEY = "kimu.chat.activeTab.v1";
+  const [pendingResizeRequests, setPendingResizeRequests] = useState<
+    { id: string; durationSeconds: number; pixelsPerSecond: number; trackNumber: number }[]
+  >([]);
+  const getProjectIdFromPath = () => {
+    try {
+      const m = window.location.pathname.match(/\/project\/([^/]+)/);
+      return m ? m[1] : "default";
+    } catch {
+      return "default";
+    }
+  };
+  const PROJECT_ID = getProjectIdFromPath();
+  const STORAGE_KEY = `kimu.chat.tabs.v2.${PROJECT_ID}`;
+  const ACTIVE_TAB_KEY = `kimu.chat.activeTab.v2.${PROJECT_ID}`;
 
   const getRecencyGroup = (ts: number) => {
     const now = Date.now();
@@ -222,6 +246,26 @@ export function ChatBox({
     latestTimelineRef.current = timelineState;
   }, [timelineState]);
 
+  // Process queued resize requests once the timeline reflects new scrubbers
+  useEffect(() => {
+    if (!pendingResizeRequests.length) return;
+    const tl = latestTimelineRef.current;
+    const remaining: typeof pendingResizeRequests = [];
+    for (const req of pendingResizeRequests) {
+      const trackIndex = Math.max(0, req.trackNumber - 1);
+      const track = tl.tracks?.[trackIndex];
+      const target = track?.scrubbers.find((s) => s.id === req.id);
+      if (target) {
+        llmResizeScrubber(target.id, req.durationSeconds, req.pixelsPerSecond, tl, handleUpdateScrubber);
+      } else {
+        remaining.push(req);
+      }
+    }
+    if (remaining.length !== pendingResizeRequests.length) {
+      setPendingResizeRequests(remaining);
+    }
+  }, [timelineState]);
+
   useEffect(() => {
     if (activeTabId) {
       scrollToTabId(activeTabId);
@@ -231,6 +275,7 @@ export function ChatBox({
   const persistTabs = (next: ChatTab[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
     } catch {}
   };
 
@@ -416,6 +461,7 @@ export function ChatBox({
     }));
 
     try {
+      setIsTyping(true);
       // Use the stored mentioned items to get their IDs
       const mentionedScrubberIds = itemsToSend.map((item) => item.id);
 
@@ -427,7 +473,22 @@ export function ChatBox({
         chat_history: chatHistoryPayload,
       });
 
-      const functionCallResponse = response.data;
+      let functionCallResponse: any;
+      try {
+        // Be resilient to provider response shapes; avoid hard Zod failure on client
+        if (response && typeof response.data === "object" && response.data !== null) {
+          const data = response.data as any;
+          if (data.function_call || data.assistant_message) {
+            functionCallResponse = data;
+          } else {
+            functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
+          }
+        } else {
+          functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
+        }
+      } catch {
+        functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
+      }
       let aiResponseContent = "";
 
       // Handle the function call (universal v2: {function_name, arguments})
@@ -468,6 +529,17 @@ export function ChatBox({
           return Number.isFinite(n) ? n : undefined;
         };
 
+        const getArg = <T = unknown,>(obj: Record<string, unknown> | undefined, keys: string[]): T | undefined => {
+          if (!obj) return undefined;
+          for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+              const value = obj[key];
+              if (value !== undefined && value !== null) return value as T;
+            }
+          }
+          return undefined;
+        };
+
         try {
           if (fn === "LLMAddScrubberToTimeline") {
             // Find the media item by ID
@@ -488,18 +560,16 @@ export function ChatBox({
               aiResponseContent = `✅ Successfully added "${mediaItem.name}" to ${args.track_id} at position ${args.drop_left_px}px.`;
             }
           } else if (fn === "LLMMoveScrubber" || fn === "MoveScrubber") {
-            // Execute move scrubber operation
-            const posSec =
-              toSeconds(args.new_position_seconds) ??
-              toSeconds(args.position_seconds) ??
-              toSeconds(args.start_seconds) ??
-              0;
-            const destTrack = (toNumber(args.new_track_number) ?? toNumber(args.track_number) ?? 1) as number;
+            const parsed = MoveScrubberArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for MoveScrubber");
+            const a = parsed.data;
+            const posSec = (a.new_position_seconds ?? a.position_seconds ?? a.start_seconds ?? 0) as number;
+            const destTrack = Number(a.new_track_number ?? a.track_number ?? 1);
             llmMoveScrubber(
-              args.scrubber_id as string,
+              a.scrubber_id,
               posSec,
               destTrack,
-              (args.pixels_per_second as number) ?? pixelsPerSecond,
+              (a.pixels_per_second as number | undefined) ?? pixelsPerSecond,
               timelineState,
               handleUpdateScrubber,
             );
@@ -510,11 +580,13 @@ export function ChatBox({
             const movedName = moved ? moved.name : (args.scrubber_id as string);
             aiResponseContent = `✅ Moved "${movedName}" to track ${args.new_track_number} at ${args.new_position_seconds}s.`;
           } else if (fn === "LLMAddScrubberByName" || fn === "AddMediaByName") {
-            // Add media by name with defaults
-            const name = String(args.scrubber_name ?? "");
-            const pps = toNumber(args.pixels_per_second) ?? pixelsPerSecond;
-            const startSeconds = toSeconds(args.start_seconds) ?? toSeconds(args.position_seconds) ?? 0;
-            const trackNumber = (toNumber(args.track_number) ?? 1) as number;
+            const parsed = AddScrubberByNameArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for AddScrubberByName");
+            const a = parsed.data;
+            const name = a.scrubber_name;
+            const pps = (a.pixels_per_second as number | undefined) ?? pixelsPerSecond;
+            const startSeconds = (a.start_seconds ?? a.position_seconds ?? 0) as number;
+            const trackNumber = Number(a.track_number ?? 1);
             const startPx = startSeconds * pps;
 
             const newId = llmAddScrubberByName(
@@ -527,27 +599,28 @@ export function ChatBox({
             ) as unknown as string;
 
             // Optional duration or end time handling (resize after drop)
-            const endSec = toSeconds(args.end_seconds);
+            const endSec = a.end_seconds as number | undefined;
             const durationSeconds =
-              toSeconds(args.duration_seconds) ??
+              (a.duration_seconds as number | undefined) ??
               (endSec !== undefined ? Math.max(0, endSec - startSeconds) : undefined);
             if (durationSeconds && durationSeconds > 0) {
-              setTimeout(() => {
-                const tl = latestTimelineRef.current;
-                const trackIndex = Math.max(0, trackNumber - 1);
-                const track = tl.tracks?.[trackIndex];
-                if (!track) return;
-                const target = newId ? tl.tracks[trackIndex]?.scrubbers.find((s) => s.id === newId) : undefined;
-                if (target) llmResizeScrubber(target.id, durationSeconds, pps, tl, handleUpdateScrubber);
-              }, 150);
+              if (newId) {
+                setPendingResizeRequests((prev) => [
+                  ...prev,
+                  { id: newId as string, durationSeconds, pixelsPerSecond: pps, trackNumber },
+                ]);
+              }
             }
 
-            aiResponseContent = `✅ Added "${args.scrubber_name}" to track ${trackNumber} at ${startSeconds}s.`;
+            aiResponseContent = `✅ Added "${name}" to track ${trackNumber} at ${startSeconds}s.`;
           } else if (fn === "AddMediaById") {
-            const scrubberId = String(args.scrubber_id ?? "");
-            const pps = toNumber(args.pixels_per_second) ?? pixelsPerSecond;
-            const startSeconds = toSeconds(args.start_seconds) ?? 0;
-            const trackNumber = (toNumber(args.track_number) ?? 1) as number;
+            const parsed = AddMediaByIdArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for AddMediaById");
+            const a = parsed.data;
+            const scrubberId = a.scrubber_id;
+            const pps = (a.pixels_per_second as number | undefined) ?? pixelsPerSecond;
+            const startSeconds = (a.start_seconds as number | undefined) ?? 0;
+            const trackNumber = Number(a.track_number ?? 1);
             const startPx = startSeconds * pps;
 
             const mediaItem = mediaBinItems.find((i) => i.id === scrubberId);
@@ -557,19 +630,17 @@ export function ChatBox({
               const trackId = `track-${trackNumber}`;
               const newId = handleDropOnTrack(mediaItem, trackId, startPx);
 
-              const endSec2 = toSeconds(args.end_seconds);
+              const endSec2 = a.end_seconds as number | undefined;
               const durationSeconds =
-                toSeconds(args.duration_seconds) ??
+                (a.duration_seconds as number | undefined) ??
                 (endSec2 !== undefined ? Math.max(0, endSec2 - startSeconds) : undefined);
               if (durationSeconds && durationSeconds > 0) {
-                setTimeout(() => {
-                  const tl = latestTimelineRef.current;
-                  const trackIndex = Math.max(0, trackNumber - 1);
-                  const track = tl.tracks?.[trackIndex];
-                  if (!track) return;
-                  const target = newId ? tl.tracks[trackIndex]?.scrubbers.find((s) => s.id === newId) : undefined;
-                  if (target) llmResizeScrubber(target.id, durationSeconds, pps, tl, handleUpdateScrubber);
-                }, 150);
+                if (newId) {
+                  setPendingResizeRequests((prev) => [
+                    ...prev,
+                    { id: newId, durationSeconds, pixelsPerSecond: pps, trackNumber },
+                  ]);
+                }
               }
 
               aiResponseContent = `✅ Added media to track ${trackNumber} at ${startSeconds}s.`;
@@ -578,38 +649,36 @@ export function ChatBox({
             if (!handleDeleteScrubber) {
               throw new Error("Delete handler is not available");
             }
-            llmDeleteScrubbersInTrack((args.track_number as number) ?? 1, timelineState, handleDeleteScrubber);
-            aiResponseContent = `✅ Removed all scrubbers in track ${(args.track_number as number) ?? 1}.`;
+            const parsed = DeleteScrubbersInTrackArgsSchema.safeParse(args);
+            const trackNum = parsed.success ? Number(parsed.data.track_number ?? 1) : 1;
+            llmDeleteScrubbersInTrack(trackNum, timelineState, handleDeleteScrubber);
+            aiResponseContent = `✅ Removed all scrubbers in track ${trackNum}.`;
           } else if (fn === "LLMResizeScrubber" || fn === "ResizeScrubber") {
-            const startSecForDiff = toSeconds((args as any).start_seconds) ?? toSeconds((args as any).position_seconds);
-            const candidateDur =
-              toSeconds((args as any).new_duration_seconds) ??
-              toSeconds((args as any).duration_seconds) ??
-              toSeconds((args as any).seconds) ??
-              toSeconds((args as any).duration) ??
-              toSeconds((args as any).newDurationSeconds) ??
-              toSeconds((args as any).durationInSeconds) ??
-              // try to parse free-form text provided by model (e.g., "12 seconds long")
-              (typeof (args as any).new_text_content === "string"
-                ? toSeconds((args as any).new_text_content)
-                : undefined);
-            const endSecVal = toSeconds((args as any).end_seconds);
+            const parsed = ResizeScrubberArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for ResizeScrubber");
+            const a = parsed.data as any;
+            const startSecForDiff = (a.start_seconds ?? a.position_seconds) as number | undefined;
+            const candidateDur = (a.new_duration_seconds ??
+              a.duration_seconds ??
+              a.seconds ??
+              a.duration ??
+              a.newDurationSeconds ??
+              a.durationInSeconds) as number | undefined;
+            const endSecVal = a.end_seconds as number | undefined;
             const dur =
               candidateDur ??
               (startSecForDiff !== undefined && endSecVal !== undefined
                 ? Math.max(0, endSecVal - startSecForDiff)
                 : undefined);
-            const ppsVal = toNumber(args.pixels_per_second) ?? pixelsPerSecond;
-            const trackNum = toNumber((args as any).track_number) ?? toNumber((args as any).new_track_number);
-            let targetId = typeof args.scrubber_id === "string" ? (args.scrubber_id as string) : undefined;
+            const ppsVal = (a.pixels_per_second as number | undefined) ?? pixelsPerSecond;
+            const trackNum = (a.track_number as number | undefined) ?? (a.new_track_number as number | undefined);
+            let targetId = typeof a.scrubber_id === "string" ? (a.scrubber_id as string) : undefined;
             if (!targetId && trackNum !== undefined) {
               const trackIndex = Math.max(0, Math.floor(trackNum) - 1);
               const track = timelineState.tracks?.[trackIndex];
               if (track && track.scrubbers.length > 0) {
-                const nameSub =
-                  typeof (args as any).scrubber_name === "string"
-                    ? String((args as any).scrubber_name).toLowerCase()
-                    : undefined;
+                const nameRaw = a.scrubber_name as string | undefined;
+                const nameSub = typeof nameRaw === "string" ? nameRaw.toLowerCase() : undefined;
                 if (nameSub) {
                   const found = track.scrubbers.find((s) => s.name.toLowerCase().includes(nameSub));
                   if (found) targetId = found.id;
@@ -632,37 +701,32 @@ export function ChatBox({
               aiResponseContent = `❌ Unable to resize: invalid duration.`;
             }
           } else if (fn === "LLMUpdateTextContent" || fn === "UpdateTextContent") {
+            const parsed = UpdateTextContentArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for UpdateTextContent");
             llmUpdateTextContent(
-              args.scrubber_id as string,
-              args.new_text_content as string,
+              parsed.data.scrubber_id,
+              parsed.data.new_text_content,
               timelineState,
               handleUpdateScrubber,
             );
             aiResponseContent = `✅ Updated text content.`;
           } else if (fn === "LLMUpdateTextStyle" || fn === "UpdateTextStyle") {
-            llmUpdateTextStyle(
-              args.scrubber_id as string,
-              {
-                fontSize: args.fontSize as number | undefined,
-                fontFamily: args.fontFamily as string | undefined,
-                color: args.color as string | undefined,
-                textAlign: args.textAlign as any,
-                fontWeight: args.fontWeight as any,
-              },
-              timelineState,
-              handleUpdateScrubber,
-            );
+            const parsed = UpdateTextStyleArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for UpdateTextStyle");
+            const { scrubber_id, ...style } = parsed.data as any;
+            llmUpdateTextStyle(scrubber_id, style, timelineState, handleUpdateScrubber);
             aiResponseContent = `✅ Updated text style.`;
           } else if (fn === "LLMMoveScrubbersByOffset" || fn === "MoveScrubbersByOffset") {
-            const ids = (args.scrubber_ids as string[]) || [];
+            const parsed = MoveScrubbersByOffsetArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for MoveScrubbersByOffset");
             llmMoveScrubbersByOffset(
-              ids,
-              args.offset_seconds as number,
-              (args.pixels_per_second as number) ?? pixelsPerSecond,
+              parsed.data.scrubber_ids,
+              parsed.data.offset_seconds as number,
+              (parsed.data.pixels_per_second as number | undefined) ?? pixelsPerSecond,
               timelineState,
               handleUpdateScrubber,
             );
-            aiResponseContent = `✅ Moved ${ids.length} scrubber(s) by ${args.offset_seconds}s.`;
+            aiResponseContent = `✅ Moved ${parsed.data.scrubber_ids.length} scrubber(s) by ${parsed.data.offset_seconds}s.`;
           } else if (fn === "CreateTrack") {
             if (handleAddTrack) {
               handleAddTrack();

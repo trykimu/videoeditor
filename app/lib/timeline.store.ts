@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { MediaBinItem, TimelineState } from "~/components/timeline/types";
 import { safeResolvePath, ensureDirectoryExists } from "~/utils/path-security";
+import { TimelineStateSchema, MediaBinItemSchema } from "~/schemas/timeline";
 
 const TIMELINE_DIR = process.env.TIMELINE_DIR || path.resolve("project_data");
 
@@ -47,14 +48,25 @@ export async function loadProjectState(projectId: string): Promise<ProjectStateF
   try {
     const raw = await fs.promises.readFile(file, "utf8");
     const parsed = JSON.parse(raw);
+    // Validate modern shape { timeline, textBinItems }
     if (parsed && typeof parsed === "object" && ("timeline" in parsed || "textBinItems" in parsed)) {
+      const safeTimeline = TimelineStateSchema.safeParse((parsed as any).timeline);
+      const safeTextBinItems = Array.isArray((parsed as any).textBinItems)
+        ? (parsed as any).textBinItems
+            .map((i: unknown) => (MediaBinItemSchema.safeParse(i).success ? i : null))
+            .filter(Boolean)
+        : [];
       return {
-        timeline: parsed.timeline ?? defaultTimeline(),
-        textBinItems: Array.isArray(parsed.textBinItems) ? parsed.textBinItems : [],
+        timeline: (safeTimeline.success ? safeTimeline.data : defaultTimeline()) as unknown as TimelineState,
+        textBinItems: safeTextBinItems as unknown as MediaBinItem[],
       };
     }
-    // legacy file stored just the timeline
-    return { timeline: parsed, textBinItems: [] };
+    // Legacy file stored just the timeline
+    const legacy = TimelineStateSchema.safeParse(parsed);
+    return {
+      timeline: (legacy.success ? legacy.data : defaultTimeline()) as unknown as TimelineState,
+      textBinItems: [],
+    };
   } catch {
     return { timeline: defaultTimeline(), textBinItems: [] };
   }
@@ -62,7 +74,9 @@ export async function loadProjectState(projectId: string): Promise<ProjectStateF
 
 export async function saveProjectState(projectId: string, state: ProjectStateFile): Promise<void> {
   const file = getFilePath(projectId);
-  await fs.promises.writeFile(file, JSON.stringify(state), "utf8");
+  const timeline = TimelineStateSchema.parse(state.timeline);
+  const textBinItems = state.textBinItems.map((i) => MediaBinItemSchema.parse(i));
+  await fs.promises.writeFile(file, JSON.stringify({ timeline, textBinItems }), "utf8");
 }
 
 // Backwards-compatible helpers

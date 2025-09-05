@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiUrl } from "~/utils/api";
 import { authClient } from "~/lib/auth.client";
 import { useNavigate } from "react-router";
+import { normalizeAuthUser } from "~/schemas/auth";
 
 interface AuthUser {
   id: string;
@@ -59,25 +60,8 @@ export function useAuth(): UseAuthResult {
   useEffect(() => {
     let isMounted = true;
     const extractUser = (data: unknown): AuthUser | null => {
-      if (!data || typeof data !== "object") return null;
-
-      const dataObj = data as AuthResponse;
-      const raw = dataObj.user || dataObj?.data?.user || dataObj?.session?.user || null;
-
-      if (raw) {
-        return {
-          id: String(raw.id ?? raw.userId ?? ""),
-          email: raw.email ?? null,
-          name: raw.name ?? null,
-          image: raw.image ?? raw.avatarUrl ?? null,
-        };
-      }
-
-      if (dataObj.session?.userId) {
-        return { id: String(dataObj.session.userId) } as AuthUser;
-      }
-
-      return null;
+      const u = normalizeAuthUser(data);
+      return u ? { id: u.id, email: u.email ?? null, name: u.name ?? null, image: u.image ?? null } : null;
     };
 
     // Fetch helpers return undefined on error (so we don't clear user)
