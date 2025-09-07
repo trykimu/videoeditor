@@ -55,6 +55,11 @@ interface MediaBinProps {
   handleDeleteFromContext: () => Promise<void>;
   handleSplitAudioFromContext: () => Promise<void>;
   handleCloseContextMenu: () => void;
+  // Persisted UI state from parent so grouping/sorting survives tab switches
+  arrangeModeExternal?: "default" | "group";
+  sortByExternal?: "default" | "name_asc" | "name_desc";
+  onArrangeModeChange?: (mode: "default" | "group") => void;
+  onSortByChange?: (sort: "default" | "name_asc" | "name_desc") => void;
 }
 
 // Memoized component for video thumbnails to prevent flickering
@@ -222,14 +227,42 @@ export default function MediaBin() {
     handleDeleteFromContext,
     handleSplitAudioFromContext,
     handleCloseContextMenu,
+    arrangeModeExternal,
+    sortByExternal,
+    onArrangeModeChange,
+    onSortByChange,
   } = useOutletContext<MediaBinProps>();
 
   // Drag & Drop state for external file imports
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Arrange & sorting state
-  const [arrangeMode, setArrangeMode] = useState<"default" | "group">("default");
-  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">("default");
+  // Arrange & sorting state (controlled by parent when provided)
+  const [arrangeMode, setArrangeMode] = useState<"default" | "group">(arrangeModeExternal ?? "default");
+  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">(sortByExternal ?? "default");
+
+  // Sync from parent if it changes
+  useEffect(() => {
+    if (arrangeModeExternal && arrangeModeExternal !== arrangeMode) setArrangeMode(arrangeModeExternal);
+  }, [arrangeModeExternal]);
+  useEffect(() => {
+    if (sortByExternal && sortByExternal !== sortBy) setSortBy(sortByExternal);
+  }, [sortByExternal]);
+
+  const updateArrangeMode = useCallback(
+    (mode: "default" | "group") => {
+      setArrangeMode(mode);
+      onArrangeModeChange?.(mode);
+    },
+    [onArrangeModeChange],
+  );
+
+  const updateSortBy = useCallback(
+    (sort: "default" | "name_asc" | "name_desc") => {
+      setSortBy(sort);
+      onSortByChange?.(sort);
+    },
+    [onSortByChange],
+  );
   const [collapsed, setCollapsed] = useState<{
     [key in "videos" | "gifs" | "images" | "audio" | "text"]: boolean;
   }>({
@@ -458,7 +491,7 @@ export default function MediaBin() {
                 className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
                   arrangeMode === "default" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
                 }`}
-                onClick={() => setArrangeMode("default")}
+                onClick={() => updateArrangeMode("default")}
                 title="Default order"
                 aria-pressed={arrangeMode === "default"}>
                 <List className="h-2 w-2" />
@@ -469,7 +502,7 @@ export default function MediaBin() {
                 className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
                   arrangeMode === "group" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
                 }`}
-                onClick={() => setArrangeMode("group")}
+                onClick={() => updateArrangeMode("group")}
                 title="Smart Group"
                 aria-pressed={arrangeMode === "group"}>
                 <Layers className="h-2 w-2" />
@@ -493,19 +526,19 @@ export default function MediaBin() {
                 <DropdownMenuLabel className="text-[11px]">Sort</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setSortBy("default")}
+                  onClick={() => updateSortBy("default")}
                   className={`text-[12px] gap-2 ${sortBy === "default" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ArrowUpDown className={`h-3 w-3 ${sortBy === "default" ? "text-primary" : ""}`} /> Original order
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setSortBy("name_asc")}
+                  onClick={() => updateSortBy("name_asc")}
                   className={`text-[12px] gap-2 ${sortBy === "name_asc" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ChevronUp className={`h-3 w-3 ${sortBy === "name_asc" ? "text-primary" : ""}`} /> Name A–Z
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setSortBy("name_desc")}
+                  onClick={() => updateSortBy("name_desc")}
                   className={`text-[12px] gap-2 ${sortBy === "name_desc" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ChevronDown className={`h-3 w-3 ${sortBy === "name_desc" ? "text-primary" : ""}`} /> Name Z–A

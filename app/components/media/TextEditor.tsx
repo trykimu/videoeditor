@@ -54,15 +54,15 @@ export default function TextEditor() {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <Card className="border-border/50">
-          <CardHeader className="pb-3">
+          <CardHeader className="pt-3 pb-3">
             <div className="flex items-center gap-2">
               <Type className="h-4 w-4 text-primary" />
               <CardTitle className="text-sm">Text Properties</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pb-4">
             {/* Text Content */}
             <div className="space-y-2">
               <Label className="text-xs font-medium">Content</Label>
