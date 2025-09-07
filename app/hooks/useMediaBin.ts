@@ -3,6 +3,7 @@ import axios from "axios";
 import { type MediaBinItem, type ScrubberState } from "~/components/timeline/types";
 import { generateUUID } from "~/utils/uuid";
 import { apiUrl } from "~/utils/api";
+import { AssetsResponseSchema } from "~/schemas";
 
 // Delete media file from server
 export const deleteMediaFile = async (
@@ -181,14 +182,8 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
           return;
         }
         const json = await res.json();
-        const assets = (json.assets || []) as Array<{
-          id: string;
-          name: string;
-          mediaUrlRemote: string;
-          width: number | null;
-          height: number | null;
-          durationInSeconds: number | null;
-        }>;
+        const parsed = AssetsResponseSchema.safeParse(json);
+        const assets = parsed.success ? parsed.data.assets : [];
         const items: MediaBinItem[] = assets.map((a) => ({
           id: a.id,
           name: a.name,
