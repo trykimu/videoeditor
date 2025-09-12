@@ -166,7 +166,6 @@ const ProjectCard = ({
 export async function loader({ request }: { request: Request }) {
   try {
     // Prefer Better Auth runtime API to avoid SSR fetch cookie issues
-    // @ts-ignore
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (!uid)

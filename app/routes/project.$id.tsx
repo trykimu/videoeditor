@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import TimelineEditor from "./home";
 import { auth } from "~/lib/auth.server";
 import { loadTimeline } from "~/lib/timeline.store";

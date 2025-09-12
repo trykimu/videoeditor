@@ -13,7 +13,6 @@ const OUT_DIR = path.resolve("out");
 async function requireUserId(request: Request): Promise<string> {
   // Try Better Auth runtime API first
   try {
-    // @ts-ignore - runtime API may not be typed
     const session = await auth.api?.getSession?.({ headers: request.headers });
     const userId: string | undefined =
       session?.user?.id ?? session?.session?.userId;

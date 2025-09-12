@@ -65,7 +65,10 @@
   "pnpm": {
     "overrides": {
       "zod": "4.0.9"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "supabase"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
@@ -84,6 +87,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "multer": "^2.0.2",
     "prettier": "^3.3.3",
+    "supabase": "^2.40.7",
     "tailwindcss": "^4.1.11",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",

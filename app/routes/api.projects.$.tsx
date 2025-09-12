@@ -83,58 +83,6 @@ export async function loader({ request }: { request: Request }) {
     );
   }
 
-  // DELETE /api/projects/:id -> delete project and assets
-  if (m && request.method === "DELETE") {
-    const id = m[1];
-    const proj = await getProjectById(id);
-    if (!proj || proj.user_id !== userId)
-      return new Response("Not Found", { status: 404 });
-
-    // Delete assets belonging to this project
-    try {
-      const assets = await listAssetsByUser(userId, id);
-      for (const a of assets) {
-        // Remove file from out/
-        try {
-          // Validate storage_key to prevent path traversal
-          if (!a.storage_key || typeof a.storage_key !== 'string') {
-            console.error("Invalid storage key");
-            continue;
-          }
-          // Sanitize the storage key to prevent path traversal
-          const sanitizedKey = path.basename(a.storage_key);
-          const filePath = path.resolve("out", sanitizedKey);
-          if (
-            filePath.startsWith(path.resolve("out")) &&
-            fs.existsSync(filePath)
-          ) {
-            fs.unlinkSync(filePath);
-          }
-        } catch {
-          console.error("Failed to delete asset");
-        }
-        await softDeleteAsset(a.id, userId);
-      }
-    } catch {
-      console.error("Failed to delete assets");
-    }
-
-    const ok = await deleteProjectById(id, userId);
-    if (!ok) return new Response("Not Found", { status: 404 });
-    // remove timeline file if exists
-    try {
-      await fs.promises.unlink(
-        path.resolve(process.env.TIMELINE_DIR || "project_data", `${id}.json`)
-      );
-    } catch {
-      console.error("Failed to delete timeline file");
-    }
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
   return new Response("Not Found", { status: 404 });
 }
 
@@ -215,7 +163,6 @@ export async function action({ request }: { request: Request }) {
     // inline update using pg (reuse pool via repo)
     // quick import avoided; execute with small query here
 
-    // @ts-ignore
     const { Pool } = await import("pg");
     const rawDbUrl = process.env.DATABASE_URL || "";
     let connectionString = rawDbUrl;

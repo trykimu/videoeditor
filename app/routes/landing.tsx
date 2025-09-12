@@ -42,16 +42,20 @@ import { TbBrandDiscord } from "react-icons/tb";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
-// Vite envs for Supabase
-// @ts-ignore
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
-// @ts-ignore
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
+  }
+  interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+  }
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
   }
 }
 
@@ -307,6 +311,7 @@ export default function Landing() {
     setSuccess(false);
     const ip = await getIp();
     try {
+      // TODO: fix this
       const res = await fetch("https://<SUPABASE_URL>.supabase.co/rest/v1/waitlist", {
         method: "POST",
         headers: {
