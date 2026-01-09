@@ -1,4 +1,6 @@
 import { auth } from "~/lib/auth.server";
+import { z } from "zod";
+import { AssetsResponseSchema, RegisterAssetBodySchema, CloneAssetBodySchema } from "~/schemas";
 import { insertAsset, listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
@@ -83,7 +85,10 @@ export async function loader({ request }: { request: Request }) {
       mediaUrlRemote: `/api/assets/${r.id}/raw`,
       // Remove public fullUrl - all access must go through authenticated API
     }));
-    return new Response(JSON.stringify({ assets: items }), {
+    // Response validation schema
+    const payload = { assets: items };
+    const validated = AssetsResponseSchema.parse(payload);
+    return new Response(JSON.stringify(validated), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -231,12 +236,14 @@ export async function action({ request }: { request: Request }) {
   // POST /api/assets/register -> register an already-uploaded file from out/
   if (pathname.endsWith("/api/assets/register") && method === "POST") {
     const body = await request.json().catch(() => ({}));
-    const filename: string | undefined = body.filename;
-    const originalName: string | undefined = body.originalName;
-    const size: number | undefined = body.size;
-    const width: number | null = typeof body.width === "number" ? body.width : null;
-    const height: number | null = typeof body.height === "number" ? body.height : null;
-    const duration: number | null = typeof body.duration === "number" ? body.duration : null;
+    const parsed = RegisterAssetBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid payload" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const { filename, originalName, size, width, height, duration } = parsed.data;
 
     if (!filename || !originalName) {
       return new Response(JSON.stringify({ error: "filename and originalName are required" }), {
@@ -314,7 +321,7 @@ export async function action({ request }: { request: Request }) {
   const cloneMatch = pathname.match(/\/api\/assets\/([^/]+)\/clone$/);
   if (cloneMatch && method === "POST") {
     const assetId = cloneMatch[1];
-    const suffix = (await request.json().catch(() => ({})))?.suffix || "copy";
+    const suffix = CloneAssetBodySchema.parse(await request.json().catch(() => ({}))).suffix;
     const asset = await getAssetById(assetId);
     if (!asset || asset.user_id !== userId) {
       return new Response(JSON.stringify({ error: "Not found" }), {
