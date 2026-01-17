@@ -27,7 +27,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@react-router/node": "^7.9.4",
+    "@react-router/node": "^7.9.5",
     "@react-router/serve": "^7.7.1",
     "@remotion/bundler": "4.0.329",
     "@remotion/captions": "4.0.331",
