@@ -44,7 +44,7 @@
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
+    "express": "^5.2.0",
     "framer-motion": "^12.23.12",
     "isbot": "^5.1.29",
     "lucide-react": "^0.534.0",
