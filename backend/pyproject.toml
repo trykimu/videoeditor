@@ -12,6 +12,7 @@ dependencies = [
     "fastapi[standard]>=0.115.13",
     "google-genai>=1.22.0",
     "mypy>=1.16.1",
+    "python-multipart>=0.0.22",
     "ruff>=0.12.1",
 ]
 
