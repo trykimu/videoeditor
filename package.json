@@ -38,7 +38,7 @@
     "@remotion/renderer": "4.0.329",
     "@remotion/transitions": "4.0.329",
     "@types/cors": "^2.8.19",
-    "axios": "^1.12.0",
+    "axios": "^1.13.5",
     "better-auth": "^1.4.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
