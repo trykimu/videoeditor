@@ -1,8 +1,13 @@
 Here lies the glorious backend.
 
-How to run:
 
+Setup:
 ```
-uv sync
+uv sync --all-groups
+uv run pre-commit install
+```
+
+Run:
+```
 uv run main.py
 ```

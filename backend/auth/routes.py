@@ -1,0 +1,148 @@
+import os
+
+import asyncpg  # type: ignore[import-untyped]
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+
+from auth.schema import AuthResponse, KimuJWT, KimuPayload, SignUpGoogleRequest
+from auth.service import (
+    COOKIE_MAX_AGE,
+    COOKIE_NAME,
+    generate_kimu_jwt,
+    verify_google_id_token,
+    verify_kimu_jwt,
+)
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+JWT_SECRET: str = os.getenv("JWT_SECRET", "")
+DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+
+_pool: asyncpg.Pool | None = None
+
+
+async def get_db_pool() -> asyncpg.Pool:
+    """
+    Return the shared asyncpg connection pool, creating it on first call.
+    """
+    global _pool
+    if _pool is None:
+        _pool = await asyncpg.create_pool(DATABASE_URL)
+    return _pool
+
+
+async def get_current_user(
+    request: Request,
+    kimu_session: str | None = Cookie(default=None, alias=COOKIE_NAME),
+) -> KimuJWT:
+    """
+    FastAPI dependeny. Reads the session JWT from the HttpOnly cookie.
+    Falls back to the Authorization header if the cookie is absent. Throws an error if the token is invalid.
+    """
+    token = kimu_session
+
+    if token is None:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.removeprefix("Bearer ")
+
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+
+    try:
+        return verify_kimu_jwt(token, JWT_SECRET)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post("/google")
+async def google_sign_in(body: SignUpGoogleRequest) -> JSONResponse:
+    """
+    Verify the Google ID token, upsert the user, return user info and
+    set an HttpOnly session cookie with the Kimu JWT.
+    """
+    # 1. Verify the Google credential
+    try:
+        google_user = verify_google_id_token(body.credential, GOOGLE_CLIENT_ID)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Google token verification failed: {exc}",
+        ) from exc
+
+    # 2. Upsert user in Postgres
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT id, email, name FROM users WHERE email = $1",
+            google_user.email,
+        )
+
+        is_new_user = row is None
+
+        if is_new_user:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO users (email, name)
+                VALUES ($1, $2)
+                RETURNING id, email, name
+                """,
+                google_user.email,
+                google_user.name,
+            )
+
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create or fetch user",
+            )
+
+        user_id = str(row["id"])
+
+    # 3. Generate Kimu JWT
+    payload = KimuPayload(
+        user_id=user_id,
+        email=google_user.email,
+        name=google_user.name,
+        avatar_url=google_user.picture,
+    )
+    token = generate_kimu_jwt(payload, JWT_SECRET)
+
+    # 4. Build response with HttpOnly cookie
+    body_data = AuthResponse(
+        user_id=user_id,
+        email=google_user.email,
+        name=google_user.name,
+        avatar_url=google_user.picture,
+    )
+    response = JSONResponse(content=body_data.model_dump())
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+    return response
+
+
+@router.get("/me", response_model=KimuPayload)
+async def get_me(user: KimuJWT = Depends(get_current_user)) -> KimuPayload:
+    """
+    Return the current user's profile from the JWT.
+    """
+    return KimuPayload(
+        user_id=user.user_id,
+        email=user.email,
+        name=user.name,
+        avatar_url=user.avatar_url,
+    )
