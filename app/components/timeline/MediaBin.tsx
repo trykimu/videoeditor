@@ -251,6 +251,9 @@ export default function MediaBin() {
   // Drag & Drop state for external file imports
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // File input ref for click-to-upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Arrange & sorting state
   const [arrangeMode, setArrangeMode] = useState<"default" | "group">(
     "default"
@@ -355,6 +358,28 @@ export default function MediaBin() {
         } catch (err) {
           console.error("Failed to import file via drop:", file.name, err);
         }
+      }
+    },
+    [onAddMedia]
+  );
+
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileInputChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      for (const file of files) {
+        try {
+          await onAddMedia(file);
+        } catch (err) {
+          console.error("Failed to import file:", file.name, err);
+        }
+      }
+      // Reset input so same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
     },
     [onAddMedia]
@@ -712,11 +737,21 @@ export default function MediaBin() {
 
             {defaultArrangedItems.length === 0 && (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <FileImage className="h-8 w-8 text-muted-foreground/50 mb-3" />
-                <p className="text-xs text-muted-foreground">No media files</p>
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Import videos, images, or audio to get started
-                </p>
+                <button
+                  onClick={handleUploadClick}
+                  className="flex flex-col items-center gap-3 p-6 rounded-lg transition-colors hover:bg-accent/30 cursor-pointer border-2 border-dashed border-border/30 hover:border-primary/50"
+                  title="Click to import media"
+                >
+                  <Upload className="h-10 w-10 text-muted-foreground/50" />
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      No media files
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      Import videos, images, or audio to get started
+                    </p>
+                  </div>
+                </button>
               </div>
             )}
           </>
@@ -885,11 +920,21 @@ export default function MediaBin() {
 
             {counts.all === 0 && (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <FileImage className="h-8 w-8 text-muted-foreground/50 mb-3" />
-                <p className="text-xs text-muted-foreground">No media files</p>
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Import videos, images, or audio to get started
-                </p>
+                <button
+                  onClick={handleUploadClick}
+                  className="flex flex-col items-center gap-3 p-6 rounded-lg transition-colors hover:bg-accent/30 cursor-pointer border-2 border-dashed border-border/30 hover:border-primary/50"
+                  title="Click to import media"
+                >
+                  <Upload className="h-10 w-10 text-muted-foreground/50" />
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      No media files
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      Import videos, images, or audio to get started
+                    </p>
+                  </div>
+                </button>
               </div>
             )}
           </div>
@@ -1019,6 +1064,16 @@ export default function MediaBin() {
           </div>
         </div>
       )}
+
+      {/* Hidden file input for click-to-upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*,image/*,audio/*"
+        multiple
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
     </div>
   );
 }
