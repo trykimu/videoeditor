@@ -230,6 +230,29 @@ const AudioPreview = ({ src }: { src: string }) => {
   );
 };
 
+// Empty state component for when no media files are present
+const EmptyState = memo(({ onUploadClick }: { onUploadClick: () => void }) => {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <button
+        onClick={onUploadClick}
+        className="flex flex-col items-center gap-3 p-6 rounded-lg transition-colors hover:bg-accent/30 cursor-pointer border-2 border-dashed border-border/30 hover:border-primary/50"
+        title="Click to import media"
+      >
+        <Upload className="h-10 w-10 text-muted-foreground/50" />
+        <div>
+          <p className="text-xs text-muted-foreground font-medium">
+            No media files
+          </p>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">
+            Import videos, images, or audio to get started
+          </p>
+        </div>
+      </button>
+    </div>
+  );
+});
+
 // This is required for the data router
 export function loader() {
   return null;
@@ -736,23 +759,7 @@ export default function MediaBin() {
             ))}
 
             {defaultArrangedItems.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <button
-                  onClick={handleUploadClick}
-                  className="flex flex-col items-center gap-3 p-6 rounded-lg transition-colors hover:bg-accent/30 cursor-pointer border-2 border-dashed border-border/30 hover:border-primary/50"
-                  title="Click to import media"
-                >
-                  <Upload className="h-10 w-10 text-muted-foreground/50" />
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      No media files
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      Import videos, images, or audio to get started
-                    </p>
-                  </div>
-                </button>
-              </div>
+              <EmptyState onUploadClick={handleUploadClick} />
             )}
           </>
         )}
@@ -919,23 +926,7 @@ export default function MediaBin() {
               ))}
 
             {counts.all === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <button
-                  onClick={handleUploadClick}
-                  className="flex flex-col items-center gap-3 p-6 rounded-lg transition-colors hover:bg-accent/30 cursor-pointer border-2 border-dashed border-border/30 hover:border-primary/50"
-                  title="Click to import media"
-                >
-                  <Upload className="h-10 w-10 text-muted-foreground/50" />
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      No media files
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      Import videos, images, or audio to get started
-                    </p>
-                  </div>
-                </button>
-              </div>
+              <EmptyState onUploadClick={handleUploadClick} />
             )}
           </div>
         )}
