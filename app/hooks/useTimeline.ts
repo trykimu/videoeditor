@@ -82,10 +82,13 @@ export const useTimeline = () => {
   }, [zoomLevel]);
 
   // Zoom functions that update scrubber positions and widths accordingly
-  const handleZoomIn = useCallback(() => {
+  // Zoom is relative to the center point (ruler position) so that the timeline
+  // zooms towards/away from the current playhead position
+  const handleZoomIn = useCallback((centerPx: number = 0) => {
     const currentZoom = zoomLevelRef.current;
     const newZoom = Math.min(MAX_ZOOM, currentZoom * 1.5);
     const zoomRatio = newZoom / currentZoom;
+    const offset = centerPx * (1 - zoomRatio);
 
     zoomLevelRef.current = newZoom;
     setZoomLevel(newZoom);
@@ -96,17 +99,18 @@ export const useTimeline = () => {
         ...track,
         scrubbers: track.scrubbers.map((scrubber) => ({
           ...scrubber,
-          left: scrubber.left * zoomRatio,
+          left: scrubber.left * zoomRatio + offset,
           width: scrubber.width * zoomRatio,
         })),
       })),
     }));
   }, []);
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = useCallback((centerPx: number = 0) => {
     const currentZoom = zoomLevelRef.current;
     const newZoom = Math.max(MIN_ZOOM, currentZoom / 1.5);
     const zoomRatio = newZoom / currentZoom;
+    const offset = centerPx * (1 - zoomRatio);
 
     zoomLevelRef.current = newZoom;
     setZoomLevel(newZoom);
@@ -117,17 +121,18 @@ export const useTimeline = () => {
         ...track,
         scrubbers: track.scrubbers.map((scrubber) => ({
           ...scrubber,
-          left: scrubber.left * zoomRatio,
+          left: scrubber.left * zoomRatio + offset,
           width: scrubber.width * zoomRatio,
         })),
       })),
     }));
   }, []);
 
-  const handleZoomReset = useCallback(() => {
+  const handleZoomReset = useCallback((centerPx: number = 0) => {
     const currentZoom = zoomLevelRef.current;
     const newZoom = DEFAULT_ZOOM;
     const zoomRatio = newZoom / currentZoom;
+    const offset = centerPx * (1 - zoomRatio);
 
     zoomLevelRef.current = newZoom;
     setZoomLevel(newZoom);
@@ -138,7 +143,7 @@ export const useTimeline = () => {
         ...track,
         scrubbers: track.scrubbers.map((scrubber) => ({
           ...scrubber,
-          left: scrubber.left * zoomRatio,
+          left: scrubber.left * zoomRatio + offset,
           width: scrubber.width * zoomRatio,
         })),
       })),

@@ -660,9 +660,9 @@ export default function TimelineEditor() {
         const scrollDirection = e.deltaY > 0 ? -1 : 1;
 
         if (scrollDirection > 0) {
-          handleZoomIn();
+          handleZoomIn(rulerPositionPx);
         } else {
-          handleZoomOut();
+          handleZoomOut(rulerPositionPx);
         }
       }
     };
@@ -673,7 +673,7 @@ export default function TimelineEditor() {
     return () => {
       timelineContainer.removeEventListener("wheel", handleWheel);
     };
-  }, [handleZoomIn, handleZoomOut]);
+  }, [handleZoomIn, handleZoomOut, rulerPositionPx]);
 
   const { user, isLoading: isAuthLoading, isSigningIn, signInWithGoogle, signOut } = useAuth();
 
@@ -924,7 +924,7 @@ export default function TimelineEditor() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleZoomOut}
+                        onClick={() => handleZoomOut(rulerPositionPx)}
                         className="h-6 w-6 p-0 text-xs"
                         title="Zoom Out">
                         <Minus className="h-3 w-3" />
@@ -932,14 +932,14 @@ export default function TimelineEditor() {
                       <Badge
                         variant="secondary"
                         className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
-                        onClick={handleZoomReset}
+                        onClick={() => handleZoomReset(rulerPositionPx)}
                         title="Click to reset zoom to 100%">
                         {Math.round(zoomLevel * 100)}%
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleZoomIn}
+                        onClick={() => handleZoomIn(rulerPositionPx)}
                         className="h-6 w-6 p-0 text-xs"
                         title="Zoom In">
                         <Plus className="h-3 w-3" />

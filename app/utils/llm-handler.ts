@@ -156,21 +156,24 @@ export function llmDeleteTrackByNumber(
 // ============================
 
 export function llmZoomIn(
-  handleZoomIn: () => void
+  handleZoomIn: (centerPx?: number) => void,
+  centerPx?: number
 ) {
-  handleZoomIn();
+  handleZoomIn(centerPx);
 }
 
 export function llmZoomOut(
-  handleZoomOut: () => void
+  handleZoomOut: (centerPx?: number) => void,
+  centerPx?: number
 ) {
-  handleZoomOut();
+  handleZoomOut(centerPx);
 }
 
 export function llmZoomReset(
-  handleZoomReset: () => void
+  handleZoomReset: (centerPx?: number) => void,
+  centerPx?: number
 ) {
-  handleZoomReset();
+  handleZoomReset(centerPx);
 }
 
 export function llmSetTimelinePosition(
