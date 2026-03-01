@@ -1,5 +1,4 @@
-import { registerRoot } from 'remotion';
-import RenderComposition from './Composition';
-
+import { registerRoot } from "remotion";
+import RenderComposition from "./Composition";
 
 registerRoot(RenderComposition);

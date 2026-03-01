@@ -1,23 +1,23 @@
-import React from "react"
-import { TimelineTitle } from "./TimelineTitle"
-import { DimensionControls } from "./DimensionControls"
-import { MediaActionButtons } from "./MediaActionButtons"
-import { TrackActionButton } from "./TrackActionButton"
-import { RenderActionButtons } from "./RenderActionButtons"
+import React from "react";
+import { TimelineTitle } from "./TimelineTitle";
+import { DimensionControls } from "./DimensionControls";
+import { MediaActionButtons } from "./MediaActionButtons";
+import { TrackActionButton } from "./TrackActionButton";
+import { RenderActionButtons } from "./RenderActionButtons";
 
 interface TimelineControlsProps {
-  onAddMedia: () => void
-  onAddText: () => void
-  onAddTrack: () => void
-  onRenderVideo: () => void
-  onLogTimelineData: () => void
-  isRendering: boolean
-  width: number
-  height: number
-  onWidthChange: (width: number) => void
-  onHeightChange: (height: number) => void
-  isAutoSize: boolean
-  onAutoSizeChange: (auto: boolean) => void
+  onAddMedia: () => void;
+  onAddText: () => void;
+  onAddTrack: () => void;
+  onRenderVideo: () => void;
+  onLogTimelineData: () => void;
+  isRendering: boolean;
+  width: number;
+  height: number;
+  onWidthChange: (width: number) => void;
+  onHeightChange: (height: number) => void;
+  isAutoSize: boolean;
+  onAutoSizeChange: (auto: boolean) => void;
 }
 
 export const TimelineControls: React.FC<TimelineControlsProps> = ({
@@ -47,13 +47,10 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
           isAutoSize={isAutoSize}
           onAutoSizeChange={onAutoSizeChange}
         />
-        
+
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          <MediaActionButtons
-            onAddMedia={onAddMedia}
-            onAddText={onAddText}
-          />
+          <MediaActionButtons onAddMedia={onAddMedia} onAddText={onAddText} />
           <TrackActionButton onAddTrack={onAddTrack} />
           <RenderActionButtons
             onRenderVideo={onRenderVideo}
@@ -63,5 +60,5 @@ export const TimelineControls: React.FC<TimelineControlsProps> = ({
         </div>
       </div>
     </div>
-  )
-} 
+  );
+};

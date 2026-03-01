@@ -9,8 +9,7 @@ export async function loader({ request }: { request: Request }) {
   // If already authenticated, redirect to projects
   try {
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined =
-      session?.user?.id || session?.session?.userId;
+    const uid: string | undefined = session?.user?.id || session?.session?.userId;
     if (uid)
       return new Response(null, {
         status: 302,
@@ -47,10 +46,7 @@ export default function LoginPage() {
       </div>
 
       {/* Sweeping playhead */}
-      <div
-        className="absolute inset-y-0 -z-10"
-        style={{ animation: "sweep 14s linear infinite" }}
-      >
+      <div className="absolute inset-y-0 -z-10" style={{ animation: "sweep 14s linear infinite" }}>
         <div className="absolute top-0 bottom-0 w-px bg-primary/70" />
         <div className="absolute top-0 bottom-0 w-[3px] translate-x-[-1px] bg-primary/30 blur-[1px]" />
       </div>
@@ -77,8 +73,7 @@ export default function LoginPage() {
             <div
               className="pointer-events-none absolute -inset-6 -z-10 rounded-full blur-3xl opacity-70"
               style={{
-                background:
-                  "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.28), transparent 55%)",
+                background: "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.28), transparent 55%)",
                 animation: "pulse 6s ease-in-out infinite",
               }}
             />
@@ -101,36 +96,18 @@ export default function LoginPage() {
               <KimuLogo className="h-14 w-14" />
             </div>
           </div>
-          <h1 className="mt-6 text-lg font-semibold tracking-tight">
-            Welcome to Kimu
-          </h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Cinematic editing, reimagined.
-          </p>
+          <h1 className="mt-6 text-lg font-semibold tracking-tight">Welcome to Kimu</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Cinematic editing, reimagined.</p>
           <div className="mt-6 w-full max-w-sm">
             <button
               onClick={signInWithGoogle}
               disabled={!!isSigningIn}
-              className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-foreground text-background text-sm"
-            >
+              className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-foreground text-background text-sm">
               {isSigningIn ? (
                 <>
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      opacity=".25"
-                    />
-                    <path
-                      d="M22 12a10 10 0 0 1-10 10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity=".25" />
+                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" fill="none" />
                   </svg>
                   Signing in...
                 </>
@@ -142,9 +119,7 @@ export default function LoginPage() {
               )}
             </button>
           </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            We never post on your behalf.
-          </p>
+          <p className="mt-3 text-[11px] text-muted-foreground">We never post on your behalf.</p>
         </div>
       </main>
 

@@ -13,11 +13,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import {
-  type MediaBinItem,
-  type TimelineState,
-  type ScrubberState,
-} from "../timeline/types";
+import { type MediaBinItem, type TimelineState, type ScrubberState } from "../timeline/types";
 import { cn } from "~/lib/utils";
 import axios from "axios";
 import { apiUrl } from "~/utils/api";
@@ -40,11 +36,7 @@ interface Message {
 interface ChatBoxProps {
   className?: string;
   mediaBinItems: MediaBinItem[];
-  handleDropOnTrack: (
-    item: MediaBinItem,
-    trackId: string,
-    dropLeftPx: number
-  ) => void;
+  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
   messages: Message[];
@@ -92,25 +84,19 @@ export function ChatBox({
   // Click outside handler for send options
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sendOptionsRef.current &&
-        !sendOptionsRef.current.contains(event.target as Node)
-      ) {
+      if (sendOptionsRef.current && !sendOptionsRef.current.contains(event.target as Node)) {
         setShowSendOptions(false);
       }
     };
 
     if (showSendOptions) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showSendOptions]);
 
   // Filter media bin items based on mention query
-  const filteredMentions = mediaBinItems.filter((item) =>
-    item.name.toLowerCase().includes(mentionQuery.toLowerCase())
-  );
+  const filteredMentions = mediaBinItems.filter((item) => item.name.toLowerCase().includes(mentionQuery.toLowerCase()));
 
   // Handle input changes and @ mention detection
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -129,15 +115,9 @@ export function ChatBox({
 
     // Clean up mentioned items that are no longer in the text
     const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const currentMentions = Array.from(value.matchAll(mentionPattern)).map(
-      (match) => match[1]
-    );
+    const currentMentions = Array.from(value.matchAll(mentionPattern)).map((match) => match[1]);
     setMentionedItems((prev) =>
-      prev.filter((item) =>
-        currentMentions.some(
-          (mention) => mention.toLowerCase() === item.name.toLowerCase()
-        )
-      )
+      prev.filter((item) => currentMentions.some((mention) => mention.toLowerCase() === item.name.toLowerCase())),
     );
 
     // Check for @ mentions
@@ -147,9 +127,7 @@ export function ChatBox({
     if (lastAtIndex !== -1) {
       const afterAt = beforeCursor.slice(lastAtIndex + 1);
       // Only show mentions if @ is at start or after whitespace, and no spaces after @
-      const isValidMention =
-        (lastAtIndex === 0 || /\s/.test(beforeCursor[lastAtIndex - 1])) &&
-        !afterAt.includes(" ");
+      const isValidMention = (lastAtIndex === 0 || /\s/.test(beforeCursor[lastAtIndex - 1])) && !afterAt.includes(" ");
 
       if (isValidMention) {
         setMentionQuery(afterAt);
@@ -169,8 +147,7 @@ export function ChatBox({
     const afterCursor = inputValue.slice(cursorPosition);
     const lastAtIndex = beforeCursor.lastIndexOf("@");
 
-    const newValue =
-      beforeCursor.slice(0, lastAtIndex) + `@${item.name} ` + afterCursor;
+    const newValue = beforeCursor.slice(0, lastAtIndex) + `@${item.name} ` + afterCursor;
     setInputValue(newValue);
     setShowMentions(false);
 
@@ -204,10 +181,7 @@ export function ChatBox({
       // Add all media items to the items to send
       itemsToSend = [
         ...mentionedItems,
-        ...mediaBinItems.filter(
-          (item) =>
-            !mentionedItems.find((mentioned) => mentioned.id === item.id)
-        ),
+        ...mediaBinItems.filter((item) => !mentionedItems.find((mentioned) => mentioned.id === item.id)),
       ];
     }
 
@@ -259,9 +233,7 @@ export function ChatBox({
         try {
           if (function_call.function_name === "LLMAddScrubberToTimeline") {
             // Find the media item by ID
-            const mediaItem = mediaBinItems.find(
-              (item) => item.id === function_call.scrubber_id
-            );
+            const mediaItem = mediaBinItems.find((item) => item.id === function_call.scrubber_id);
 
             if (!mediaItem) {
               aiResponseContent = `❌ Error: Media item with ID "${function_call.scrubber_id}" not found in the media bin.`;
@@ -272,7 +244,7 @@ export function ChatBox({
                 mediaBinItems,
                 function_call.track_id,
                 function_call.drop_left_px,
-                handleDropOnTrack
+                handleDropOnTrack,
               );
 
               aiResponseContent = `✅ Successfully added "${mediaItem.name}" to ${function_call.track_id} at position ${function_call.drop_left_px}px.`;
@@ -285,16 +257,12 @@ export function ChatBox({
               function_call.new_track_number,
               function_call.pixels_per_second,
               timelineState,
-              handleUpdateScrubber
+              handleUpdateScrubber,
             );
 
             // Try to locate the scrubber name for a nicer message
-            const allScrubbers = timelineState.tracks.flatMap(
-              (t) => t.scrubbers
-            );
-            const moved = allScrubbers.find(
-              (s) => s.id === function_call.scrubber_id
-            );
+            const allScrubbers = timelineState.tracks.flatMap((t) => t.scrubbers);
+            const moved = allScrubbers.find((s) => s.id === function_call.scrubber_id);
             const movedName = moved ? moved.name : function_call.scrubber_id;
             aiResponseContent = `✅ Moved "${movedName}" to track ${function_call.new_track_number} at ${function_call.new_position_seconds}s.`;
           } else if (function_call.function_name === "LLMAddScrubberByName") {
@@ -305,21 +273,15 @@ export function ChatBox({
               function_call.track_number,
               function_call.position_seconds,
               function_call.pixels_per_second ?? 100,
-              handleDropOnTrack
+              handleDropOnTrack,
             );
 
             aiResponseContent = `✅ Added "${function_call.scrubber_name}" to track ${function_call.track_number} at ${function_call.position_seconds}s.`;
-          } else if (
-            function_call.function_name === "LLMDeleteScrubbersInTrack"
-          ) {
+          } else if (function_call.function_name === "LLMDeleteScrubbersInTrack") {
             if (!handleDeleteScrubber) {
               throw new Error("Delete handler is not available");
             }
-            llmDeleteScrubbersInTrack(
-              function_call.track_number,
-              timelineState,
-              handleDeleteScrubber
-            );
+            llmDeleteScrubbersInTrack(function_call.track_number, timelineState, handleDeleteScrubber);
             aiResponseContent = `✅ Removed all scrubbers in track ${function_call.track_number}.`;
           } else {
             aiResponseContent = `❌ Unknown function: ${function_call.function_name}`;
@@ -364,16 +326,12 @@ export function ChatBox({
     if (showMentions && filteredMentions.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedMentionIndex((prev) =>
-          prev < filteredMentions.length - 1 ? prev + 1 : 0
-        );
+        setSelectedMentionIndex((prev) => (prev < filteredMentions.length - 1 ? prev + 1 : 0));
         return;
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedMentionIndex((prev) =>
-          prev > 0 ? prev - 1 : filteredMentions.length - 1
-        );
+        setSelectedMentionIndex((prev) => (prev > 0 ? prev - 1 : filteredMentions.length - 1));
         return;
       }
       if (e.key === "Enter") {
@@ -419,8 +377,7 @@ export function ChatBox({
             size="sm"
             onClick={() => onMessagesChange([])}
             className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-            title="Clear chat"
-          >
+            title="Clear chat">
             <RotateCcw className="h-3 w-3" />
           </Button>
           {onToggleMinimize && (
@@ -429,13 +386,8 @@ export function ChatBox({
               size="sm"
               onClick={onToggleMinimize}
               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-              title={isMinimized ? "Expand chat" : "Minimize chat"}
-            >
-              {isMinimized ? (
-                <ChevronLeft className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
+              title={isMinimized ? "Expand chat" : "Minimize chat"}>
+              {isMinimized ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </Button>
           )}
         </div>
@@ -451,8 +403,8 @@ export function ChatBox({
             </div>
             <h2 className="text-lg font-semibold mb-2">Ask Kimu</h2>
             <p className="text-sm text-muted-foreground mb-8 max-w-xs leading-relaxed">
-              Kimu is your AI assistant for video editing. Ask questions, get
-              help with timeline operations, or request specific edits.
+              Kimu is your AI assistant for video editing. Ask questions, get help with timeline operations, or request
+              specific edits.
             </p>
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -460,19 +412,13 @@ export function ChatBox({
                 <span>to chat with media</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
-                  Enter
-                </kbd>
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
                 <span>to send</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
-                  Shift
-                </kbd>
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Shift</kbd>
                 <span>+</span>
-                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">
-                  Enter
-                </kbd>
+                <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd>
                 <span>for new line</span>
               </div>
             </div>
@@ -482,38 +428,21 @@ export function ChatBox({
           <div
             ref={scrollContainerRef}
             className="flex-1 overflow-y-auto p-3 scroll-smooth"
-            style={{ maxHeight: "calc(100vh - 200px)" }}
-          >
+            style={{ maxHeight: "calc(100vh - 200px)" }}>
             <div className="space-y-3">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.isUser ? "justify-end" : "justify-start"
-                  }`}
-                >
+                <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-lg px-3 py-2 text-xs ${
-                      message.isUser
-                        ? "bg-primary text-primary-foreground ml-8"
-                        : "bg-muted mr-8"
-                    }`}
-                  >
+                      message.isUser ? "bg-primary text-primary-foreground ml-8" : "bg-muted mr-8"
+                    }`}>
                     <div className="flex items-start gap-2">
-                      {!message.isUser && (
-                        <Bot className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
-                      )}
+                      {!message.isUser && <Bot className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />}
                       <div className="flex-1 min-w-0">
-                        <p className="leading-relaxed break-words overflow-wrap-anywhere">
-                          {message.content}
-                        </p>
-                        <span className="text-xs opacity-70 mt-1 block">
-                          {formatTime(message.timestamp)}
-                        </span>
+                        <p className="leading-relaxed break-words overflow-wrap-anywhere">{message.content}</p>
+                        <span className="text-xs opacity-70 mt-1 block">{formatTime(message.timestamp)}</span>
                       </div>
-                      {message.isUser && (
-                        <User className="h-3 w-3 mt-0.5 text-primary-foreground/70 shrink-0" />
-                      )}
+                      {message.isUser && <User className="h-3 w-3 mt-0.5 text-primary-foreground/70 shrink-0" />}
                     </div>
                   </div>
                 </div>
@@ -557,18 +486,14 @@ export function ChatBox({
         {showMentions && filteredMentions.length > 0 && (
           <div
             ref={mentionsRef}
-            className="absolute bottom-full left-4 right-4 mb-2 bg-background border border-border/50 rounded-lg shadow-lg max-h-40 overflow-y-auto z-50"
-          >
+            className="absolute bottom-full left-4 right-4 mb-2 bg-background border border-border/50 rounded-lg shadow-lg max-h-40 overflow-y-auto z-50">
             {filteredMentions.map((item, index) => (
               <div
                 key={item.id}
                 className={`px-3 py-2 text-xs cursor-pointer flex items-center gap-2 ${
-                  index === selectedMentionIndex
-                    ? "bg-accent text-accent-foreground"
-                    : "hover:bg-muted"
+                  index === selectedMentionIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted"
                 }`}
-                onClick={() => insertMention(item)}
-              >
+                onClick={() => insertMention(item)}>
                 <div className="w-6 h-6 bg-muted/50 rounded flex items-center justify-center">
                   {item.mediaType === "video" ? (
                     <FileVideo className="h-3 w-3 text-muted-foreground" />
@@ -579,9 +504,7 @@ export function ChatBox({
                   )}
                 </div>
                 <span className="flex-1 truncate">{item.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.mediaType}
-                </span>
+                <span className="text-xs text-muted-foreground">{item.mediaType}</span>
               </div>
             ))}
           </div>
@@ -591,8 +514,7 @@ export function ChatBox({
         {showSendOptions && (
           <div
             ref={sendOptionsRef}
-            className="absolute bottom-full right-4 mb-2 bg-background border border-border/50 rounded-md shadow-lg z-50 min-w-48"
-          >
+            className="absolute bottom-full right-4 mb-2 bg-background border border-border/50 rounded-md shadow-lg z-50 min-w-48">
             <div className="p-1">
               <div
                 className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
@@ -600,12 +522,9 @@ export function ChatBox({
                   setSendWithMedia(false);
                   setShowSendOptions(false);
                   handleSendMessage(false);
-                }}
-              >
+                }}>
                 <span>Send</span>
-                <span className="text-xs text-muted-foreground font-mono">
-                  Enter
-                </span>
+                <span className="text-xs text-muted-foreground font-mono">Enter</span>
               </div>
               <div
                 className="px-3 py-2 text-xs cursor-pointer hover:bg-muted rounded flex items-center justify-between"
@@ -613,8 +532,7 @@ export function ChatBox({
                   setSendWithMedia(true);
                   setShowSendOptions(false);
                   handleSendMessage(true);
-                }}
-              >
+                }}>
                 <span>Send with all Media</span>
               </div>
               <div
@@ -624,8 +542,7 @@ export function ChatBox({
                   onMessagesChange([]);
                   setShowSendOptions(false);
                   handleSendMessage(false);
-                }}
-              >
+                }}>
                 <span>Send to New Chat</span>
               </div>
             </div>
@@ -643,7 +560,7 @@ export function ChatBox({
             placeholder="Ask Kimu..."
             className={cn(
               "w-full min-h-8 max-h-20 resize-none text-xs bg-transparent border-0 px-3 pt-2.5 pb-1 placeholder:text-muted-foreground/60 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-              "transition-all duration-200 leading-relaxed"
+              "transition-all duration-200 leading-relaxed",
             )}
             disabled={isTyping}
             rows={1}
@@ -659,12 +576,8 @@ export function ChatBox({
               className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50"
               onClick={() => {
                 if (inputRef.current) {
-                  const cursorPos =
-                    inputRef.current.selectionStart || inputValue.length;
-                  const newValue =
-                    inputValue.slice(0, cursorPos) +
-                    "@" +
-                    inputValue.slice(cursorPos);
+                  const cursorPos = inputRef.current.selectionStart || inputValue.length;
+                  const newValue = inputValue.slice(0, cursorPos) + "@" + inputValue.slice(cursorPos);
                   setInputValue(newValue);
                   const newCursorPos = cursorPos + 1;
                   setCursorPosition(newCursorPos);
@@ -676,14 +589,10 @@ export function ChatBox({
 
                   setTimeout(() => {
                     inputRef.current?.focus();
-                    inputRef.current?.setSelectionRange(
-                      newCursorPos,
-                      newCursorPos
-                    );
+                    inputRef.current?.setSelectionRange(newCursorPos, newCursorPos);
                   }, 0);
                 }
-              }}
-            >
+              }}>
               <AtSign className="h-2.5 w-2.5" />
             </Button>
 
@@ -694,8 +603,7 @@ export function ChatBox({
                 disabled={!inputValue.trim() || isTyping}
                 size="sm"
                 className="h-6 px-2 bg-transparent hover:bg-primary/10 text-primary hover:text-primary text-xs"
-                variant="ghost"
-              >
+                variant="ghost">
                 <Send className="h-2.5 w-2.5" />
               </Button>
               <Button
@@ -703,8 +611,7 @@ export function ChatBox({
                 size="sm"
                 className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50"
                 disabled={isTyping}
-                onClick={() => setShowSendOptions(!showSendOptions)}
-              >
+                onClick={() => setShowSendOptions(!showSendOptions)}>
                 <ChevronDown className="h-2.5 w-2.5" />
               </Button>
             </div>

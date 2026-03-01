@@ -14,7 +14,7 @@ interface LeftPanelProps {
     fontFamily: string,
     color: string,
     textAlign: "left" | "center" | "right",
-    fontWeight: "normal" | "bold"
+    fontWeight: "normal" | "bold",
   ) => void;
   contextMenu: {
     x: number;
@@ -59,8 +59,7 @@ export default function LeftPanel({
             <TabsTrigger
               value="media-bin"
               asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
+              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Link to="media-bin" className="flex items-center gap-1.5">
                 <FileImage className="h-3 w-3" />
               </Link>
@@ -68,8 +67,7 @@ export default function LeftPanel({
             <TabsTrigger
               value="text-editor"
               asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
+              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Link to="text-editor" className="flex items-center gap-1.5">
                 <Type className="h-3 w-3" />
               </Link>
@@ -77,8 +75,7 @@ export default function LeftPanel({
             <TabsTrigger
               value="transitions"
               asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
+              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Link to="transitions" className="flex items-center gap-1.5">
                 <BetweenVerticalEnd className="h-3 w-3" />
               </Link>

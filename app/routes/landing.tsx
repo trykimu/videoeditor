@@ -1404,8 +1404,9 @@ function MobileTimelinePlayground({ timelineAssets, handleLogoClick, logoSpinnin
             <button
               key={asset.label}
               onClick={() => setActiveIdx(i)}
-              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${activeIdx === i ? "ring-2 ring-blue-400 scale-105" : "hover:scale-105"
-                } ${activeIdx === i ? "z-20" : "z-10"}`}
+              className={`min-w-[90px] max-w-[120px] px-3 py-3 rounded-xl border border-border/30 bg-background/95 flex flex-col items-center gap-2 snap-center shadow-lg transition-all duration-200 ${
+                activeIdx === i ? "ring-2 ring-blue-400 scale-105" : "hover:scale-105"
+              } ${activeIdx === i ? "z-20" : "z-10"}`}
               style={{ opacity: activeIdx === i ? 1 : 0.7 }}>
               <span className="text-2xl mb-1">{asset.icon}</span>
               <span className="text-xs font-semibold text-foreground text-center whitespace-nowrap">{asset.label}</span>
@@ -1695,11 +1696,13 @@ function MobileVideoEditorPreview({
                         <div key={asset.label} className="flex items-center h-8">
                           {/* Track Label */}
                           <div
-                            className={`w-20 h-full ${isActive ? "bg-blue-500/20" : "bg-muted/20"
-                              } border-r border-border/20 flex items-center px-2`}>
+                            className={`w-20 h-full ${
+                              isActive ? "bg-blue-500/20" : "bg-muted/20"
+                            } border-r border-border/20 flex items-center px-2`}>
                             <span
-                              className={`text-xs font-medium ${isActive ? "text-blue-400" : "text-foreground"
-                                } truncate`}>
+                              className={`text-xs font-medium ${
+                                isActive ? "text-blue-400" : "text-foreground"
+                              } truncate`}>
                               Track {i + 1}
                             </span>
                           </div>
@@ -1718,16 +1721,18 @@ function MobileVideoEditorPreview({
 
                             {/* Track Content */}
                             <div
-                              className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${isActive ? "border-blue-400/50" : "border-border/30"
-                                }`}
+                              className={`absolute top-0 bottom-0 flex items-center px-2 rounded-sm border ${
+                                isActive ? "border-blue-400/50" : "border-border/30"
+                              }`}
                               style={{
                                 left: trackOffset,
                                 width: trackWidth,
                                 minWidth: "80px",
                               }}>
                               <span
-                                className={`text-xs font-medium ${isActive ? "text-blue-400" : "text-foreground"
-                                  } truncate`}>
+                                className={`text-xs font-medium ${
+                                  isActive ? "text-blue-400" : "text-foreground"
+                                } truncate`}>
                                 {asset.label}
                               </span>
                             </div>
@@ -1735,8 +1740,9 @@ function MobileVideoEditorPreview({
                             {/* Progress Fill */}
                             {!isFuture && (
                               <motion.div
-                                className={`absolute top-0 bottom-0 ${isActive ? "bg-blue-500" : asset.color
-                                  } opacity-40 rounded-sm`}
+                                className={`absolute top-0 bottom-0 ${
+                                  isActive ? "bg-blue-500" : asset.color
+                                } opacity-40 rounded-sm`}
                                 style={{
                                   left: trackOffset,
                                   width: `${Math.min(trackProgress * 100, 100)}%`,

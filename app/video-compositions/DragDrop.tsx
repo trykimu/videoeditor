@@ -96,10 +96,8 @@ export const ResizeHandle: React.FC<{
         const isLeft = type === "top-left" || type === "bottom-left";
         const isTop = type === "top-left" || type === "top-right";
 
-        const newWidth =
-          ScrubberState.width_player + (isLeft ? -offsetX : offsetX);
-        const newHeight =
-          ScrubberState.height_player + (isTop ? -offsetY : offsetY);
+        const newWidth = ScrubberState.width_player + (isLeft ? -offsetX : offsetX);
+        const newHeight = ScrubberState.height_player + (isTop ? -offsetY : offsetY);
         const newLeft = ScrubberState.left_player + (isLeft ? offsetX : 0);
         const newTop = ScrubberState.top_player + (isTop ? offsetY : 0);
         // console.log('newWidth', newWidth);
@@ -134,7 +132,7 @@ export const ResizeHandle: React.FC<{
         once: true,
       });
     },
-    [ScrubberState, scale, setItem, type]
+    [ScrubberState, scale, setItem, type],
   );
 
   return <div onPointerDown={onPointerDown} style={style} />;
@@ -146,13 +144,7 @@ export const SelectionOutline: React.FC<{
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   selectedItem: string | null;
   isDragging: boolean;
-}> = ({
-  ScrubberState,
-  changeItem,
-  setSelectedItem,
-  selectedItem,
-  isDragging,
-}) => {
+}> = ({ ScrubberState, changeItem, setSelectedItem, selectedItem, isDragging }) => {
   // console.log("SelectionOutline", JSON.stringify(ScrubberState, null, 2));
   const scale = useCurrentScale();
   const scaledBorder = Math.ceil(2 / scale);
@@ -221,7 +213,7 @@ export const SelectionOutline: React.FC<{
         once: true,
       });
     },
-    [ScrubberState, scale, changeItem]
+    [ScrubberState, scale, changeItem],
   );
 
   const onPointerDown = useCallback(
@@ -235,54 +227,26 @@ export const SelectionOutline: React.FC<{
       setSelectedItem(ScrubberState.id);
       startDragging(e);
     },
-    [ScrubberState.id, setSelectedItem, startDragging]
+    [ScrubberState.id, setSelectedItem, startDragging],
   );
 
   return (
-    <div
-      onPointerDown={onPointerDown}
-      onPointerEnter={onMouseEnter}
-      onPointerLeave={onMouseLeave}
-      style={style}
-    >
+    <div onPointerDown={onPointerDown} onPointerEnter={onMouseEnter} onPointerLeave={onMouseLeave} style={style}>
       {isSelected ? (
         <>
-          <ResizeHandle
-            ScrubberState={ScrubberState}
-            setItem={changeItem}
-            type="top-left"
-          />
-          <ResizeHandle
-            ScrubberState={ScrubberState}
-            setItem={changeItem}
-            type="top-right"
-          />
-          <ResizeHandle
-            ScrubberState={ScrubberState}
-            setItem={changeItem}
-            type="bottom-left"
-          />
-          <ResizeHandle
-            ScrubberState={ScrubberState}
-            setItem={changeItem}
-            type="bottom-right"
-          />
+          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="top-left" />
+          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="top-right" />
+          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="bottom-left" />
+          <ResizeHandle ScrubberState={ScrubberState} setItem={changeItem} type="bottom-right" />
         </>
       ) : null}
     </div>
   );
 };
 
-const displaySelectedItemOnTop = (
-  items: ScrubberState[],
-  selectedItem: string | null
-): ScrubberState[] => {
-  const selectedItems = items.filter(
-    (ScrubberState) => ScrubberState.id === selectedItem
-  );
-  const unselectedItems = items.filter(
-    (ScrubberState) => ScrubberState.id !== selectedItem
-  );
+const displaySelectedItemOnTop = (items: ScrubberState[], selectedItem: string | null): ScrubberState[] => {
+  const selectedItems = items.filter((ScrubberState) => ScrubberState.id === selectedItem);
+  const unselectedItems = items.filter((ScrubberState) => ScrubberState.id !== selectedItem);
 
   return [...unselectedItems, ...selectedItems];
 };
@@ -306,7 +270,7 @@ export const SortedOutlines: React.FC<{
   const itemsToDisplay = React.useMemo(() => {
     return displaySelectedItemOnTop(
       timeline.tracks.flatMap((track: TrackState) => track.scrubbers),
-      selectedItem
+      selectedItem,
     );
   }, [timeline, selectedItem]);
 
@@ -315,7 +279,7 @@ export const SortedOutlines: React.FC<{
       timeline.tracks
         .flatMap((track: TrackState) => track.scrubbers)
         .some((ScrubberState) => ScrubberState.is_dragging),
-    [timeline]
+    [timeline],
   );
 
   return itemsToDisplay.map((ScrubberState) => {
@@ -323,11 +287,8 @@ export const SortedOutlines: React.FC<{
       <Sequence
         key={ScrubberState.id}
         from={Math.round((ScrubberState.left / PIXELS_PER_SECOND) * FPS)}
-        durationInFrames={Math.round(
-          (ScrubberState.width / PIXELS_PER_SECOND) * FPS
-        )}
-        layout="none"
-      >
+        durationInFrames={Math.round((ScrubberState.width / PIXELS_PER_SECOND) * FPS)}
+        layout="none">
         <SelectionOutline
           changeItem={handleUpdateScrubber}
           ScrubberState={ScrubberState}

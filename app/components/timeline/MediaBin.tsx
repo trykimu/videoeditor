@@ -44,7 +44,7 @@ interface MediaBinProps {
     fontFamily: string,
     color: string,
     textAlign: "left" | "center" | "right",
-    fontWeight: "normal" | "bold"
+    fontWeight: "normal" | "bold",
   ) => void;
   contextMenu: {
     x: number;
@@ -58,35 +58,25 @@ interface MediaBinProps {
 }
 
 // Memoized component for video thumbnails to prevent flickering
-const VideoThumbnail = memo(
-  ({
-    mediaUrl,
-    width,
-    height,
-  }: {
-    mediaUrl: string;
-    width: number;
-    height: number;
-  }) => {
-    const VideoComponent = useMemo(() => {
-      return () => <Video src={mediaUrl} />;
-    }, [mediaUrl]);
+const VideoThumbnail = memo(({ mediaUrl, width, height }: { mediaUrl: string; width: number; height: number }) => {
+  const VideoComponent = useMemo(() => {
+    return () => <Video src={mediaUrl} />;
+  }, [mediaUrl]);
 
-    return (
-      <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
-        <Thumbnail
-          component={VideoComponent}
-          compositionWidth={width}
-          compositionHeight={height}
-          frameToDisplay={30}
-          durationInFrames={1}
-          fps={30}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      </div>
-    );
-  }
-);
+  return (
+    <div className="w-12 h-8 rounded border border-border/50 overflow-hidden bg-card">
+      <Thumbnail
+        component={VideoComponent}
+        compositionWidth={width}
+        compositionHeight={height}
+        frameToDisplay={30}
+        durationInFrames={1}
+        fps={30}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    </div>
+  );
+});
 
 // Compact custom audio preview (no extra containers, minimal, design-token aware)
 const AudioPreview = ({ src }: { src: string }) => {
@@ -108,7 +98,7 @@ const AudioPreview = ({ src }: { src: string }) => {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) {
-      el.play().catch(() => { });
+      el.play().catch(() => {});
     } else {
       el.pause();
     }
@@ -139,7 +129,7 @@ const AudioPreview = ({ src }: { src: string }) => {
       const pct = rect.width ? x / rect.width : 0;
       el.currentTime = pct * duration;
     },
-    [duration]
+    [duration],
   );
 
   const onPointerDownTrack = useCallback(
@@ -149,7 +139,7 @@ const AudioPreview = ({ src }: { src: string }) => {
       setIsScrubbing(true);
       seekFromClientX(e.clientX);
     },
-    [seekFromClientX]
+    [seekFromClientX],
   );
 
   useEffect(() => {
@@ -178,26 +168,17 @@ const AudioPreview = ({ src }: { src: string }) => {
         size="sm"
         className="h-7 w-7 p-0 bg-transparent hover:bg-transparent"
         onClick={togglePlay}
-        title={isPlaying ? "Pause" : "Play"}
-      >
-        {isPlaying ? (
-          <Pause className="h-3.5 w-3.5" />
-        ) : (
-          <Play className="h-3.5 w-3.5" />
-        )}
+        title={isPlaying ? "Pause" : "Play"}>
+        {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
       </Button>
       <div
         ref={trackRef}
         onPointerDown={onPointerDownTrack}
-        className="relative w-full h-0.5 rounded cursor-pointer bg-black/25 dark:bg-white/25"
-      >
+        className="relative w-full h-0.5 rounded cursor-pointer bg-black/25 dark:bg-white/25">
         <div
           className="absolute left-0 top-0 h-full bg-primary rounded"
           style={{
-            width: `${duration > 0
-              ? (Math.min(currentTime, duration) / duration) * 100
-              : 0
-              }%`,
+            width: `${duration > 0 ? (Math.min(currentTime, duration) / duration) * 100 : 0}%`,
           }}
         />
       </div>
@@ -209,13 +190,8 @@ const AudioPreview = ({ src }: { src: string }) => {
         size="sm"
         className="h-7 w-7 p-0 bg-transparent hover:bg-transparent"
         onClick={toggleMute}
-        title={isMuted ? "Unmute" : "Mute"}
-      >
-        {isMuted ? (
-          <VolumeX className="h-3.5 w-3.5" />
-        ) : (
-          <Volume2 className="h-3.5 w-3.5" />
-        )}
+        title={isMuted ? "Unmute" : "Mute"}>
+        {isMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
       </Button>
       <audio
         ref={audioRef}
@@ -252,12 +228,8 @@ export default function MediaBin() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Arrange & sorting state
-  const [arrangeMode, setArrangeMode] = useState<"default" | "group">(
-    "default"
-  );
-  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">(
-    "default"
-  );
+  const [arrangeMode, setArrangeMode] = useState<"default" | "group">("default");
+  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">("default");
   const [collapsed, setCollapsed] = useState<{
     [key in "videos" | "gifs" | "images" | "audio" | "text"]: boolean;
   }>({
@@ -268,26 +240,20 @@ export default function MediaBin() {
     text: false,
   });
 
-  const handleDragOverRoot = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      // Only react to file drags from OS, not internal element drags
-      if (!Array.from(e.dataTransfer.types).includes("Files")) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      setIsDragOver(true);
-    },
-    []
-  );
+  const handleDragOverRoot = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only react to file drags from OS, not internal element drags
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }, []);
 
-  const handleDragLeaveRoot = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (!Array.from(e.dataTransfer.types).includes("Files")) return;
-      // Only reset when leaving the current target
-      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-      setIsDragOver(false);
-    },
-    []
-  );
+  const handleDragLeaveRoot = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    // Only reset when leaving the current target
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragOver(false);
+  }, []);
 
   const handleDropRoot = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
@@ -298,52 +264,14 @@ export default function MediaBin() {
 
       const isAllowed = (file: File) => {
         const type = (file.type || "").toLowerCase();
-        if (
-          type.startsWith("video/") ||
-          type.startsWith("audio/") ||
-          type.startsWith("image/")
-        ) {
+        if (type.startsWith("video/") || type.startsWith("audio/") || type.startsWith("image/")) {
           return true; // includes GIF via image/gif
         }
         // Fallback by extension when MIME is missing
         const name = file.name.toLowerCase();
-        const imageExts = [
-          ".png",
-          ".jpg",
-          ".jpeg",
-          ".webp",
-          ".bmp",
-          ".gif",
-          ".tiff",
-          ".svg",
-          ".heic",
-          ".heif",
-        ];
-        const videoExts = [
-          ".mp4",
-          ".mov",
-          ".mkv",
-          ".webm",
-          ".avi",
-          ".m4v",
-          ".wmv",
-          ".mts",
-          ".m2ts",
-          ".3gp",
-          ".flv",
-        ];
-        const audioExts = [
-          ".mp3",
-          ".wav",
-          ".aac",
-          ".flac",
-          ".m4a",
-          ".ogg",
-          ".opus",
-          ".aiff",
-          ".aif",
-          ".wma",
-        ];
+        const imageExts = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff", ".svg", ".heic", ".heif"];
+        const videoExts = [".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".wmv", ".mts", ".m2ts", ".3gp", ".flv"];
+        const audioExts = [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg", ".opus", ".aiff", ".aif", ".wma"];
         const all = [...imageExts, ...videoExts, ...audioExts];
         return all.some((ext) => name.endsWith(ext));
       };
@@ -357,7 +285,7 @@ export default function MediaBin() {
         }
       }
     },
-    [onAddMedia]
+    [onAddMedia],
   );
 
   const getMediaIcon = (mediaType: string) => {
@@ -385,9 +313,7 @@ export default function MediaBin() {
   const counts = useMemo(() => {
     const videos = mediaBinItems.filter((i) => i.mediaType === "video").length;
     const gifs = mediaBinItems.filter(isGif).length;
-    const images = mediaBinItems.filter(
-      (i) => i.mediaType === "image" && !isGif(i)
-    ).length;
+    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i)).length;
     const audio = mediaBinItems.filter((i) => i.mediaType === "audio").length;
     const text = mediaBinItems.filter((i) => i.mediaType === "text").length;
     const all = mediaBinItems.length;
@@ -395,27 +321,21 @@ export default function MediaBin() {
   }, [mediaBinItems]);
 
   const defaultArrangedItems = useMemo(() => {
-    if (sortBy === "name_asc")
-      return [...mediaBinItems].sort((a, b) => a.name.localeCompare(b.name));
-    if (sortBy === "name_desc")
-      return [...mediaBinItems].sort((a, b) => b.name.localeCompare(a.name));
+    if (sortBy === "name_asc") return [...mediaBinItems].sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === "name_desc") return [...mediaBinItems].sort((a, b) => b.name.localeCompare(a.name));
     return mediaBinItems;
   }, [mediaBinItems, sortBy]);
 
   const groupedItems = useMemo(() => {
     const videos = mediaBinItems.filter((i) => i.mediaType === "video");
     const gifs = mediaBinItems.filter(isGif);
-    const images = mediaBinItems.filter(
-      (i) => i.mediaType === "image" && !isGif(i)
-    );
+    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i));
     const audio = mediaBinItems.filter((i) => i.mediaType === "audio");
     const text = mediaBinItems.filter((i) => i.mediaType === "text");
 
     const maybeSort = (arr: MediaBinItem[]) => {
-      if (sortBy === "name_asc")
-        return [...arr].sort((a, b) => a.name.localeCompare(b.name));
-      if (sortBy === "name_desc")
-        return [...arr].sort((a, b) => b.name.localeCompare(a.name));
+      if (sortBy === "name_asc") return [...arr].sort((a, b) => a.name.localeCompare(b.name));
+      if (sortBy === "name_desc") return [...arr].sort((a, b) => b.name.localeCompare(a.name));
       return arr;
     };
 
@@ -440,11 +360,7 @@ export default function MediaBin() {
       case "video":
         if (mediaUrl) {
           return (
-            <VideoThumbnail
-              mediaUrl={mediaUrl}
-              width={item.media_width || 1920}
-              height={item.media_height || 1080}
-            />
+            <VideoThumbnail mediaUrl={mediaUrl} width={item.media_width || 1920} height={item.media_height || 1080} />
           );
         }
         return <FileVideo className="h-8 w-8 text-muted-foreground" />;
@@ -459,9 +375,7 @@ export default function MediaBin() {
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling?.classList.remove(
-                    "hidden"
-                  );
+                  e.currentTarget.nextElementSibling?.classList.remove("hidden");
                 }}
               />
               <FileImage className="h-8 w-8 text-muted-foreground hidden" />
@@ -525,15 +439,12 @@ export default function MediaBin() {
       onDragOver={handleDragOverRoot}
       onDragEnter={handleDragOverRoot}
       onDragLeave={handleDragLeaveRoot}
-      onDrop={handleDropRoot}
-    >
+      onDrop={handleDropRoot}>
       {/* Compact Header */}
       <div className="p-2 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <h3 className="text-xs font-medium text-foreground">
-              Media Library
-            </h3>
+            <h3 className="text-xs font-medium text-foreground">Media Library</h3>
             <Badge variant="secondary" className="text-xs h-4 px-1.5 font-mono">
               {mediaBinItems.length}
             </Badge>
@@ -544,27 +455,23 @@ export default function MediaBin() {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${arrangeMode === "default"
-                  ? "text-primary"
-                  : "text-muted-foreground/70 hover:text-foreground"
-                  }`}
+                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
+                  arrangeMode === "default" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
+                }`}
                 onClick={() => setArrangeMode("default")}
                 title="Default order"
-                aria-pressed={arrangeMode === "default"}
-              >
+                aria-pressed={arrangeMode === "default"}>
                 <List className="h-2 w-2" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${arrangeMode === "group"
-                  ? "text-primary"
-                  : "text-muted-foreground/70 hover:text-foreground"
-                  }`}
+                className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
+                  arrangeMode === "group" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
+                }`}
                 onClick={() => setArrangeMode("group")}
                 title="Smart Group"
-                aria-pressed={arrangeMode === "group"}
-              >
+                aria-pressed={arrangeMode === "group"}>
                 <Layers className="h-2 w-2" />
               </Button>
             </div>
@@ -578,51 +485,30 @@ export default function MediaBin() {
                   variant="ghost"
                   size="sm"
                   className="h-5 w-5 p-0 text-muted-foreground/70 hover:text-foreground bg-transparent hover:bg-transparent"
-                  title="Sort"
-                >
+                  title="Sort">
                   <ArrowUpDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[12rem]">
-                <DropdownMenuLabel className="text-[11px]">
-                  Sort
-                </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-[11px]">Sort</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setSortBy("default")}
-                  className={`text-[12px] gap-2 ${sortBy === "default" ? "text-primary" : ""
-                    }`}
-                  data-variant="ghost"
-                >
-                  <ArrowUpDown
-                    className={`h-3 w-3 ${sortBy === "default" ? "text-primary" : ""
-                      }`}
-                  />{" "}
-                  Original order
+                  className={`text-[12px] gap-2 ${sortBy === "default" ? "text-primary" : ""}`}
+                  data-variant="ghost">
+                  <ArrowUpDown className={`h-3 w-3 ${sortBy === "default" ? "text-primary" : ""}`} /> Original order
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setSortBy("name_asc")}
-                  className={`text-[12px] gap-2 ${sortBy === "name_asc" ? "text-primary" : ""
-                    }`}
-                  data-variant="ghost"
-                >
-                  <ChevronUp
-                    className={`h-3 w-3 ${sortBy === "name_asc" ? "text-primary" : ""
-                      }`}
-                  />{" "}
-                  Name A–Z
+                  className={`text-[12px] gap-2 ${sortBy === "name_asc" ? "text-primary" : ""}`}
+                  data-variant="ghost">
+                  <ChevronUp className={`h-3 w-3 ${sortBy === "name_asc" ? "text-primary" : ""}`} /> Name A–Z
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setSortBy("name_desc")}
-                  className={`text-[12px] gap-2 ${sortBy === "name_desc" ? "text-primary" : ""
-                    }`}
-                  data-variant="ghost"
-                >
-                  <ChevronDown
-                    className={`h-3 w-3 ${sortBy === "name_desc" ? "text-primary" : ""
-                      }`}
-                  />{" "}
-                  Name Z–A
+                  className={`text-[12px] gap-2 ${sortBy === "name_desc" ? "text-primary" : ""}`}
+                  data-variant="ghost">
+                  <ChevronDown className={`h-3 w-3 ${sortBy === "name_desc" ? "text-primary" : ""}`} /> Name Z–A
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -642,68 +528,57 @@ export default function MediaBin() {
             {defaultArrangedItems.map((item) => (
               <div
                 key={item.id}
-                className={`group p-2 border border-border/50 rounded-md transition-colors ${item.isUploading
-                  ? "bg-accent/30 cursor-default"
-                  : "bg-card cursor-grab hover:bg-accent/50"
-                  }`}
+                className={`group p-2 border border-border/50 rounded-md transition-colors ${
+                  item.isUploading ? "bg-accent/30 cursor-default" : "bg-card cursor-grab hover:bg-accent/50"
+                }`}
                 draggable={!item.isUploading}
                 onDragStart={(e) => {
                   if (!item.isUploading) {
-                    e.dataTransfer.setData(
-                      "application/json",
-                      JSON.stringify(item)
-                    );
+                    e.dataTransfer.setData("application/json", JSON.stringify(item));
                     console.log("Dragging item:", item.name);
                   }
                 }}
                 onContextMenu={(e) => handleContextMenu(e, item)}
-                onDoubleClick={() => openPreview(item)}
-              >
+                onDoubleClick={() => openPreview(item)}>
                 <div className="flex items-start gap-2">
                   <div className="flex-shrink-0">{renderThumbnail(item)}</div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p
-                        className={`text-xs font-medium truncate transition-colors ${item.isUploading
-                          ? "text-muted-foreground"
-                          : "text-foreground group-hover:text-accent-foreground"
-                          }`}
-                      >
+                        className={`text-xs font-medium truncate transition-colors ${
+                          item.isUploading
+                            ? "text-muted-foreground"
+                            : "text-foreground group-hover:text-accent-foreground"
+                        }`}>
                         {item.name}
                       </p>
 
-                      {item.isUploading &&
-                        typeof item.uploadProgress === "number" && (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {item.uploadProgress}%
-                          </span>
-                        )}
+                      {item.isUploading && typeof item.uploadProgress === "number" && (
+                        <span className="text-xs text-muted-foreground font-mono">{item.uploadProgress}%</span>
+                      )}
                     </div>
 
-                    {item.isUploading &&
-                      typeof item.uploadProgress === "number" && (
-                        <div className="mt-1 mb-1">
-                          <Progress
-                            value={item.uploadProgress}
-                            className="h-1"
-                          />
-                        </div>
-                      )}
+                    {item.isUploading && typeof item.uploadProgress === "number" && (
+                      <div className="mt-1 mb-1">
+                        <Progress value={item.uploadProgress} className="h-1" />
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-1 py-0 h-auto"
-                      >
+                      <Badge variant="secondary" className="text-xs px-1 py-0 h-auto">
                         {item.isUploading ? "uploading" : item.mediaType}
                       </Badge>
-                      {(item.mediaType === "video" || item.mediaType === "audio" || item.mediaType === "groupped_scrubber") && item.durationInSeconds > 0 && !item.isUploading && (
-                        <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                          <Clock className="h-2.5 w-2.5" />
-                          {item.durationInSeconds.toFixed(1)}s
-                        </div>
-                      )}
+                      {(item.mediaType === "video" ||
+                        item.mediaType === "audio" ||
+                        item.mediaType === "groupped_scrubber") &&
+                        item.durationInSeconds > 0 &&
+                        !item.isUploading && (
+                          <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                            <Clock className="h-2.5 w-2.5" />
+                            {item.durationInSeconds.toFixed(1)}s
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -758,10 +633,7 @@ export default function MediaBin() {
             ]
               .filter((section) => section.count > 0)
               .map((section) => (
-                <div
-                  key={section.key}
-                  className="rounded-lg border border-border/40 bg-card/40 overflow-hidden"
-                >
+                <div key={section.key} className="rounded-lg border border-border/40 bg-card/40 overflow-hidden">
                   <button
                     className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs hover:bg-accent/40 transition-colors"
                     onClick={() =>
@@ -769,36 +641,20 @@ export default function MediaBin() {
                         ...prev,
                         [section.key]: !prev[section.key],
                       }))
-                    }
-                  >
+                    }>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
-                      {section.key === "videos" && (
-                        <FileVideo className="h-3 w-3" />
-                      )}
-                      {section.key === "gifs" && (
-                        <FileImage className="h-3 w-3" />
-                      )}
-                      {section.key === "images" && (
-                        <FileImage className="h-3 w-3" />
-                      )}
+                      {section.key === "videos" && <FileVideo className="h-3 w-3" />}
+                      {section.key === "gifs" && <FileImage className="h-3 w-3" />}
+                      {section.key === "images" && <FileImage className="h-3 w-3" />}
                       {section.key === "audio" && <Music className="h-3 w-3" />}
                       {section.key === "text" && <Type className="h-3 w-3" />}
-                      <span className="font-medium text-foreground/90">
-                        {section.title}
-                      </span>
+                      <span className="font-medium text-foreground/90">{section.title}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] h-4 px-1.5 font-mono"
-                      >
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">
                         {section.count}
                       </Badge>
-                      {collapsed[section.key] ? (
-                        <ChevronDown className="h-3 w-3" />
-                      ) : (
-                        <ChevronUp className="h-3 w-3" />
-                      )}
+                      {collapsed[section.key] ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
                     </div>
                   </button>
                   {!collapsed[section.key] && (
@@ -806,66 +662,46 @@ export default function MediaBin() {
                       {section.items.map((item) => (
                         <div
                           key={item.id}
-                          className={`group p-2 rounded-md border border-border/40 transition-colors ${item.isUploading
-                            ? "bg-accent/30 cursor-default"
-                            : "bg-card hover:bg-accent/30"
-                            }`}
+                          className={`group p-2 rounded-md border border-border/40 transition-colors ${
+                            item.isUploading ? "bg-accent/30 cursor-default" : "bg-card hover:bg-accent/30"
+                          }`}
                           draggable={!item.isUploading}
                           onDragStart={(e) => {
                             if (!item.isUploading) {
-                              e.dataTransfer.setData(
-                                "application/json",
-                                JSON.stringify(item)
-                              );
+                              e.dataTransfer.setData("application/json", JSON.stringify(item));
                             }
                           }}
                           onContextMenu={(e) => handleContextMenu(e, item)}
-                          onDoubleClick={() => openPreview(item)}
-                        >
+                          onDoubleClick={() => openPreview(item)}>
                           <div className="flex items-start gap-2">
-                            <div className="flex-shrink-0">
-                              {renderThumbnail(item)}
-                            </div>
+                            <div className="flex-shrink-0">{renderThumbnail(item)}</div>
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p
-                                  className={`text-xs font-medium truncate ${item.isUploading
-                                    ? "text-muted-foreground"
-                                    : "text-foreground"
-                                    }`}
-                                >
+                                  className={`text-xs font-medium truncate ${
+                                    item.isUploading ? "text-muted-foreground" : "text-foreground"
+                                  }`}>
                                   {item.name}
                                 </p>
-                                {item.isUploading &&
-                                  typeof item.uploadProgress === "number" && (
-                                    <span className="text-xs text-muted-foreground font-mono">
-                                      {item.uploadProgress}%
-                                    </span>
-                                  )}
+                                {item.isUploading && typeof item.uploadProgress === "number" && (
+                                  <span className="text-xs text-muted-foreground font-mono">
+                                    {item.uploadProgress}%
+                                  </span>
+                                )}
                               </div>
 
-                              {item.isUploading &&
-                                typeof item.uploadProgress === "number" && (
-                                  <div className="mt-1 mb-1">
-                                    <Progress
-                                      value={item.uploadProgress}
-                                      className="h-1"
-                                    />
-                                  </div>
-                                )}
+                              {item.isUploading && typeof item.uploadProgress === "number" && (
+                                <div className="mt-1 mb-1">
+                                  <Progress value={item.uploadProgress} className="h-1" />
+                                </div>
+                              )}
 
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[10px] px-1 py-0 h-auto"
-                                >
-                                  {item.isUploading
-                                    ? "uploading"
-                                    : item.mediaType}
+                                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-auto">
+                                  {item.isUploading ? "uploading" : item.mediaType}
                                 </Badge>
-                                {(item.mediaType === "video" ||
-                                  item.mediaType === "audio") &&
+                                {(item.mediaType === "video" || item.mediaType === "audio") &&
                                   item.durationInSeconds > 0 &&
                                   !item.isUploading && (
                                     <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
@@ -902,9 +738,7 @@ export default function MediaBin() {
           <div className="absolute inset-2 border-2 border-dashed border-primary/80 rounded-md flex items-center justify-center">
             <div className="pointer-events-none text-center">
               <Upload className="h-6 w-6 mx-auto mb-2 text-primary" />
-              <p className="text-sm text-primary font-medium">
-                Drop files to import
-              </p>
+              <p className="text-sm text-primary font-medium">Drop files to import</p>
             </div>
           </div>
         </div>
@@ -918,20 +752,17 @@ export default function MediaBin() {
             left: contextMenu.x,
             top: contextMenu.y,
           }}
-          onClick={(e) => e.stopPropagation()}
-        >
+          onClick={(e) => e.stopPropagation()}>
           <button
             className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-            onClick={handleDeleteFromContext}
-          >
+            onClick={handleDeleteFromContext}>
             <Trash2 className="h-3 w-3" />
             Delete Media
           </button>
           {contextMenu.item.mediaType === "video" && (
             <button
               className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
-              onClick={handleSplitAudioFromContext}
-            >
+              onClick={handleSplitAudioFromContext}>
               <SplitSquareHorizontal className="h-3 w-3" />
               Split Audio
             </button>
@@ -950,68 +781,43 @@ export default function MediaBin() {
           }}
           tabIndex={-1}
           role="dialog"
-          aria-modal="true"
-        >
+          aria-modal="true">
           <div className="w-full h-full flex items-center justify-center">
             <div
               className="w-full max-w-[760px] max-h-[80vh] border border-border rounded-md bg-popover shadow-lg flex flex-col overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
+              onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                     {previewItem.mediaType}
                   </Badge>
-                  <p className="text-xs font-medium truncate pr-2">
-                    {previewItem.name}
-                  </p>
+                  <p className="text-xs font-medium truncate pr-2">{previewItem.name}</p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs"
-                  onClick={closePreview}
-                >
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={closePreview}>
                   Close
                 </Button>
               </div>
               <div className="p-3 flex items-center justify-center overflow-auto">
                 {previewItem.mediaType === "video" && (
                   <video
-                    src={
-                      previewItem.mediaUrlLocal ||
-                      previewItem.mediaUrlRemote ||
-                      undefined
-                    }
+                    src={previewItem.mediaUrlLocal || previewItem.mediaUrlRemote || undefined}
                     controls
                     className="max-w-full max-h-[60vh] rounded"
                   />
                 )}
                 {previewItem.mediaType === "image" && (
                   <img
-                    src={
-                      previewItem.mediaUrlLocal ||
-                      previewItem.mediaUrlRemote ||
-                      undefined
-                    }
+                    src={previewItem.mediaUrlLocal || previewItem.mediaUrlRemote || undefined}
                     alt={previewItem.name}
                     className="max-w-full max-h-[60vh] rounded object-contain border border-border/50"
                   />
                 )}
                 {previewItem.mediaType === "audio" && (
-                  <AudioPreview
-                    src={
-                      previewItem.mediaUrlLocal ||
-                      previewItem.mediaUrlRemote ||
-                      ""
-                    }
-                  />
+                  <AudioPreview src={previewItem.mediaUrlLocal || previewItem.mediaUrlRemote || ""} />
                 )}
                 {previewItem.mediaType === "text" && (
                   <div className="max-w-full max-h-[60vh] overflow-auto p-4 bg-card rounded border border-border/50">
-                    <p className="text-sm whitespace-pre-wrap">
-                      {previewItem.text?.textContent || previewItem.name}
-                    </p>
+                    <p className="text-sm whitespace-pre-wrap">{previewItem.text?.textContent || previewItem.name}</p>
                   </div>
                 )}
               </div>

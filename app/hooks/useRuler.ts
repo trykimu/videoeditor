@@ -5,7 +5,7 @@ import { PIXELS_PER_SECOND, FPS } from "~/components/timeline/types";
 export const useRuler = (
   playerRef: React.RefObject<PlayerRef | null>,
   timelineWidth: number,
-  pixelsPerSecond: number
+  pixelsPerSecond: number,
 ) => {
   const [rulerPositionPx, setRulerPositionPx] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -16,10 +16,7 @@ export const useRuler = (
 
   const handleRulerDrag = useCallback(
     (newPositionPx: number) => {
-      const clampedPositionPx = Math.max(
-        0,
-        Math.min(newPositionPx, timelineWidth)
-      );
+      const clampedPositionPx = Math.max(0, Math.min(newPositionPx, timelineWidth));
       setRulerPositionPx(clampedPositionPx);
 
       // Sync with player when not already updating from player
@@ -34,7 +31,7 @@ export const useRuler = (
         });
       }
     },
-    [timelineWidth, playerRef, pixelsPerSecond]
+    [timelineWidth, playerRef, pixelsPerSecond],
   );
 
   const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -58,7 +55,7 @@ export const useRuler = (
 
       handleRulerDrag(mouseX);
     },
-    [isDraggingRuler, handleRulerDrag]
+    [isDraggingRuler, handleRulerDrag],
   );
 
   const handleRulerMouseUp = useCallback(() => {
@@ -78,20 +75,17 @@ export const useRuler = (
         });
       }
     },
-    [pixelsPerSecond, timelineWidth]
+    [pixelsPerSecond, timelineWidth],
   );
 
   const handleScroll = useCallback(
-    (
-      containerRef: React.RefObject<HTMLDivElement | null>,
-      expandTimeline: () => boolean
-    ) => {
+    (containerRef: React.RefObject<HTMLDivElement | null>, expandTimeline: () => boolean) => {
       if (containerRef.current) {
         setScrollLeft(containerRef.current.scrollLeft);
       }
       expandTimeline();
     },
-    []
+    [],
   );
 
   // No smoothing: frame updates drive the ruler; explicit seeks happen on drag or click

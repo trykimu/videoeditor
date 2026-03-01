@@ -9,22 +9,40 @@ export function Footer() {
           <span>© {new Date().getFullYear()} Kimu Studio</span>
         </div>
         <nav className="flex flex-wrap items-center gap-4">
-          <a href="http://deepwiki.com/trykimu/videoeditor/" target="_blank" rel="noreferrer" className="hover:text-foreground">Docs</a>
-          <a href="/privacy" className="hover:text-foreground">Privacy</a>
-          <a href="/terms" className="hover:text-foreground">Terms</a>
-          <a href="/marketplace" className="hover:text-foreground">Marketplace</a>
-          <a href="/roadmap" className="hover:text-foreground">Roadmap</a>
-          <a href="https://github.com/trykimu/videoeditor" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
-          <a href="https://discord.gg/24Mt5DGcbx" target="_blank" rel="noreferrer" className="hover:text-foreground">Discord</a>
-          <a href="https://twitter.com/trykimu" target="_blank" rel="noreferrer" className="hover:text-foreground">Twitter</a>
+          <a
+            href="http://deepwiki.com/trykimu/videoeditor/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-foreground">
+            Docs
+          </a>
+          <a href="/privacy" className="hover:text-foreground">
+            Privacy
+          </a>
+          <a href="/terms" className="hover:text-foreground">
+            Terms
+          </a>
+          <a href="/marketplace" className="hover:text-foreground">
+            Marketplace
+          </a>
+          <a href="/roadmap" className="hover:text-foreground">
+            Roadmap
+          </a>
+          <a
+            href="https://github.com/trykimu/videoeditor"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-foreground">
+            GitHub
+          </a>
+          <a href="https://discord.gg/24Mt5DGcbx" target="_blank" rel="noreferrer" className="hover:text-foreground">
+            Discord
+          </a>
+          <a href="https://twitter.com/trykimu" target="_blank" rel="noreferrer" className="hover:text-foreground">
+            Twitter
+          </a>
         </nav>
       </div>
     </footer>
   );
 }
-
-
-
-
-
-

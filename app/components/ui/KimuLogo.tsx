@@ -21,16 +21,10 @@ export const KimuLogo: React.FC<KimuLogoProps> = ({
       viewBox="0 0 630 625"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={
-        className +
-        (animated
-          ? " animate-float-icon transition-all duration-700"
-          : "")
-      }
+      className={className + (animated ? " animate-float-icon transition-all duration-700" : "")}
       style={{ color, opacity, ...(style as React.CSSProperties) }}
       {...rest}
-      aria-label="Kimu Logo"
-    >
+      aria-label="Kimu Logo">
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -41,4 +35,4 @@ export const KimuLogo: React.FC<KimuLogoProps> = ({
   );
 };
 
-export default KimuLogo; 
+export default KimuLogo;

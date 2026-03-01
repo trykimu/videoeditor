@@ -17,9 +17,7 @@ export function Navbar({ showBrand = true }: NavbarProps) {
   useEffect(() => {
     const fetchGitHubStars = async () => {
       try {
-        const res = await fetch(
-          "https://api.github.com/repos/trykimu/videoeditor"
-        );
+        const res = await fetch("https://api.github.com/repos/trykimu/videoeditor");
         const data = await res.json();
         setGitHubStars(data.stargazers_count || 0);
       } catch (error) {
@@ -51,13 +49,8 @@ export function Navbar({ showBrand = true }: NavbarProps) {
                       duration: 0.4,
                       ease: [0.4, 0.0, 0.2, 1],
                       delay: 0.1,
-                    }}
-                  >
-                    <KimuLogo
-                      className={`w-6 h-6 text-foreground ${
-                        spin ? "animate-spin" : ""
-                      }`}
-                    />
+                    }}>
+                    <KimuLogo className={`w-6 h-6 text-foreground ${spin ? "animate-spin" : ""}`} />
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -73,8 +66,7 @@ export function Navbar({ showBrand = true }: NavbarProps) {
                       duration: 0.4,
                       ease: [0.4, 0.0, 0.2, 1],
                       delay: 0.2,
-                    }}
-                  >
+                    }}>
                     Kimu
                   </motion.span>
                 )}
@@ -88,20 +80,13 @@ export function Navbar({ showBrand = true }: NavbarProps) {
               href="http://deepwiki.com/trykimu/videoeditor/"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-foreground transition-colors"
-            >
+              className="hover:text-foreground transition-colors">
               Docs
             </a>
-            <Link
-              to="/privacy"
-              className="hover:text-foreground transition-colors"
-            >
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
               Privacy
             </Link>
-            <Link
-              to="/marketplace"
-              className="hover:text-foreground transition-colors"
-            >
+            <Link to="/marketplace" className="hover:text-foreground transition-colors">
               Marketplace
             </Link>
           </nav>
@@ -112,8 +97,7 @@ export function Navbar({ showBrand = true }: NavbarProps) {
               href="https://github.com/trykimu/videoeditor"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/30 bg-muted/20 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-            >
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/30 bg-muted/20 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors">
               <Github className="w-4 h-4" />
               <span>{gitHubStars}</span>
             </a>
@@ -121,8 +105,7 @@ export function Navbar({ showBrand = true }: NavbarProps) {
               href="https://twitter.com/trykimu"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
+              className="text-muted-foreground hover:text-foreground transition-colors">
               <Twitter className="w-4 h-4" />
             </a>
             <a
@@ -130,15 +113,11 @@ export function Navbar({ showBrand = true }: NavbarProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
-              title="Join our Discord"
-            >
+              title="Join our Discord">
               <TbBrandDiscord className="w-4 h-4" />
             </a>
             <Link to="/login">
-              <Button
-                size="sm"
-                className="h-8 px-3 bg-foreground text-background hover:bg-foreground/90"
-              >
+              <Button size="sm" className="h-8 px-3 bg-foreground text-background hover:bg-foreground/90">
                 Get Started
               </Button>
             </Link>

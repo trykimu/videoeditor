@@ -29,7 +29,7 @@ export default function Profile() {
           setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
         }
       } catch (error) {
-        console.error('Failed to fetch storage info:', error);
+        console.error("Failed to fetch storage info:", error);
       }
     })();
     (async () => {
@@ -40,7 +40,7 @@ export default function Profile() {
         const created = j?.user?.createdAt || j?.user?.created_at || j?.user?.created_at_ms || null;
         if (!cancelled && created) setMemberSince(String(created));
       } catch (error) {
-        console.error('Failed to fetch user session:', error);
+        console.error("Failed to fetch user session:", error);
       }
     })();
     (async () => {
@@ -50,7 +50,7 @@ export default function Profile() {
         const j = await res.json();
         if (!cancelled) setProjectCount(Array.isArray(j?.projects) ? j.projects.length : 0);
       } catch (error) {
-        console.error('Failed to fetch projects:', error);
+        console.error("Failed to fetch projects:", error);
       }
     })();
     return () => {
@@ -95,7 +95,7 @@ export default function Profile() {
             <div className="text-sm text-muted-foreground">Theme</div>
             <Select
               value={theme === "light" || theme === "dark" ? theme : "system"}
-              onValueChange={(v: 'light' | 'dark' | 'system') => setTheme(v)}>
+              onValueChange={(v: "light" | "dark" | "system") => setTheme(v)}>
               <SelectTrigger size="sm" className="w-40">
                 <SelectValue />
               </SelectTrigger>
