@@ -1,10 +1,5 @@
 import { auth } from "~/lib/auth.server";
-import {
-  insertAsset,
-  listAssetsByUser,
-  getAssetById,
-  softDeleteAsset,
-} from "~/lib/assets.repo";
+import { insertAsset, listAssetsByUser, getAssetById, softDeleteAsset } from "~/lib/assets.repo";
 import fs from "fs";
 import path from "path";
 
@@ -15,21 +10,15 @@ async function requireUserId(request: Request): Promise<string> {
   try {
     // @ts-ignore - runtime API may not be typed
     const session = await auth.api?.getSession?.({ headers: request.headers });
-    const userId: string | undefined =
-      session?.user?.id ?? session?.session?.userId;
+    const userId: string | undefined = session?.user?.id ?? session?.session?.userId;
     if (userId) return String(userId);
   } catch {
     console.error("Failed to get session");
   }
 
   // Fallback: call /api/auth/session with forwarded cookies
-  const host =
-    request.headers.get("x-forwarded-host") ||
-    request.headers.get("host") ||
-    "localhost:5173";
-  const proto =
-    request.headers.get("x-forwarded-proto") ||
-    (host.includes("localhost") ? "http" : "https");
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:5173";
+  const proto = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
   const base = `${proto}://${host}`;
   const cookie = request.headers.get("cookie") || "";
   const res = await fetch(`${base}/api/auth/session`, {
@@ -62,15 +51,11 @@ async function requireUserId(request: Request): Promise<string> {
   return String(uid);
 }
 
-function inferMediaTypeFromName(
-  name: string,
-  fallback: string = "application/octet-stream"
-): string {
+function inferMediaTypeFromName(name: string, fallback: string = "application/octet-stream"): string {
   const ext = path.extname(name).toLowerCase();
   if ([".mp4", ".mov", ".webm", ".mkv", ".avi"].includes(ext)) return "video/*";
   if ([".mp3", ".wav", ".aac", ".ogg", ".flac"].includes(ext)) return "audio/*";
-  if ([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"].includes(ext))
-    return "image/*";
+  if ([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"].includes(ext)) return "image/*";
   return fallback;
 }
 
@@ -96,9 +81,7 @@ export async function loader({ request }: { request: Request }) {
       durationInSeconds: r.duration_seconds, // camelCase for frontend
       created_at: r.created_at,
       mediaUrlRemote: `/api/assets/${r.id}/raw`,
-      fullUrl: `http://localhost:8000/media/${encodeURIComponent(
-        r.storage_key
-      )}`,
+      // Remove public fullUrl - all access must go through authenticated API
     }));
     return new Response(JSON.stringify({ assets: items }), {
       status: 200,
@@ -130,19 +113,12 @@ export async function loader({ request }: { request: Request }) {
     // Support range requests for video/audio
     const stat = fs.statSync(filePath);
     const range = request.headers.get("range");
-    const contentType =
-      asset.mime_type || inferMediaTypeFromName(asset.original_name);
+    const contentType = asset.mime_type || inferMediaTypeFromName(asset.original_name);
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
-      if (
-        isNaN(start) ||
-        isNaN(end) ||
-        start > end ||
-        start < 0 ||
-        end >= stat.size
-      ) {
+      if (isNaN(start) || isNaN(end) || start > end || start < 0 || end >= stat.size) {
         return new Response(undefined, { status: 416 });
       }
       const chunkSize = end - start + 1;
@@ -182,8 +158,7 @@ export async function action({ request }: { request: Request }) {
   if (pathname.endsWith("/api/assets/upload") && method === "POST") {
     const width = Number(request.headers.get("x-media-width") || "") || null;
     const height = Number(request.headers.get("x-media-height") || "") || null;
-    const duration =
-      Number(request.headers.get("x-media-duration") || "") || null;
+    const duration = Number(request.headers.get("x-media-duration") || "") || null;
     const originalNameHeader = request.headers.get("x-original-name") || "file";
     const projectIdHeader = request.headers.get("x-project-id");
 
@@ -199,14 +174,13 @@ export async function action({ request }: { request: Request }) {
 
     // Reconstruct a new FormData and forward to 8000 so boundary is correct; faster and streams
     const form = new FormData();
-    const filenameFor8000 = (media as {name?: string})?.name || originalNameHeader || "upload.bin";
+    const filenameFor8000 = (media as { name?: string })?.name || originalNameHeader || "upload.bin";
     form.append("media", media, filenameFor8000);
 
-    // Use HTTPS in production, HTTP only for local development
-    const uploadUrl = process.env.NODE_ENV === "production" 
-      ? process.env.UPLOAD_SERVICE_URL || "https://localhost:8000/upload"
-      : "http://localhost:8000/upload";
-    
+    // Use internal Docker network URL for backend communication
+    const uploadUrl =
+      process.env.NODE_ENV === "production" ? "http://backend:8000/upload" : "http://localhost:8000/upload";
+
     const forwardRes = await fetch(uploadUrl, {
       method: "POST",
       body: form,
@@ -214,22 +188,16 @@ export async function action({ request }: { request: Request }) {
 
     if (!forwardRes.ok) {
       const errText = await forwardRes.text().catch(() => "");
-      return new Response(
-        JSON.stringify({ error: "Upload failed", detail: errText }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Upload failed", detail: errText }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-  
+
     const json = await forwardRes.json();
     const filename: string = json.filename;
     const size: number = json.size;
-    const mime = inferMediaTypeFromName(
-      filenameFor8000,
-      "application/octet-stream"
-    );
+    const mime = inferMediaTypeFromName(filenameFor8000, "application/octet-stream");
 
     const record = await insertAsset({
       userId,
@@ -250,16 +218,13 @@ export async function action({ request }: { request: Request }) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
-            filename
-          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
           size: record.size_bytes,
         },
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -269,21 +234,15 @@ export async function action({ request }: { request: Request }) {
     const filename: string | undefined = body.filename;
     const originalName: string | undefined = body.originalName;
     const size: number | undefined = body.size;
-    const width: number | null =
-      typeof body.width === "number" ? body.width : null;
-    const height: number | null =
-      typeof body.height === "number" ? body.height : null;
-    const duration: number | null =
-      typeof body.duration === "number" ? body.duration : null;
+    const width: number | null = typeof body.width === "number" ? body.width : null;
+    const height: number | null = typeof body.height === "number" ? body.height : null;
+    const duration: number | null = typeof body.duration === "number" ? body.duration : null;
 
     if (!filename || !originalName) {
-      return new Response(
-        JSON.stringify({ error: "filename and originalName are required" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "filename and originalName are required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const filePath = path.resolve(OUT_DIR, decodeURIComponent(filename));
     if (!filePath.startsWith(OUT_DIR) || !fs.existsSync(filePath)) {
@@ -293,10 +252,7 @@ export async function action({ request }: { request: Request }) {
       });
     }
     const stat = fs.statSync(filePath);
-    const mime = inferMediaTypeFromName(
-      originalName,
-      "application/octet-stream"
-    );
+    const mime = inferMediaTypeFromName(originalName, "application/octet-stream");
 
     const record = await insertAsset({
       userId,
@@ -316,16 +272,13 @@ export async function action({ request }: { request: Request }) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
-            record.storage_key
-          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
           size: record.size_bytes,
         },
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -382,7 +335,7 @@ export async function action({ request }: { request: Request }) {
     const ext = path.extname(sanitizedKey);
     const base = path.basename(sanitizedKey, ext);
     // Sanitize suffix to prevent path traversal in filename
-    const sanitizedSuffix = suffix.replace(/[^a-zA-Z0-9_-]/g, '');
+    const sanitizedSuffix = suffix.replace(/[^a-zA-Z0-9_-]/g, "");
     const newFilename = `${base}_${sanitizedSuffix}_${timestamp}${ext}`;
     const destPath = path.resolve(OUT_DIR, newFilename);
     fs.copyFileSync(srcPath, destPath);
@@ -407,16 +360,13 @@ export async function action({ request }: { request: Request }) {
           id: record.id,
           name: record.original_name,
           mediaUrlRemote: `/api/assets/${record.id}/raw`,
-          fullUrl: `http://localhost:8000/media/${encodeURIComponent(
-            newFilename
-          )}`,
           width: record.width,
           height: record.height,
           durationInSeconds: record.duration_seconds,
           size: record.size_bytes,
         },
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }
 
