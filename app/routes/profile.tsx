@@ -1,5 +1,4 @@
 import React from "react";
-import { useAuth } from "~/hooks/useAuth";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { useTheme } from "next-themes";
@@ -8,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Progress } from "~/components/ui/progress";
 
 export default function Profile() {
-  const { user } = useAuth();
   const { theme, setTheme, systemTheme } = useTheme();
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
   const [limitBytes, setLimitBytes] = React.useState<number>(2 * 1024 * 1024 * 1024);
@@ -81,14 +79,10 @@ export default function Profile() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <img
-              src={user?.image || "/kimu.svg"}
-              alt="avatar"
-              className="h-16 w-16 rounded-full border border-border object-cover"
-            />
+            <img src={"/kimu.svg"} alt="avatar" className="h-16 w-16 rounded-full border border-border object-cover" />
             <div>
-              <h1 className="text-xl font-semibold">{user?.name || "User"}</h1>
-              <div className="text-sm text-muted-foreground">{user?.email}</div>
+              <h1 className="text-xl font-semibold">John Doe</h1>
+              <div className="text-sm text-muted-foreground">john.doe@example.com</div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:justify-end">

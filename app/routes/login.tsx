@@ -1,29 +1,9 @@
 import React from "react";
-import { auth } from "~/lib/auth.server";
-import { useAuth } from "~/hooks/useAuth";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { Clapperboard, Wand2, Scissors } from "lucide-react";
 import { FaGoogle } from "react-icons/fa";
 
-export async function loader({ request }: { request: Request }) {
-  // If already authenticated, redirect to projects
-  try {
-    const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.session?.userId;
-    if (uid)
-      return new Response(null, {
-        status: 302,
-        headers: { Location: "/projects" },
-      });
-  } catch {
-    console.error("Login failed");
-  }
-  return null;
-}
-
 export default function LoginPage() {
-  const { isSigningIn, signInWithGoogle } = useAuth();
-
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       {/* Animated timeline grid background */}
@@ -99,24 +79,9 @@ export default function LoginPage() {
           <h1 className="mt-6 text-lg font-semibold tracking-tight">Welcome to Kimu</h1>
           <p className="mt-1 text-xs text-muted-foreground">Cinematic editing, reimagined.</p>
           <div className="mt-6 w-full max-w-sm">
-            <button
-              onClick={signInWithGoogle}
-              disabled={!!isSigningIn}
-              className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-foreground text-background text-sm">
-              {isSigningIn ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity=".25" />
-                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <FaGoogle className="h-4 w-4" />
-                  Continue with Google
-                </>
-              )}
+            <button className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-foreground text-background text-sm">
+              <FaGoogle className="h-4 w-4" />
+              Continue with Google
             </button>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">We never post on your behalf.</p>

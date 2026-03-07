@@ -14,10 +14,8 @@ import { useEffect, useState } from "react";
 import "./app.css";
 import { Toaster } from "./components/ui/sonner";
 import { ThemeProvider } from "./components/ui/ThemeProvider";
-import { auth } from "~/lib/auth.server";
 import { Navbar } from "~/components/ui/Navbar";
 import { MarketingFooter } from "~/components/ui/MarketingFooter";
-import type { User } from "better-auth";
 
 export const links = () => [
   { rel: "icon", href: "/favicon.png" },
@@ -32,17 +30,6 @@ export const links = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
-
-export async function loader({ request }: { request: Request }) {
-  try {
-    // @ts-ignore
-    const session = await auth.api?.getSession?.({ headers: request.headers });
-    const user = session?.user || null;
-    return { user };
-  } catch {
-    return { user: null };
-  }
-}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -67,7 +54,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const data = useLoaderData<typeof loader>() as { user: User };
   const location = useLocation();
   const matches = useMatches();
   const [showBrand, setShowBrand] = useState(true);

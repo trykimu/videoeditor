@@ -5,9 +5,8 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "build": "react-router build",
-    "dev": "react-router dev",
+    "dev": "react-router dev --host 0.0.0.0",
     "start": "react-router-serve ./build/server/index.js",
-    "migrate": "tsx app/lib/migrate.ts",
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
