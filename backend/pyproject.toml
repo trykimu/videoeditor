@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Kimu"
 readme = "README.md"
 license = { file = "../LICENSE.md" }
 classifiers = [
@@ -9,17 +9,18 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.31.0",
     "fastapi[standard]>=0.115.13",
     "google-genai>=1.22.0",
-    "mypy>=1.16.1",
+    "pyjwt>=2.11.0",
     "python-multipart>=0.0.22",
-    "ruff>=0.12.1",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "ruff>=0.3.0",
-    "mypy>=1.8.0",
+    "mypy>=1.16.1",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.4",
 ]
 
 [tool.ruff]

@@ -74,8 +74,7 @@ export default function NotFound(): React.ReactElement {
             duration: 8,
             repeat: Infinity,
             ease: "easeInOut",
-          }}
-        >
+          }}>
           <div className="flex items-center h-full px-4 gap-6">
             <div className="w-20 h-7 bg-muted-foreground/40 rounded" />
             <div className="w-16 h-7 bg-muted-foreground/40 rounded" />
@@ -95,8 +94,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 2,
-          }}
-        >
+          }}>
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
@@ -128,8 +126,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 4,
-          }}
-        >
+          }}>
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-16 h-5 bg-muted-foreground/40 rounded" />
           </div>
@@ -144,8 +141,7 @@ export default function NotFound(): React.ReactElement {
                   duration: 6,
                   repeat: Infinity,
                   ease: "easeInOut",
-                }}
-              >
+                }}>
                 <Play className="w-12 h-12 text-muted-foreground/60" />
               </motion.div>
             </div>
@@ -169,15 +165,13 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 1,
-          }}
-        >
+          }}>
           {/* Timeline ruler */}
           <div className="h-8 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-6">
             {TIMELINE_KEYS.map((key, i) => (
               <div
                 key={key}
-                className="flex-1 text-sm text-muted-foreground/60 border-l border-muted-foreground/30 pl-2"
-              >
+                className="flex-1 text-sm text-muted-foreground/60 border-l border-muted-foreground/30 pl-2">
                 {i * 10}s
               </div>
             ))}
@@ -196,8 +190,7 @@ export default function NotFound(): React.ReactElement {
                 repeat: Infinity,
                 ease: "easeInOut",
                 delay: 0.5,
-              }}
-            >
+              }}>
               <Video className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-20 h-6 bg-blue-500/50 rounded" />
@@ -218,8 +211,7 @@ export default function NotFound(): React.ReactElement {
                 repeat: Infinity,
                 ease: "easeInOut",
                 delay: 1.5,
-              }}
-            >
+              }}>
               <Music className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-32 h-6 bg-green-500/50 rounded" />
@@ -239,8 +231,7 @@ export default function NotFound(): React.ReactElement {
                 repeat: Infinity,
                 ease: "easeInOut",
                 delay: 2.5,
-              }}
-            >
+              }}>
               <Scissors className="w-5 h-5 mr-3 text-muted-foreground/60" />
               <div className="flex gap-2">
                 <div className="w-12 h-6 bg-purple-500/50 rounded" />
@@ -277,8 +268,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 3,
-          }}
-        >
+          }}>
           <div className="h-10 border-b-2 border-muted-foreground/30 bg-muted/25 flex items-center px-4">
             <div className="w-20 h-5 bg-muted-foreground/40 rounded" />
           </div>
@@ -312,8 +302,7 @@ export default function NotFound(): React.ReactElement {
             rotate: [0, 5, -5, 0],
             opacity: [0.2, 0.4, 0.2],
           }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        >
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
           <Video className="w-6 h-6 text-primary/20" />
         </motion.div>
 
@@ -329,8 +318,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 1.5,
-          }}
-        >
+          }}>
           <Music className="w-5 h-5 text-accent/25" />
         </motion.div>
 
@@ -346,8 +334,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 3,
-          }}
-        >
+          }}>
           <Scissors className="w-4 h-4 text-purple-400/30" />
         </motion.div>
 
@@ -363,8 +350,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 2,
-          }}
-        >
+          }}>
           <Image className="w-5 h-5 text-blue-400/25" />
         </motion.div>
 
@@ -380,8 +366,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 4,
-          }}
-        >
+          }}>
           <Sparkles className="w-4 h-4 text-yellow-400/30" />
         </motion.div>
 
@@ -397,8 +382,7 @@ export default function NotFound(): React.ReactElement {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 1,
-          }}
-        >
+          }}>
           <Stars className="w-3 h-3 text-indigo-400/25" />
         </motion.div>
 
@@ -432,8 +416,7 @@ export default function NotFound(): React.ReactElement {
           className="text-center mb-10"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
+          transition={{ duration: 0.8, ease: "easeOut" }}>
           <div className="relative inline-block">
             <div className="flex items-center justify-center gap-2 sm:gap-4 text-6xl sm:text-7xl md:text-8xl font-bold text-muted/70 mb-3">
               <span className="tracking-tight">4</span>
@@ -446,8 +429,7 @@ export default function NotFound(): React.ReactElement {
                   duration: 4,
                   repeat: Infinity,
                   ease: "easeInOut",
-                }}
-              >
+                }}>
                 <Clapperboard className="w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 text-muted/70 mx-1" />
               </motion.div>
               <span className="tracking-tight">4</span>
@@ -467,8 +449,7 @@ export default function NotFound(): React.ReactElement {
               opacity: currentStep >= 1 ? 1 : 0,
               y: currentStep >= 1 ? 0 : 10,
             }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
+            transition={{ duration: 0.6, ease: "easeOut" }}>
             <motion.div
               className="w-8 h-8 bg-muted/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-border/30 shadow-sm"
               animate={{
@@ -478,15 +459,12 @@ export default function NotFound(): React.ReactElement {
                 duration: 3,
                 repeat: Infinity,
                 ease: "easeInOut",
-              }}
-            >
+              }}>
               <KimuLogo className="w-4 h-4" />
             </motion.div>
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-sm font-semibold text-foreground">
-                  Kimu
-                </span>
+                <span className="text-sm font-semibold text-foreground">Kimu</span>
                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               </div>
               <div className="bg-muted/15 rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[280px] sm:max-w-xs relative">
@@ -502,8 +480,7 @@ export default function NotFound(): React.ReactElement {
                 </div>
                 <p className="text-sm text-foreground">Hey there! 👋</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  I couldn't find that page for you. It seems to have
-                  disappeared into the digital void...
+                  I couldn't find that page for you. It seems to have disappeared into the digital void...
                 </p>
               </div>
             </div>
@@ -518,8 +495,7 @@ export default function NotFound(): React.ReactElement {
                 className="absolute top-0 left-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isTyping ? 1 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
+                transition={{ duration: 0.3 }}>
                 <div className="bg-muted/20 rounded-2xl px-4 py-3 shadow-sm border border-border/30 w-fit">
                   <div className="flex items-center gap-2">
                     <div className="flex space-x-1">
@@ -554,8 +530,7 @@ export default function NotFound(): React.ReactElement {
                   opacity: currentStep >= 2 && !isTyping ? 1 : 0,
                   y: currentStep >= 2 && !isTyping ? 0 : 5,
                 }}
-                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              >
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}>
                 <div className="bg-muted/15 rounded-2xl px-4 py-2.5 shadow-sm border border-border/30 w-fit max-w-[300px] sm:max-w-sm relative">
                   <div className="absolute -inset-1 rounded-2xl pointer-events-none">
                     <GlowingEffect
@@ -568,20 +543,13 @@ export default function NotFound(): React.ReactElement {
                     />
                   </div>
                   <p className="text-sm text-foreground mb-2">
-                    But hey! 🎬 Need some{" "}
-                    <span className="font-bold">video editing magic</span>?
+                    But hey! 🎬 Need some <span className="font-bold">video editing magic</span>?
                   </p>
                   <p className="text-sm text-muted-foreground mb-2">
-                    I'm your AI-powered creative partner, ready to transform
-                    your raw footage into{" "}
-                    <span className="font-semibold text-foreground">
-                      cinematic masterpieces
-                    </span>
-                    ! ✨
+                    I'm your AI-powered creative partner, ready to transform your raw footage into{" "}
+                    <span className="font-semibold text-foreground">cinematic masterpieces</span>! ✨
                   </p>
-                  <p className="text-sm font-bold">
-                    Let's create something amazing together! 🚀
-                  </p>
+                  <p className="text-sm font-bold">Let's create something amazing together! 🚀</p>
                 </div>
               </motion.div>
             </div>
@@ -597,12 +565,10 @@ export default function NotFound(): React.ReactElement {
                   opacity: currentStep >= 3 ? 1 : 0,
                   y: currentStep >= 3 ? 0 : 10,
                 }}
-                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-              >
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}>
                 <Button
                   onClick={handleGoHome}
-                  className="bg-foreground text-background hover:bg-foreground/90 transition-all duration-300 shadow-lg hover:shadow-xl border border-transparent rounded-2xl font-semibold text-sm relative overflow-hidden px-4 py-3 h-auto w-fit max-w-[300px] sm:max-w-sm"
-                >
+                  className="bg-foreground text-background hover:bg-foreground/90 transition-all duration-300 shadow-lg hover:shadow-xl border border-transparent rounded-2xl font-semibold text-sm relative overflow-hidden px-4 py-3 h-auto w-fit max-w-[300px] sm:max-w-sm">
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
                     animate={{ x: ["-100%", "100%"] }}
@@ -628,18 +594,15 @@ export default function NotFound(): React.ReactElement {
           className="mt-8 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.6 }}
-        >
+          transition={{ delay: 1.2, duration: 0.6 }}>
           <div
             className="opacity-0"
             style={{
               opacity: currentStep >= 3 ? 1 : 0,
               transition: "opacity 0.6s ease 1s",
-            }}
-          >
+            }}>
             <p className="text-xs text-muted-foreground/30 font-medium">
-              Ready to bring your vision to life? <br /> Let's dive into the
-              editor!
+              Ready to bring your vision to life? <br /> Let's dive into the editor!
             </p>
           </div>
         </motion.div>

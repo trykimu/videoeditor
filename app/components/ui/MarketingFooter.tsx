@@ -36,9 +36,7 @@ export function MarketingFooter() {
             <KimuLogo className="w-10 h-10 text-black" />
             <div className="mt-10 max-w-md">
               <form onSubmit={handleSubmit} className="w-full">
-                <div className="text-[11px] uppercase tracking-[0.15em] text-black/60 mb-4">
-                  Waitlist & Newsletter
-                </div>
+                <div className="text-[11px] uppercase tracking-[0.15em] text-black/60 mb-4">Waitlist & Newsletter</div>
                 <div className="relative flex items-center">
                   <div className="flex-1 border-b border-black/50">
                     <input
@@ -54,8 +52,7 @@ export function MarketingFooter() {
                     type="submit"
                     disabled={submitting || !email}
                     className="ml-3 h-8 w-8 rounded-full bg-black text-white grid place-items-center disabled:opacity-50 shrink-0"
-                    aria-label="Subscribe"
-                  >
+                    aria-label="Subscribe">
                     <ArrowRight className="w-5 h-5" />
                   </button>
                 </div>
@@ -67,12 +64,26 @@ export function MarketingFooter() {
           <div className="md:col-start-7 md:col-span-2">
             <h3 className="font-semibold mb-3 uppercase">The Good</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/" className="hover:underline">Home</a></li>
-              <li><a href="http://deepwiki.com/trykimu/videoeditor/" target="_blank" rel="noreferrer" className="hover:underline">Docs</a></li>
+              <li>
+                <a href="/" className="hover:underline">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a
+                  href="http://deepwiki.com/trykimu/videoeditor/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:underline">
+                  Docs
+                </a>
+              </li>
               <li>
                 <div className="inline-flex items-center gap-2">
                   <span>Plugins</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full border border-black/40 text-black/70">Coming soon</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full border border-black/40 text-black/70">
+                    Coming soon
+                  </span>
                 </div>
               </li>
             </ul>
@@ -82,8 +93,16 @@ export function MarketingFooter() {
           <div className="md:col-start-9 md:col-span-2">
             <h3 className="font-semibold mb-3 uppercase">The Boring</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/terms" className="hover:underline">Terms of Use</a></li>
-              <li><a href="/privacy" className="hover:underline">Play by the Rules</a></li>
+              <li>
+                <a href="/terms" className="hover:underline">
+                  Terms of Use
+                </a>
+              </li>
+              <li>
+                <a href="/privacy" className="hover:underline">
+                  Play by the Rules
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -91,20 +110,36 @@ export function MarketingFooter() {
           <div className="md:col-start-11 md:col-span-2">
             <h3 className="font-semibold mb-3 uppercase">The Cool</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="https://twitter.com/trykimu" target="_blank" rel="noreferrer" className="hover:underline">X</a></li>
-              <li><a href="https://github.com/trykimu/videoeditor" target="_blank" rel="noreferrer" className="hover:underline">GitHub</a></li>
-              <li><a href="https://discord.gg/24Mt5DGcbx" target="_blank" rel="noreferrer" className="hover:underline">Discord</a></li>
+              <li>
+                <a href="https://twitter.com/trykimu" target="_blank" rel="noreferrer" className="hover:underline">
+                  X
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/trykimu/videoeditor"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:underline">
+                  GitHub
+                </a>
+              </li>
+              <li>
+                <a href="https://discord.gg/24Mt5DGcbx" target="_blank" rel="noreferrer" className="hover:underline">
+                  Discord
+                </a>
+              </li>
             </ul>
           </div>
         </footer>
 
         {/* Big KIMU wordmark pinned to the very bottom */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none z-0">
-          <h1 className="text-[16vw] md:text-[18vw] font-extrabold leading-none text-black/10 select-none tracking-tight">TRYKIMU</h1>
+          <h1 className="text-[16vw] md:text-[18vw] font-extrabold leading-none text-black/10 select-none tracking-tight">
+            TRYKIMU
+          </h1>
         </div>
       </div>
     </div>
   );
 }
-
-

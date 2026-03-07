@@ -84,7 +84,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
       return snapPoints;
     },
-    [otherScrubbers, timelineWidth, pixelsPerSecond]
+    [otherScrubbers, timelineWidth, pixelsPerSecond],
   );
 
   // Find nearest snap point
@@ -102,10 +102,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
       return position;
     },
-    [snapConfig, getSnapPoints]
+    [snapConfig, getSnapPoints],
   );
-
-
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, mode: "drag" | "resize-left" | "resize-right") => {
@@ -118,7 +116,10 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       }
 
       // Prevent resizing for video and audio media
-      if ((mode === "resize-left" || mode === "resize-right") && (scrubber.mediaType === "video" || scrubber.mediaType === "audio")) {
+      if (
+        (mode === "resize-left" || mode === "resize-right") &&
+        (scrubber.mediaType === "video" || scrubber.mediaType === "audio")
+      ) {
         return;
       }
 
@@ -135,7 +136,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         dragStateRef.current.startWidth = scrubber.width;
       }
     },
-    [scrubber, onSelect, onBeginTransform]
+    [scrubber, onSelect, onBeginTransform],
   );
 
   const handleMouseMove = useCallback(
@@ -195,15 +196,10 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
           // Apply snapping to left edge
           newLeft = findSnapPoint(newLeft, scrubber.id);
-          newWidth =
-            dragStateRef.current.startLeft +
-            dragStateRef.current.startWidth -
-            newLeft;
+          newWidth = dragStateRef.current.startLeft + dragStateRef.current.startWidth - newLeft;
 
           if (newLeft === 0) {
-            newWidth =
-              dragStateRef.current.startLeft +
-              dragStateRef.current.startWidth;
+            newWidth = dragStateRef.current.startLeft + dragStateRef.current.startWidth;
           }
 
           if (newLeft + newWidth > timelineWidth) {
@@ -225,10 +221,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
             if (expandTimeline()) {
               // Recalculate after expansion
-              const rightEdge =
-                dragStateRef.current.startLeft +
-                dragStateRef.current.startWidth +
-                deltaX;
+              const rightEdge = dragStateRef.current.startLeft + dragStateRef.current.startWidth + deltaX;
               const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
               newWidth = snappedRightEdge - dragStateRef.current.startLeft;
             } else {
@@ -252,7 +245,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       containerRef,
       findSnapPoint,
       trackCount,
-    ]
+    ],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -308,17 +301,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     };
 
     const selectedColors = {
-      video:
-        "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
-      image:
-        "bg-green-600 border-green-400 text-white ring-2 ring-green-400/50",
+      video: "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
+      image: "bg-green-600 border-green-400 text-white ring-2 ring-green-400/50",
       text: "bg-purple-600 border-purple-400 text-white ring-2 ring-purple-400/50",
-      audio:
-        "bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50",
-      default:
-        "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
-      groupped_scrubber:
-        "bg-gray-600 border-gray-400 text-white ring-2 ring-gray-400/50",
+      audio: "bg-blue-600 border-blue-400 text-white ring-2 ring-blue-400/50",
+      default: "bg-primary border-primary text-primary-foreground ring-2 ring-primary/50",
+      groupped_scrubber: "bg-gray-600 border-gray-400 text-white ring-2 ring-gray-400/50",
     };
 
     const colorSet = isSelected ? selectedColors : baseColors;
@@ -326,81 +314,99 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   };
 
   // Handle right-click context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    // Select the scrubber when right-clicked
-    if (onSelect) {
-      onSelect(scrubber.id, e.ctrlKey);
-    }
+      // Select the scrubber when right-clicked
+      if (onSelect) {
+        onSelect(scrubber.id, e.ctrlKey);
+      }
 
-    // Get the position relative to the viewport
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-    });
-  }, [onSelect, scrubber.id]);
+      // Get the position relative to the viewport
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+      });
+    },
+    [onSelect, scrubber.id],
+  );
 
   // Close context menu when clicking outside
-  const handleClickOutside = useCallback((e: MouseEvent) => {
-    if (contextMenu.visible) {
-      setContextMenu({ visible: false, x: 0, y: 0 });
-    }
-  }, [contextMenu.visible]);
+  const handleClickOutside = useCallback(
+    (e: MouseEvent) => {
+      if (contextMenu.visible) {
+        setContextMenu({ visible: false, x: 0, y: 0 });
+      }
+    },
+    [contextMenu.visible],
+  );
 
   // Handle context menu delete action
-  const handleContextMenuDelete = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenuDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (onDelete) {
-      onDelete(scrubber.id);
-    }
+      if (onDelete) {
+        onDelete(scrubber.id);
+      }
 
-    // Close context menu
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  }, [onDelete, scrubber.id]);
+      // Close context menu
+      setContextMenu({ visible: false, x: 0, y: 0 });
+    },
+    [onDelete, scrubber.id],
+  );
 
   // Handle context menu group action
-  const handleContextMenuGroup = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenuGroup = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (onGroupScrubbers) {
-      onGroupScrubbers();
-    }
+      if (onGroupScrubbers) {
+        onGroupScrubbers();
+      }
 
-    // Close context menu
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  }, [onGroupScrubbers]);
+      // Close context menu
+      setContextMenu({ visible: false, x: 0, y: 0 });
+    },
+    [onGroupScrubbers],
+  );
 
   // Handle context menu ungroup action
-  const handleContextMenuUngroup = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenuUngroup = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (onUngroupScrubber) {
-      onUngroupScrubber(scrubber.id);
-    }
+      if (onUngroupScrubber) {
+        onUngroupScrubber(scrubber.id);
+      }
 
-    // Close context menu
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  }, [onUngroupScrubber, scrubber.id]);
+      // Close context menu
+      setContextMenu({ visible: false, x: 0, y: 0 });
+    },
+    [onUngroupScrubber, scrubber.id],
+  );
 
   // Handle context menu move to media bin action
-  const handleContextMenuMoveToMediaBin = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleContextMenuMoveToMediaBin = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (onMoveToMediaBin) {
-      onMoveToMediaBin(scrubber.id);
-    }
+      if (onMoveToMediaBin) {
+        onMoveToMediaBin(scrubber.id);
+      }
 
-    // Close context menu
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  }, [onMoveToMediaBin, scrubber.id]);
+      // Close context menu
+      setContextMenu({ visible: false, x: 0, y: 0 });
+    },
+    [onMoveToMediaBin, scrubber.id],
+  );
 
   // Add click outside listener for context menu
   useEffect(() => {
@@ -428,8 +434,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
-        onContextMenu={handleContextMenu}
-      >
+        onContextMenu={handleContextMenu}>
         {/* Media type indicator - positioned after left resize handle */}
         <div className="absolute top-0.5 left-3 text-xs font-medium opacity-80 pointer-events-none">
           {scrubber.mediaType === "video" && "V"}
@@ -445,22 +450,26 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         </div>
 
         {/* Left resize handle - more visible */}
-        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && scrubber.mediaType !== "groupped_scrubber" && (
-          <div
-            className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
-            onMouseDown={(e) => handleMouseDown(e, "resize-left")}
-            title="Resize left edge"
-          />
-        )}
+        {scrubber.mediaType !== "video" &&
+          scrubber.mediaType !== "audio" &&
+          scrubber.mediaType !== "groupped_scrubber" && (
+            <div
+              className="absolute top-0 left-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-r border-white/20 group-hover:bg-white/10"
+              onMouseDown={(e) => handleMouseDown(e, "resize-left")}
+              title="Resize left edge"
+            />
+          )}
 
         {/* Right resize handle - more visible */}
-        {scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && scrubber.mediaType !== "groupped_scrubber" && (
-          <div
-            className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
-            onMouseDown={(e) => handleMouseDown(e, "resize-right")}
-            title="Resize right edge"
-          />
-        )}
+        {scrubber.mediaType !== "video" &&
+          scrubber.mediaType !== "audio" &&
+          scrubber.mediaType !== "groupped_scrubber" && (
+            <div
+              className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 hover:bg-white/30 transition-colors border-l border-white/20 group-hover:bg-white/10"
+              onMouseDown={(e) => handleMouseDown(e, "resize-right")}
+              title="Resize right edge"
+            />
+          )}
 
         {/* Selection indicator - theme-appropriate glow effect */}
         {isSelected && (
@@ -470,9 +479,9 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {/* Name and position tooltip when dragging - positioned above or below based on track */}
         {isDragging && (
           <div
-            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${(scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-              }`}
-          >
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+            }`}>
             {scrubber.name} • {(scrubber.left / pixelsPerSecond).toFixed(2)}s -{" "}
             {((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s
           </div>
@@ -481,15 +490,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {/* Resize tooltips when resizing - showing precise timestamps with dynamic positioning */}
         {isResizing && (
           <div
-            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${(scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
-              }`}
-          >
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded-sm pointer-events-none border border-border shadow-md z-50 whitespace-nowrap ${
+              (scrubber.y || 0) === 0 ? "top-full mt-1" : "-top-8"
+            }`}>
             {resizeMode === "left"
               ? `Start: ${(scrubber.left / pixelsPerSecond).toFixed(2)}s`
-              : `End: ${(
-                (scrubber.left + scrubber.width) /
-                pixelsPerSecond
-              ).toFixed(2)}s`}
+              : `End: ${((scrubber.left + scrubber.width) / pixelsPerSecond).toFixed(2)}s`}
           </div>
         )}
       </div>
@@ -501,14 +507,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           style={{
             left: `${contextMenu.x}px`,
             top: `${contextMenu.y}px`,
-          }}
-        >
+          }}>
           {/* Show Group option if multiple scrubbers are selected but this isn't grouped */}
           {selectedScrubberIds.length > 1 && scrubber.mediaType !== "groupped_scrubber" && (
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-              onClick={handleContextMenuGroup}
-            >
+              onClick={handleContextMenuGroup}>
               <Group className="h-3 w-3" />
               Group Selected
             </button>
@@ -518,8 +522,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           {scrubber.mediaType === "groupped_scrubber" && (
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-              onClick={handleContextMenuUngroup}
-            >
+              onClick={handleContextMenuUngroup}>
               <Ungroup className="h-3 w-3" />
               Ungroup
             </button>
@@ -529,8 +532,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           {scrubber.mediaType === "groupped_scrubber" && (
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-              onClick={handleContextMenuMoveToMediaBin}
-            >
+              onClick={handleContextMenuMoveToMediaBin}>
               <Archive className="h-3 w-3" />
               Move to Media Bin
             </button>
@@ -538,8 +540,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
           <button
             className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-            onClick={handleContextMenuDelete}
-          >
+            onClick={handleContextMenuDelete}>
             <Trash2 className="h-3 w-3" />
             Delete
           </button>

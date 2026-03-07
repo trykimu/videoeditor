@@ -38,18 +38,8 @@ export const MuteButton: React.FC<{
   }, [playerRef]);
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      className="h-6 w-6 p-0"
-      title={muted ? "Unmute" : "Mute"}
-    >
-      {muted ? (
-        <VolumeX className="h-3 w-3" />
-      ) : (
-        <Volume2 className="h-3 w-3" />
-      )}
+    <Button variant="ghost" size="sm" onClick={onClick} className="h-6 w-6 p-0" title={muted ? "Unmute" : "Mute"}>
+      {muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
     </Button>
   );
 };
@@ -86,7 +76,7 @@ export const FullscreenButton: React.FC<{
         (document.fullscreenEnabled ||
           // @ts-expect-error Types not defined
           document.webkitFullscreenEnabled)) ??
-        false
+        false,
     );
   }, []);
 
@@ -113,13 +103,8 @@ export const FullscreenButton: React.FC<{
       size="sm"
       onClick={onClick}
       className="h-6 w-6 p-0"
-      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-    >
-      {isFullscreen ? (
-        <Minimize className="h-3 w-3" />
-      ) : (
-        <Maximize className="h-3 w-3" />
-      )}
+      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+      {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
     </Button>
   );
 };

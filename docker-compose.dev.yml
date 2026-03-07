@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: videoeditor-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: videoeditor
+      POSTGRES_USER: videoeditor
+      POSTGRES_PASSWORD: videoeditor
+    ports:
+      - "5432:5432"
+
+  nginx:
+    image: nginx:latest
+    container_name: videoeditor-nginx-dev
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro

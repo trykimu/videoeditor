@@ -17,5 +17,5 @@ coverage
 .DS_Store
 .env*
 **/*.min.*
-
+*md
 

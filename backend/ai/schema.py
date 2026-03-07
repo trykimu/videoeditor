@@ -19,12 +19,20 @@ class TextProperties(BaseSchema):
 
 class BaseScrubber(BaseSchema):
     id: str = Field(description="Unique identifier for the scrubber")
-    mediaType: Literal["video", "image", "audio", "text"] = Field(description="Type of media")
-    mediaUrlLocal: str | None = Field(description="Local URL for the media file", default=None)
-    mediaUrlRemote: str | None = Field(description="Remote URL for the media file", default=None)
+    mediaType: Literal["video", "image", "audio", "text"] = Field(
+        description="Type of media"
+    )
+    mediaUrlLocal: str | None = Field(
+        description="Local URL for the media file", default=None
+    )
+    mediaUrlRemote: str | None = Field(
+        description="Remote URL for the media file", default=None
+    )
     media_width: int = Field(description="Width of the media in pixels")
     media_height: int = Field(description="Height of the media in pixels")
-    text: TextProperties | None = Field(description="Text properties if mediaType is text", default=None)
+    text: TextProperties | None = Field(
+        description="Text properties if mediaType is text", default=None
+    )
 
 
 class MediaBinItem(BaseScrubber):
@@ -36,18 +44,22 @@ class ScrubberState(MediaBinItem):
     left: int = Field(description="Left position in pixels on the timeline")
     y: int = Field(description="Track position (0-based index)")
     width: int = Field(description="Width of the scrubber in pixels")
-    
+
     # Player properties
     left_player: int = Field(description="Left position in the player view")
     top_player: int = Field(description="Top position in the player view")
     width_player: int = Field(description="Width in the player view")
     height_player: int = Field(description="Height in the player view")
-    is_dragging: bool = Field(description="Whether the scrubber is currently being dragged")
+    is_dragging: bool = Field(
+        description="Whether the scrubber is currently being dragged"
+    )
 
 
 class TrackState(BaseSchema):
     id: str = Field(description="Unique identifier for the track")
-    scrubbers: list[ScrubberState] = Field(description="List of scrubbers on this track")
+    scrubbers: list[ScrubberState] = Field(
+        description="List of scrubbers on this track"
+    )
 
 
 class TimelineState(BaseSchema):
@@ -81,19 +93,33 @@ class LLMAddScrubberByNameArgs(BaseSchema):
     function_name: Literal["LLMAddScrubberByName"] = Field(
         description="The name of the function to call"
     )
-    scrubber_name: str = Field(description="The partial or full name of the media to add")
+    scrubber_name: str = Field(
+        description="The partial or full name of the media to add"
+    )
     track_number: int = Field(description="1-based track number to add to")
-    position_seconds: float = Field(description="Timeline time in seconds to place the media at")
-    pixels_per_second: int = Field(description="Pixels per second to convert time to pixels")
+    position_seconds: float = Field(
+        description="Timeline time in seconds to place the media at"
+    )
+    pixels_per_second: int = Field(
+        description="Pixels per second to convert time to pixels"
+    )
 
 
 class LLMDeleteScrubbersInTrackArgs(BaseSchema):
     function_name: Literal["LLMDeleteScrubbersInTrack"] = Field(
         description="The name of the function to call"
     )
-    track_number: int = Field(description="1-based track number whose scrubbers will be removed")
+    track_number: int = Field(
+        description="1-based track number whose scrubbers will be removed"
+    )
 
 
 class FunctionCallResponse(BaseSchema):
-    function_call: LLMAddScrubberToTimelineArgs | LLMMoveScrubberArgs | LLMAddScrubberByNameArgs | LLMDeleteScrubbersInTrackArgs | None = None
+    function_call: (
+        LLMAddScrubberToTimelineArgs
+        | LLMMoveScrubberArgs
+        | LLMAddScrubberByNameArgs
+        | LLMDeleteScrubbersInTrackArgs
+        | None
+    ) = None
     assistant_message: str | None = None

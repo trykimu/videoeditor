@@ -21,13 +21,12 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   // console.log("transition hovered", isHovered);
 
-
   // Calculate position and size for overlap area
   const getTransitionStyle = () => {
     let left = 0;
     const width = (transition.durationInFrames / 30) * pixelsPerSecond; // Convert frames to pixels
     let top = 0;
-    
+
     // Define snap distance threshold (same as in useTimeline.ts)
     const SNAP_DISTANCE = 10;
 
@@ -35,7 +34,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
       // Check if there's an overlap or a gap between scrubbers
       const leftScrubberEnd = leftScrubber.left + leftScrubber.width;
       const gap = rightScrubber.left - leftScrubberEnd;
-      
+
       if (gap <= SNAP_DISTANCE) {
         // Scrubbers are close enough - position transition on the overlap area
         // The overlap starts at the rightScrubber.left and has width equal to transition duration
@@ -58,7 +57,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
     }
 
     return {
-      position: 'absolute' as const,
+      position: "absolute" as const,
       left: `${left}px`,
       top: `${top + 10}px`, // Small offset from top
       width: `${width}px`,
@@ -114,9 +113,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
           </div>
         );
       default:
-        return (
-          <div className="w-full h-full bg-gradient-to-r from-gray-500/50 to-gray-300/50 rounded-sm" />
-        );
+        return <div className="w-full h-full bg-gradient-to-r from-gray-500/50 to-gray-300/50 rounded-sm" />;
     }
   };
 
@@ -125,8 +122,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
       style={getTransitionStyle()}
       className="border border-border/50 rounded-sm cursor-pointer transition-all hover:border-border hover:shadow-md"
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+      onMouseLeave={() => setIsHovered(false)}>
       {/* Transition visual effect */}
       {renderTransitionIcon()}
 
@@ -139,8 +135,7 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             onDelete(transition.id);
-          }}
-        >
+          }}>
           <X className="w-3 h-3" />
         </Button>
       )}
@@ -151,4 +146,4 @@ export const TransitionOverlay: React.FC<TransitionOverlayProps> = ({
       </div>
     </div>
   );
-}; 
+};

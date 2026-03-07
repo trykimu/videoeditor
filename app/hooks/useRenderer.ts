@@ -1,10 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import {
-  type TimelineDataItem,
-  type TimelineState,
-  FPS,
-} from "~/components/timeline/types";
+import { type TimelineDataItem, type TimelineState, FPS } from "~/components/timeline/types";
 import { apiUrl } from "~/utils/api";
 
 export const useRenderer = () => {
@@ -17,7 +13,7 @@ export const useRenderer = () => {
       timeline: TimelineState,
       compositionWidth: number | null,
       compositionHeight: number | null,
-      getPixelsPerSecond: () => number
+      getPixelsPerSecond: () => number,
     ) => {
       setIsRendering(true);
       setRenderStatus("Starting render...");
@@ -29,9 +25,7 @@ export const useRenderer = () => {
         try {
           await axios.get(apiUrl("/health"), { timeout: 5000 });
         } catch (healthError) {
-          throw new Error(
-            "Cannot connect to render server. Make sure the server is running on http://localhost:8000"
-          );
+          throw new Error("Cannot connect to render server. Make sure the server is running on http://localhost:8000");
         }
 
         const timelineData = getTimelineData();
@@ -40,10 +34,7 @@ export const useRenderer = () => {
           let maxWidth = 0;
           for (const item of timelineData) {
             for (const scrubber of item.scrubbers) {
-              if (
-                scrubber.media_width !== null &&
-                scrubber.media_width > maxWidth
-              ) {
+              if (scrubber.media_width !== null && scrubber.media_width > maxWidth) {
                 maxWidth = scrubber.media_width;
               }
             }
@@ -56,10 +47,7 @@ export const useRenderer = () => {
           let maxHeight = 0;
           for (const item of timelineData) {
             for (const scrubber of item.scrubbers) {
-              if (
-                scrubber.media_height !== null &&
-                scrubber.media_height > maxHeight
-              ) {
+              if (scrubber.media_height !== null && scrubber.media_height > maxHeight) {
                 maxHeight = scrubber.media_height;
               }
             }
@@ -70,10 +58,7 @@ export const useRenderer = () => {
         console.log("Composition width:", compositionWidth);
         console.log("Composition height:", compositionHeight);
 
-        if (
-          timeline.tracks.length === 0 ||
-          timeline.tracks.every((t) => t.scrubbers.length === 0)
-        ) {
+        if (timeline.tracks.length === 0 || timeline.tracks.every((t) => t.scrubbers.length === 0)) {
           setRenderStatus("Error: No timeline data to render");
           setIsRendering(false);
           return;
@@ -108,15 +93,11 @@ export const useRenderer = () => {
             timeout: 900000,
             onDownloadProgress: (progressEvent) => {
               if (progressEvent.lengthComputable && progressEvent.total) {
-                const percentCompleted = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
-                setRenderStatus(
-                  `Downloading rendered video: ${percentCompleted}%`
-                );
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setRenderStatus(`Downloading rendered video: ${percentCompleted}%`);
               }
             },
-          }
+          },
         );
 
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -135,14 +116,10 @@ export const useRenderer = () => {
           if (error.code === "ECONNABORTED") {
             setRenderStatus("Error: Render timeout - try a shorter video");
           } else if (error.response?.status === 500) {
-            setRenderStatus(
-              `Error: ${
-                error.response.data?.message || "Server error during rendering"
-              }`
-            );
+            setRenderStatus(`Error: ${error.response.data?.message || "Server error during rendering"}`);
           } else if (error.request) {
             setRenderStatus(
-              "Error: Cannot connect to render server. Make sure the backend is running on localhost:8000. Run: pnpm dlx tsx app/videorender/videorender.ts"
+              "Error: Cannot connect to render server. Make sure the backend is running on localhost:8000. Run: pnpm dlx tsx app/videorender/videorender.ts",
             );
           } else {
             setRenderStatus(`Error: ${error.message}`);
@@ -155,7 +132,7 @@ export const useRenderer = () => {
         setTimeout(() => setRenderStatus(""), 8000); // Show error longer
       }
     },
-    []
+    [],
   );
 
   return {

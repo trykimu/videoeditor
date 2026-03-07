@@ -1,12 +1,12 @@
-import React from "react"
+import React from "react";
 
 interface DimensionControlsProps {
-  width: number
-  height: number
-  onWidthChange: (width: number) => void
-  onHeightChange: (height: number) => void
-  isAutoSize: boolean
-  onAutoSizeChange: (auto: boolean) => void
+  width: number;
+  height: number;
+  onWidthChange: (width: number) => void;
+  onHeightChange: (height: number) => void;
+  isAutoSize: boolean;
+  onAutoSizeChange: (auto: boolean) => void;
 }
 
 export const DimensionControls: React.FC<DimensionControlsProps> = ({
@@ -26,7 +26,7 @@ export const DimensionControls: React.FC<DimensionControlsProps> = ({
         onChange={(e) => onWidthChange(parseInt(e.target.value) || 1920)}
         disabled={isAutoSize}
         className={`w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          isAutoSize ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''
+          isAutoSize ? "bg-gray-200 text-gray-400 cursor-not-allowed" : ""
         }`}
         min="1"
         max="7680"
@@ -38,7 +38,7 @@ export const DimensionControls: React.FC<DimensionControlsProps> = ({
         onChange={(e) => onHeightChange(parseInt(e.target.value) || 1080)}
         disabled={isAutoSize}
         className={`w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-          isAutoSize ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''
+          isAutoSize ? "bg-gray-200 text-gray-400 cursor-not-allowed" : ""
         }`}
         min="1"
         max="4320"
@@ -56,5 +56,5 @@ export const DimensionControls: React.FC<DimensionControlsProps> = ({
         </label>
       </div>
     </div>
-  )
-} 
+  );
+};

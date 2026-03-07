@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { useNavigate, type LoaderFunctionArgs } from "react-router";
-import { useAuth } from "~/hooks/useAuth";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import {
   Plus,
@@ -43,7 +42,6 @@ import {
   AlertDialogCancel,
 } from "~/components/ui/alert-dialog";
 import { Input } from "~/components/ui/input";
-import { auth } from "~/lib/auth.server";
 import { cn } from "~/lib/utils";
 
 type Project = { id: string; name: string; created_at: string };
@@ -163,30 +161,12 @@ const ProjectCard = ({
   );
 };
 
-export async function loader({ request }: { request: Request }) {
-  try {
-    // Prefer Better Auth runtime API to avoid SSR fetch cookie issues
-    // @ts-ignore
-    const session = await auth.api?.getSession?.({ headers: request.headers });
-    const uid: string | undefined = session?.user?.id || session?.session?.userId;
-    if (!uid)
-      return new Response(null, {
-        status: 302,
-        headers: { Location: "/login" },
-      });
-  } catch {
-    return new Response(null, { status: 302, headers: { Location: "/login" } });
-  }
-  return null;
-}
-
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | "name_asc" | "name_desc">("created_desc");
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const [starCount, setStarCount] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -228,9 +208,6 @@ export default function Projects() {
       hour12: true,
     });
   };
-  useEffect(() => {
-    if (!user) return; // loader already gates; avoid client redirect loops
-  }, [user]);
 
   useEffect(() => {
     const fetchStars = async () => {
@@ -310,13 +287,13 @@ export default function Projects() {
           <span className="text-sm font-medium truncate">Kimu Studio</span>
         </div>
         <div className="flex items-center gap-2">
-          {user && (
-            <ProfileMenu
-              user={{ name: user.name, email: user.email, image: user.image }}
-              starCount={starCount}
-              onSignOut={signOut}
-            />
-          )}
+          <ProfileMenu
+            user={{ name: "John Doe", email: "john.doe@example.com", image: "https://github.com/shadcn.png" }}
+            starCount={starCount}
+            onSignOut={() => {
+              console.log("sign out");
+            }}
+          />
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
