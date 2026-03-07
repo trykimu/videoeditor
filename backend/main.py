@@ -1,11 +1,13 @@
+from pathlib import Path
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai.routes import router as ai_router
-from auth.routes import router as auth_router
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-load_dotenv()
+from ai.routes import router as ai_router  # noqa: E402
+from auth.routes import router as auth_router  # noqa: E402
 
 app = FastAPI()
 
