@@ -4,6 +4,7 @@ import TimelineEditor from "./home";
 import { auth } from "~/lib/auth.server";
 import { loadTimeline } from "~/lib/timeline.store";
 import type { TimelineState } from "~/components/timeline/types";
+import { IdParamSchema } from "~/schemas";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   // SSR gate: verify auth
@@ -18,8 +19,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   } catch {
     return new Response(null, { status: 302, headers: { Location: "/login" } });
   }
+  // Validate route param
+  const id = IdParamSchema.parse(params.id);
   // Optionally prefetch timeline to hydrate client faster
-  const id = params.id as string;
   const timeline = await loadTimeline(id);
   return { timeline };
 }
