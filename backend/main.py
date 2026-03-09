@@ -72,9 +72,10 @@ def _to_seconds(value: Any) -> float | None:
         except Exception:
             pass
     # 1h2m3s / 2m / 90s etc.
+    # Bounded quantifiers and longest-unit-first ordering prevent polynomial backtracking.
     total = 0.0
     matched = False
-    for m in re.finditer(r"(?P<num>\d+(?:\.\d+)?)\s*(?P<unit>h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds|ms|millisecond|milliseconds)\b",
+    for m in re.finditer(r"(?P<num>[0-9]{1,15}(?:\.[0-9]{1,10})?)[ ]?(?P<unit>milliseconds|millisecond|minutes|minute|seconds|second|hours|hour|secs|mins|hrs|min|sec|ms|hr|m|s|h)\b",
                          s):
         matched = True
         num = float(m.group("num"))
@@ -109,7 +110,9 @@ def _normalize_time_fields_from_text(user_text: str, args: dict[str, Any]) -> di
     text = (user_text or "").lower()
 
     # Extract explicit FROM ... TO ... first
-    m = re.search(r"from\s+([^\s]+(?:\s*[a-z]+)?)\s+to\s+([^\s]+(?:\s*[a-z]+)?)", text)
+    # Use [0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})? so the numeric, attached-unit, and
+    # separated-unit character classes are disjoint — no ambiguous matching, no ReDoS.
+    m = re.search(r"from\s+([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)\s+to\s+([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)", text)
     if m:
         start_candidate = _to_seconds(m.group(1))
         end_candidate = _to_seconds(m.group(2))
@@ -119,14 +122,14 @@ def _normalize_time_fields_from_text(user_text: str, args: dict[str, Any]) -> di
             updated["end_seconds"] = end_candidate
 
     # AT ... / START AT ... / FROM ... (single)
-    m2 = re.search(r"(?:at|starting\s+at|start\s+at|from)\s+([^\s]+(?:\s*[a-z]+)?)", text)
+    m2 = re.search(r"(?:at|starting\s+at|start\s+at|from)\s+([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)", text)
     if m2 and updated.get("start_seconds") is None:
         start_candidate = _to_seconds(m2.group(1))
         if start_candidate is not None:
             updated["start_seconds"] = start_candidate
 
     # FOR ... / SPAN FOR ...
-    m3 = re.search(r"(?:for|span(?:s)?\s+for)\s+([^\s]+(?:\s*[a-z]+)?)", text)
+    m3 = re.search(r"(?:for|span(?:s)?\s+for)\s+([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)", text)
     if m3 and updated.get("duration_seconds") is None:
         dur_candidate = _to_seconds(m3.group(1))
         if dur_candidate is not None:
@@ -135,13 +138,13 @@ def _normalize_time_fields_from_text(user_text: str, args: dict[str, Any]) -> di
     # TO ... LONG / SET TO ... / MAKE (IT)? ...
     # Examples: "to 12 seconds long", "set to 12s", "make it 8 sec", "12s long"
     if updated.get("duration_seconds") is None:
-        m4 = re.search(r"(?:to\s+)?([^\s]+(?:\s*[a-z]+)?)\s+long", text)
+        m4 = re.search(r"(?:to\s+)?([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)\s+long", text)
         if m4:
             dur_candidate = _to_seconds(m4.group(1))
             if dur_candidate is not None:
                 updated["duration_seconds"] = dur_candidate
     if updated.get("duration_seconds") is None:
-        m5 = re.search(r"(?:set\s+(?:it\s+)?to|make\s+(?:it\s+)?)\s+([^\s]+(?:\s*[a-z]+)?)", text)
+        m5 = re.search(r"(?:set\s+(?:it\s+)?to|make\s+(?:it\s+)?)\s+([0-9][0-9.]*[a-z]*(?:[ ][a-z]{1,12})?)", text)
         if m5:
             dur_candidate = _to_seconds(m5.group(1))
             if dur_candidate is not None:
