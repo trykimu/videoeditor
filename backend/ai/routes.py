@@ -9,7 +9,16 @@ from ai.schema import FunctionCallResponse
 
 router = APIRouter(tags=["ai"])
 
-GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if value is None or value == "":
+        raise ValueError(f"{name} is not set")
+    return value
+
+
+GEMINI_API_KEY: str = require_env("GEMINI_API_KEY")
+
 gemini_client: genai.Client = genai.Client(api_key=GEMINI_API_KEY)
 
 

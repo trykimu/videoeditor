@@ -15,9 +15,17 @@ from auth.service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
-JWT_SECRET: str = os.getenv("JWT_SECRET", "")
-DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if value is None:
+        raise ValueError(f"{name} is not set")
+    return value
+
+
+GOOGLE_CLIENT_ID: str = require_env("VITE_GOOGLE_CLIENT_ID")
+JWT_SECRET: str = require_env("JWT_SECRET")
+DATABASE_URL: str = require_env("DATABASE_URL")
 
 _pool: asyncpg.Pool | None = None
 
@@ -77,40 +85,86 @@ async def google_sign_in(body: SignUpGoogleRequest) -> JSONResponse:
             detail=f"Google token verification failed: {exc}",
         ) from exc
 
-    # 2. Upsert user in Postgres
+    # 2. Upsert user + identity in Postgres
     pool = await get_db_pool()
-    async with pool.acquire() as conn:
+    async with pool.acquire() as conn, conn.transaction():
         row = await conn.fetchrow(
-            "SELECT id, email, name FROM users WHERE email = $1",
-            google_user.email,
+            """
+            SELECT u.id, u.email, u.name
+            FROM user_identities ui
+            JOIN users u ON u.id = ui.user_id
+            WHERE ui.provider = $1 AND ui.provider_sub = $2
+            """,
+            "google",
+            google_user.sub,
         )
 
-        is_new_user = row is None
-
-        if is_new_user:
-            row = await conn.fetchrow(
+        if row is None:
+            # Create or reuse the user row by email, then link Google identity.
+            user_row = await conn.fetchrow(
                 """
                 INSERT INTO users (email, name)
                 VALUES ($1, $2)
+                ON CONFLICT (email)
+                DO NOTHING
                 RETURNING id, email, name
                 """,
                 google_user.email,
                 google_user.name,
             )
 
+            if user_row is None:
+                user_row = await conn.fetchrow(
+                    """
+                    SELECT id, email, name
+                    FROM users
+                    WHERE email = $1
+                    """,
+                    google_user.email,
+                )
+                if user_row is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to create or fetch user",
+                    )
+
+            await conn.execute(
+                """
+                INSERT INTO user_identities (user_id, provider, provider_sub)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (provider, provider_sub) DO NOTHING
+                """,
+                user_row["id"],
+                "google",
+                google_user.sub,
+            )
+
+            row = await conn.fetchrow(
+                """
+                SELECT u.id, u.email, u.name
+                FROM user_identities ui
+                JOIN users u ON u.id = ui.user_id
+                WHERE ui.provider = $1 AND ui.provider_sub = $2
+                """,
+                "google",
+                google_user.sub,
+            )
+
         if row is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create or fetch user",
+                detail="Failed to create or fetch user identity",
             )
 
         user_id = str(row["id"])
+        user_email = str(row["email"])
+        user_name = str(row["name"])
 
     # 3. Generate Kimu JWT
     payload = KimuPayload(
         user_id=user_id,
-        email=google_user.email,
-        name=google_user.name,
+        email=user_email,
+        name=user_name,
         avatar_url=google_user.picture,
     )
     token = generate_kimu_jwt(payload, JWT_SECRET)
@@ -118,8 +172,8 @@ async def google_sign_in(body: SignUpGoogleRequest) -> JSONResponse:
     # 4. Build response with HttpOnly cookie
     body_data = AuthResponse(
         user_id=user_id,
-        email=google_user.email,
-        name=google_user.name,
+        email=user_email,
+        name=user_name,
         avatar_url=google_user.picture,
     )
     response = JSONResponse(content=body_data.model_dump())
