@@ -1,9 +1,31 @@
-import React from "react";
-import { KimuLogo } from "~/components/ui/KimuLogo";
+import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import { Clapperboard, Wand2, Scissors } from "lucide-react";
+import { KimuLogo } from "~/components/ui/KimuLogo";
 import { FaGoogle } from "react-icons/fa";
 
+function GoogleSignInButton() {
+  const login = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      console.log("Google sign-in success", tokenResponse);
+    },
+    onError: () => {
+      console.log("Google sign-in error");
+    },
+  });
+
+  return (
+    <button
+      onClick={() => login()}
+      className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
+      <FaGoogle className="h-4 w-4" />
+      Continue with Google
+    </button>
+  );
+}
+
 export default function LoginPage() {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       {/* Animated timeline grid background */}
@@ -78,11 +100,10 @@ export default function LoginPage() {
           </div>
           <h1 className="mt-6 text-lg font-semibold tracking-tight">Welcome to Kimu</h1>
           <p className="mt-1 text-xs text-muted-foreground">Cinematic editing, reimagined.</p>
-          <div className="mt-6 w-full max-w-sm">
-            <button className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md bg-foreground text-background text-sm">
-              <FaGoogle className="h-4 w-4" />
-              Continue with Google
-            </button>
+          <div className="mt-6 w-full max-w-sm flex flex-col items-center gap-3">
+            <GoogleOAuthProvider clientId={googleClientId}>
+              <GoogleSignInButton />
+            </GoogleOAuthProvider>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">We never post on your behalf.</p>
         </div>

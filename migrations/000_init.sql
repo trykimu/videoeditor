@@ -25,5 +25,15 @@ CREATE TABLE assets (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE user_identities (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider      TEXT NOT NULL,  -- google, apple, etc. we only support google for now.
+  provider_sub  TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (provider, provider_sub) -- ensures each user has only one identity per provider
+);
+
 CREATE INDEX idx_projects_user_id ON projects(user_id, created_at DESC);
 CREATE INDEX idx_assets_project_id ON assets(project_id);
+CREATE INDEX idx_user_identities_user_id ON user_identities(user_id);

@@ -28,6 +28,10 @@ def verify_google_id_token(token: str, client_id: str) -> GoogleJWT:
     if issuer not in ("accounts.google.com", "https://accounts.google.com"):
         raise ValueError(f"Invalid issuer: {issuer}")
 
+    # i still dont know how email can NOT be verified. but it is a field and guess we'll follow the spec.
+    if not id_info.get("email_verified"):
+        raise ValueError("Email address is not verified by Google")
+
     return GoogleJWT(
         sub=str(id_info["sub"]),
         email=str(id_info["email"]),
