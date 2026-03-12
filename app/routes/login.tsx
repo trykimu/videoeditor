@@ -1,30 +1,19 @@
-import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, GoogleOAuthProvider, type CredentialResponse } from "@react-oauth/google";
 import { Clapperboard, Wand2, Scissors } from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { FaGoogle } from "react-icons/fa";
-
-function GoogleSignInButton() {
-  const login = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      console.log("Google sign-in success", tokenResponse);
-    },
-    onError: () => {
-      console.log("Google sign-in error");
-    },
-  });
-
-  return (
-    <button
-      onClick={() => login()}
-      className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
-      <FaGoogle className="h-4 w-4" />
-      Continue with Google
-    </button>
-  );
-}
+import axios from "axios";
 
 export default function LoginPage() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
+    console.log("Google sign-in succeeded", credentialResponse);
+    const response = await axios.post("/ai/api/auth/google", {
+      credential: credentialResponse.credential,
+    });
+    console.log("Response", response.data);
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
@@ -102,7 +91,18 @@ export default function LoginPage() {
           <p className="mt-1 text-xs text-muted-foreground">Cinematic editing, reimagined.</p>
           <div className="mt-6 w-full max-w-sm flex flex-col items-center gap-3">
             <GoogleOAuthProvider clientId={googleClientId}>
-              <GoogleSignInButton />
+              <div className="relative inline-block">
+                <button className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
+                  <FaGoogle className="h-4 w-4" />
+                  Continue with Google
+                </button>
+                <div className="absolute inset-0 opacity-0 overflow-hidden">
+                  <GoogleLogin
+                    onSuccess={(credentialResponse) => handleGoogleLogin(credentialResponse)}
+                    onError={() => console.log("Google sign-in error")}
+                  />
+                </div>
+              </div>{" "}
             </GoogleOAuthProvider>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">We never post on your behalf.</p>
