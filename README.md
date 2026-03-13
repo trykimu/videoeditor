@@ -56,114 +56,32 @@
 <br> and much more...</p>
 </samp>
 
-## 💻 Development
+## 🐋Deployment
 
-<strong> 🐳 <ins>Docker</ins> <code>Recommended</code> </strong>
-
-**Quick Start:**
-
-```bash
-docker compose -f docker-compose.yml \
-  -f docker-compose.dev.yml up -d
+```
+git clone https://github.com/robinroy03/videoeditor.git
+cd videoeditor
+docker compose up
 ```
 
-**Ports:**
+## 🧑‍💻Development
 
-<samp>
-  
-- Frontend: `5173`
-- Backend : `8000`
-- FastAPI : `3000`
-
-</samp>
-<br>
-
-<strong> 🛠️ <ins>Local Development</ins></strong>
-
-<samp>For local development without Docker:</samp>
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start services
-pnpm run dev                                    # Frontend (port 5173)
-pnpm dlx tsx app/videorender/videorender.ts     # Backend (port 8000)
-uv run backend/main.py                          # FastAPI (port 3000)
-
-# Note: You'll need GEMINI_API_KEY for AI features
+```
+pnpm i
+pnpm run dev (frontend)
+pnpm dlx tsx app/videorender/videorender.ts (backend)
+uv run backend/main.py
+flip `isProduction` to `false` in `/app/utils/api.ts`
 ```
 
-`Requirements`
+## 📃TODO
 
-<samp>
-  
-- Node.js 20+
-- Python 3.9+
-- PostgreSQL
-- pnpm
-
-</samp>
-</details>
-
-## 🚀 Production
-
-**Quick Start:**
-
-```bash
-docker compose up -d
-```
-
-**With Custom Domain:**
-
-```bash
-PROD_DOMAIN=yourdomain.com docker compose up -d
-```
-
-or alternatively edit `docker-compose.yml`
-
-**Ports:**
-
-- HTTP: `80`
-- HTTPS: `443`
-
-## ⚙️ Environment Configuration
-
-Create a `.env` file for custom settings:
-
-```env
-# Domain Configuration
-PROD_DOMAIN=yourdomain.com
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/videoeditor
-
-# Authentication (Google OAuth)
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# AI Features (Optional -> /backend)
-GEMINI_API_KEY=your_gemini_api_key
-
-# Supabase (Optional)
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_key
-```
-
-**Environment Variables Explained:**
-
-- `PROD_DOMAIN`: Your production domain (host only, e.g., `yourdomain.com`)
-- `DATABASE_URL`: PostgreSQL connection string
-- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials for authentication
-- `GEMINI_API_KEY`: Required for AI-powered video editing features
-- `VITE_SUPABASE_*`: Optional Supabase integration for additional features
-
-<br>
+We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support.
 
 ## ❤️Contribution
 
-<samp> We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md). </samp>
+We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md).
 
 ## 📜License
 
-<samp> This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project. </samp>
+This project is licensed under the MIT License. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
