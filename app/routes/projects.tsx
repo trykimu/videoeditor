@@ -249,19 +249,11 @@ export default function Projects() {
   }, []);
 
   const create = async (projectName?: string) => {
-    const name = (projectName || newProjectName || "Untitled Project").trim().slice(0, 120);
+    const name = (projectName || newProjectName || "Untitled Project").trim();
     setCreating(true);
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      if (res.ok || res.status === 201) {
-        const { project } = await res.json();
-        navigate(`/project/${project.id}`);
-      }
+      const { data } = await axios.post("/ai/api/api/create-project", { name }, { withCredentials: true });
+      navigate(`/project/${data.project.id}`);
     } finally {
       setCreating(false);
     }
