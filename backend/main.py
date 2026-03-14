@@ -13,12 +13,17 @@ from auth.routes import router as auth_router  # noqa: E402
 
 app = FastAPI()
 
+_ALLOWED_ORIGINS = [
+    "https://trykimu.com",
+    "http://localhost:8080",  # this is a lil finnicky but it works for now. we will move to an env based permanent solution later.
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 app.include_router(auth_router)
