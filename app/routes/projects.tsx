@@ -46,18 +46,27 @@ import {
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const res = await requireUser(request);
-  // the user does not have a cookie or the cookie is invalid, so we redirect to the login page
-  if (res.status !== 200) throw redirect("/login");
-  return res.data;
-}
-
 type Project = {
   id: string;
   name: string;
   created_at: string;
 };
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const res = await requireUser(request);
+  // the user does not have a cookie or the cookie is invalid, so we redirect to the login page
+  if (res.status !== 200) throw redirect("/login");
+  const { origin } = new URL(request.url);
+
+  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/ai/api/api/projects`, {
+    headers: { Cookie: request.headers.get("Cookie") },
+  });
+
+  return {
+    user: res.data,
+    projects: projectsRes.data.projects,
+  };
+}
 
 const ProjectHoverEffect = ({
   projects,
@@ -175,9 +184,9 @@ const ProjectCard = ({
 };
 
 export default function Projects() {
-  const user = useLoaderData<typeof loader>();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, projects: initialProjects } = useLoaderData<typeof loader>();
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | "name_asc" | "name_desc">("created_desc");
   const navigate = useNavigate();
@@ -237,21 +246,6 @@ export default function Projects() {
       }
     };
     fetchStars();
-  }, []);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/projects", { credentials: "include" });
-        if (res.ok) {
-          const json = await res.json();
-          setProjects(json.projects || []);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
   }, []);
 
   const create = async (projectName?: string) => {

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
+# because env should be loaded before importing the routes. is it a hack? idts.
 from ai.routes import router as ai_router  # noqa: E402
 from api.routes import router as api_router  # noqa: E402
 from auth.routes import router as auth_router  # noqa: E402
@@ -27,4 +28,4 @@ app.include_router(api_router)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=3000)
+    uvicorn.run("main:app", host="127.0.0.1", port=3000, reload=True)

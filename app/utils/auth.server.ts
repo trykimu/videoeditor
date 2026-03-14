@@ -24,7 +24,7 @@ export async function requireUser(request: Request): Promise<AxiosResponse<Sessi
   const { origin } = new URL(request.url);
 
   const res = await axios.get<SessionUser>(`${origin}/ai/api/auth/me`, {
-    headers: { Cookie: cookie },
+    headers: { Cookie: cookie }, // include the cookie in the request headers because we are in server code and not in the browser
     validateStatus: null,
   });
 
