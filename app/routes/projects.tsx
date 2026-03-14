@@ -2,7 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { useNavigate, type LoaderFunctionArgs } from "react-router";
+import { redirect, useLoaderData, useNavigate, type LoaderFunctionArgs } from "react-router";
+import { requireUser } from "~/utils/auth.server";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import {
   Plus,
@@ -43,6 +44,13 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const res = await requireUser(request);
+  // the user does not have a cookie or the cookie is invalid, so we redirect to the login page
+  if (res.status !== 200) throw redirect("/login");
+  return res.data;
+}
 
 type Project = { id: string; name: string; created_at: string };
 
@@ -162,6 +170,7 @@ const ProjectCard = ({
 };
 
 export default function Projects() {
+  const user = useLoaderData<typeof loader>();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -288,7 +297,7 @@ export default function Projects() {
         </div>
         <div className="flex items-center gap-2">
           <ProfileMenu
-            user={{ name: "John Doe", email: "john.doe@example.com", image: "https://github.com/shadcn.png" }}
+            user={{ name: user.name, email: user.email, image: user.avatar_url }}
             starCount={starCount}
             onSignOut={() => {
               console.log("sign out");

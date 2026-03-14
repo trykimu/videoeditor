@@ -1,10 +1,10 @@
 import os
 
 import asyncpg  # type: ignore[import-untyped]
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
-from auth.schema import AuthResponse, KimuJWT, KimuPayload, SignUpGoogleRequest
+from auth.schema import KimuJWT, KimuPayload, SignUpGoogleRequest
 from auth.service import (
     COOKIE_MAX_AGE,
     COOKIE_NAME,
@@ -41,28 +41,14 @@ async def get_db_pool() -> asyncpg.Pool:
 
 
 async def get_current_user(
-    request: Request,
-    kimu_session: str | None = Cookie(default=None, alias=COOKIE_NAME),
+    kimu_session: str = Cookie(alias=COOKIE_NAME),
 ) -> KimuJWT:
     """
-    FastAPI dependeny. Reads the session JWT from the HttpOnly cookie.
-    Falls back to the Authorization header if the cookie is absent. Throws an error if the token is invalid.
+    FastAPI dependency. Reads the session JWT from the HttpOnly cookie.
     """
-    token = kimu_session
-
-    if token is None:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.removeprefix("Bearer ")
-
-    if token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-
+    print("kimu_session", kimu_session)
     try:
-        return verify_kimu_jwt(token, JWT_SECRET)
+        return verify_kimu_jwt(kimu_session, JWT_SECRET)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -170,7 +156,7 @@ async def google_sign_in(body: SignUpGoogleRequest) -> JSONResponse:
     token = generate_kimu_jwt(payload, JWT_SECRET)
 
     # 4. Build response with HttpOnly cookie
-    body_data = AuthResponse(
+    body_data = KimuPayload(
         user_id=user_id,
         email=user_email,
         name=user_name,

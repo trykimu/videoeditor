@@ -3,16 +3,26 @@ import { Clapperboard, Wand2, Scissors } from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { FaGoogle } from "react-icons/fa";
 import axios from "axios";
+import { redirect, type LoaderFunctionArgs } from "react-router";
+import { requireUser } from "~/utils/auth.server";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const res = await requireUser(request);
+  // the user has a cookie and it is valid, so we redirect to the projects page
+  if (res.status === 200) throw redirect("/projects");
+  return null;
+}
 
 export default function LoginPage() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
-    console.log("Google sign-in succeeded", credentialResponse);
     const response = await axios.post("/ai/api/auth/google", {
       credential: credentialResponse.credential,
     });
-    console.log("Response", response.data);
+    if (response.status === 200) {
+      window.location.href = "/projects";
+    }
   };
 
   return (

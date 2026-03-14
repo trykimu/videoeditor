@@ -15,7 +15,7 @@ class GoogleJWT(BaseModel):
 
 
 class KimuPayload(BaseModel):
-    """Claims embedded in Kimu's own application JWT."""
+    """Claims embedded in Kimu's own application JWT. This is the payload that is signed by the server and sent to the client."""
 
     user_id: str  # UUID as string
     email: str
@@ -27,12 +27,3 @@ class KimuJWT(KimuPayload):
     """Decoded Kimu JWT (includes the expiration claim)."""
 
     exp: int
-
-
-class AuthResponse(BaseModel):
-    """Returned to the client after successful sign-up or sign-in."""
-
-    user_id: str
-    email: str
-    name: str
-    avatar_url: str
