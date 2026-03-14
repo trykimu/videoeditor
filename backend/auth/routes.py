@@ -1,6 +1,3 @@
-import os
-
-import asyncpg  # type: ignore[import-untyped]
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -12,32 +9,13 @@ from auth.service import (
     verify_google_id_token,
     verify_kimu_jwt,
 )
+from db import get_db_pool
+from utils import require_env
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-
-def require_env(name: str) -> str:
-    value = os.getenv(name)
-    if value is None:
-        raise ValueError(f"{name} is not set")
-    return value
-
-
 GOOGLE_CLIENT_ID: str = require_env("VITE_GOOGLE_CLIENT_ID")
 JWT_SECRET: str = require_env("JWT_SECRET")
-DATABASE_URL: str = require_env("DATABASE_URL")
-
-_pool: asyncpg.Pool | None = None
-
-
-async def get_db_pool() -> asyncpg.Pool:
-    """
-    Return the shared asyncpg connection pool, creating it on first call.
-    """
-    global _pool
-    if _pool is None:
-        _pool = await asyncpg.create_pool(DATABASE_URL)
-    return _pool
 
 
 async def get_current_user(

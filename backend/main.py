@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from ai.routes import router as ai_router  # noqa: E402
+from api.routes import router as api_router  # noqa: E402
 from auth.routes import router as auth_router  # noqa: E402
 
 app = FastAPI()
@@ -21,6 +22,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(ai_router)
+app.include_router(api_router)
 
 if __name__ == "__main__":
     import uvicorn

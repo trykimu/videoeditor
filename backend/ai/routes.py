@@ -1,4 +1,3 @@
-import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -6,16 +5,9 @@ from google import genai
 from pydantic import BaseModel, ConfigDict
 
 from ai.schema import FunctionCallResponse
+from utils import require_env
 
 router = APIRouter(tags=["ai"])
-
-
-def require_env(name: str) -> str:
-    value = os.getenv(name)
-    if value is None or value == "":
-        raise ValueError(f"{name} is not set")
-    return value
-
 
 GEMINI_API_KEY: str = require_env("GEMINI_API_KEY")
 

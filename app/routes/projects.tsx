@@ -53,7 +53,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return res.data;
 }
 
-type Project = { id: string; name: string; created_at: string };
+type Project = {
+  id: string;
+  name: string;
+  created_at: string;
+};
 
 const ProjectHoverEffect = ({
   projects,
