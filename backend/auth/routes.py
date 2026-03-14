@@ -46,7 +46,6 @@ async def get_current_user(
     """
     FastAPI dependency. Reads the session JWT from the HttpOnly cookie.
     """
-    print("kimu_session", kimu_session)
     try:
         return verify_kimu_jwt(kimu_session, JWT_SECRET)
     except Exception as exc:
@@ -186,3 +185,13 @@ async def get_me(user: KimuJWT = Depends(get_current_user)) -> KimuPayload:
         name=user.name,
         avatar_url=user.avatar_url,
     )
+
+
+@router.post("/logout")
+async def logout() -> JSONResponse:
+    """
+    Log out the current user by clearing the HttpOnly session cookie.
+    """
+    response = JSONResponse(content={})
+    response.delete_cookie(key=COOKIE_NAME)
+    return response

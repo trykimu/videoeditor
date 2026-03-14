@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import axios from "axios";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -299,8 +300,8 @@ export default function Projects() {
           <ProfileMenu
             user={{ name: user.name, email: user.email, image: user.avatar_url }}
             starCount={starCount}
-            onSignOut={() => {
-              console.log("sign out");
+            onSignOut={async () => {
+              await axios.post("/ai/api/auth/logout", {}, { withCredentials: true });
             }}
           />
         </div>
