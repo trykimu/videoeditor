@@ -6,6 +6,7 @@ export default [
   route("/login", "routes/login.tsx"),
   route("/projects", "routes/projects.tsx"),
   route("/profile", "routes/profile.tsx"),
+  route("/home", "routes/home.tsx"),
   // route("/project/:id", "routes/project.$id.tsx", [
   //   index("components/timeline/MediaBin.tsx"),
   //   route("text-editor", "components/media/TextEditor.tsx"),

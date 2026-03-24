@@ -9,11 +9,7 @@ import {
   Plus,
   Minus,
   Scissors,
-  Star,
-  Bot,
-  LogOut,
   Save as SaveIcon,
-  ChevronRight,
   CornerUpLeft,
   CornerUpRight,
 } from "lucide-react";
@@ -47,7 +43,6 @@ import { useRenderer } from "~/hooks/useRenderer";
 import {
   FPS,
   type MediaBinItem,
-  type TimelineDataItem,
   type Transition,
   type TrackState,
   type ScrubberState,
@@ -55,8 +50,6 @@ import {
 import { useNavigate, useParams } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
-import { useAuth } from "~/hooks/useAuth";
-import { AuthOverlay } from "~/components/ui/AuthOverlay";
 
 interface Message {
   id: string;
@@ -686,8 +679,6 @@ export default function TimelineEditor() {
     };
   }, [handleZoomIn, handleZoomOut]);
 
-  const { user, isLoading: isAuthLoading, isSigningIn, signInWithGoogle, signOut } = useAuth();
-
   return (
     <div
       className="h-screen flex flex-col bg-background text-foreground"
@@ -736,19 +727,11 @@ export default function TimelineEditor() {
             {isRendering ? "Rendering..." : "Export"}
           </Button>
 
-          {/* Auth status — keep avatar as the last item (right corner) */}
-          {user ? (
-            <ProfileMenu user={user} starCount={starCount} onSignOut={signOut} />
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signInWithGoogle}
-              className="h-7 px-2 text-xs ml-1"
-              title="Sign in with Google">
-              Sign in
-            </Button>
-          )}
+          <ProfileMenu
+            user={{ name: "test", email: "test@test.com", image: "https://github.com/shadcn.png" }}
+            starCount={starCount}
+            onSignOut={() => {}}
+          />
         </div>
       </header>
 
@@ -1055,11 +1038,6 @@ export default function TimelineEditor() {
         <div className="fixed bottom-4 right-4 z-50">
           <RenderStatus renderStatus={renderStatus} />
         </div>
-      )}
-
-      {/* Blocker overlay for unauthenticated users */}
-      {!isAuthLoading && !user && (
-        <AuthOverlay isLoading={isAuthLoading} isSigningIn={isSigningIn} onSignIn={signInWithGoogle} />
       )}
     </div>
   );

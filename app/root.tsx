@@ -62,12 +62,14 @@ export default function App() {
     isNotFound ||
     location.pathname === "/projects" ||
     location.pathname.startsWith("/project/") ||
-    location.pathname === "/profile";
+    location.pathname === "/profile" ||
+    location.pathname === "/home";
   const hideFooter =
     isNotFound ||
     location.pathname === "/projects" ||
     location.pathname.startsWith("/project/") ||
-    location.pathname === "/profile";
+    location.pathname === "/profile" ||
+    location.pathname === "/home";
 
   useEffect(() => {
     // Only apply hero intersection logic on the landing page

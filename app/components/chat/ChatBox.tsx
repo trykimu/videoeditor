@@ -16,7 +16,6 @@ import { Button } from "~/components/ui/button";
 import { type MediaBinItem, type TimelineState, type ScrubberState } from "../timeline/types";
 import { cn } from "~/lib/utils";
 import axios from "axios";
-import { apiUrl } from "~/utils/api";
 
 // llm tools
 import {
@@ -215,7 +214,7 @@ export function ChatBox({
       }));
 
       // Make API call to the backend
-      const response = await axios.post(apiUrl("/ai", true), {
+      const response = await axios.post("/ai", {
         message: messageContent,
         mentioned_scrubber_ids: mentionedScrubberIds,
         timeline_state: timelineState,

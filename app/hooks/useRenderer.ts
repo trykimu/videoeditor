@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import { type TimelineDataItem, type TimelineState, FPS } from "~/components/timeline/types";
-import { apiUrl } from "~/utils/api";
 
 export const useRenderer = () => {
   const [isRendering, setIsRendering] = useState(false);
@@ -17,13 +16,13 @@ export const useRenderer = () => {
     ) => {
       setIsRendering(true);
       setRenderStatus("Starting render...");
-      console.log("Render server base URL:", apiUrl("/render"));
+      console.log("Render server base URL:", "/render");
 
       try {
         // Test server connection first
         setRenderStatus("Connecting to render server...");
         try {
-          await axios.get(apiUrl("/health"), { timeout: 5000 });
+          await axios.get("/health", { timeout: 5000 });
         } catch (healthError) {
           throw new Error("Cannot connect to render server. Make sure the server is running on http://localhost:8000");
         }
@@ -67,7 +66,7 @@ export const useRenderer = () => {
         setRenderStatus("Rendering video...");
 
         const response = await axios.post(
-          apiUrl("/render"),
+          "/render",
           {
             timelineData: timelineData,
             compositionWidth: compositionWidth,
