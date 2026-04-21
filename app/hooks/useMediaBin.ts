@@ -274,7 +274,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       formData.append("media", file);
 
       console.log("Uploading file to server...");
-      const uploadResponse = await axios.post("/upload", formData, {
+      const uploadResponse = await axios.post("/api/upload", formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
