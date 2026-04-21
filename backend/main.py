@@ -26,6 +26,12 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+
+@app.get("/beep")
+async def beep() -> dict:
+    return {"message": "boop"}
+
+
 app.include_router(auth_router)
 app.include_router(ai_router)
 app.include_router(api_router)
@@ -33,4 +39,4 @@ app.include_router(api_router)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="127.0.0.1", port=3000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)

@@ -31,6 +31,7 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "~/components/ui/resizable";
+import axios from "axios";
 import { toast } from "sonner";
 
 // Hooks
@@ -66,6 +67,7 @@ export default function TimelineEditor() {
   const navigate = useNavigate();
   const params = useParams();
   const projectId = params?.id as string | undefined;
+  console.log("projectId", projectId);
   const [projectName, setProjectName] = useState<string>("");
 
   const [width, setWidth] = useState<number>(1920);
@@ -123,7 +125,7 @@ export default function TimelineEditor() {
     handleDeleteTransition,
     getConnectedElements,
     handleUpdateScrubberWithLocking,
-    setTimelineFromServer,
+    // setTimelineFromServer,
     // undo/redo
     undo,
     redo,
@@ -187,139 +189,148 @@ export default function TimelineEditor() {
     fileInputRef.current?.click();
   }, []);
 
-  // Hydrate project name and timeline from API
-  useEffect(() => {
-    (async () => {
-      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-      if (!id) return;
-      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        navigate("/projects");
-        return;
-      }
-      const j = await res.json();
-      setProjectName(j.project?.name || "Project");
-      if (j.timeline) setTimelineFromServer(j.timeline);
-      // Use saved textBinItems if present, else extract from timeline
-      try {
-        if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
-          const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
-            id: t.id,
-            name: t.name,
-            mediaType: "text" as const,
-            media_width: Number(t.media_width) || 0,
-            media_height: Number(t.media_height) || 0,
-            text: t.text || null,
-            mediaUrlLocal: null,
-            mediaUrlRemote: null,
-            durationInSeconds: Number(t.durationInSeconds) || 0,
-            isUploading: false,
-            uploadProgress: null,
-            left_transition_id: null,
-            right_transition_id: null,
-            groupped_scrubbers: t.groupped_scrubbers || null,
-          }));
-          setTextItems(textItems);
-        } else {
-          const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
-          const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
-          const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
-          const textItems: typeof mediaBinItems = (allScrubbers || [])
-            .filter((s: ScrubberState) => s && s.mediaType === "text" && s.text)
-            .map((s: ScrubberState) => ({
-              id: s.sourceMediaBinId || s.id,
-              name: s.text?.textContent || "Text",
-              mediaType: "text" as const,
-              media_width: s.media_width || 0,
-              media_height: s.media_height || 0,
-              text: s.text || null,
-              mediaUrlLocal: null,
-              mediaUrlRemote: null,
-              durationInSeconds: s.durationInSeconds || 0,
-              isUploading: false,
-              uploadProgress: null,
-              left_transition_id: null,
-              right_transition_id: null,
-              groupped_scrubbers: null,
-            }));
-          if (textItems.length) setTextItems(textItems);
-        }
-      } catch {
-        console.error("Failed to load project");
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  // // Hydrate project name and timeline from API
+  // useEffect(() => {
+  //   (async () => {
+  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+  //     if (!id) return;
+  //     let j;
+  //     try {
+  //       const { data } = await axios.get(`/api/projects/${encodeURIComponent(id)}`, {
+  //         withCredentials: true,
+  //       });
+  //       j = data;
+  //     } catch {
+  //       navigate("/projects");
+  //       return;
+  //     }
+  //     setProjectName(j.project?.name || "Project");
+  //     if (j.timeline) setTimelineFromServer(j.timeline);
+  //     // Use saved textBinItems if present, else extract from timeline
+  //     try {
+  //       if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
+  //         const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
+  //           id: t.id,
+  //           name: t.name,
+  //           mediaType: "text" as const,
+  //           media_width: Number(t.media_width) || 0,
+  //           media_height: Number(t.media_height) || 0,
+  //           text: t.text || null,
+  //           mediaUrlLocal: null,
+  //           mediaUrlRemote: null,
+  //           durationInSeconds: Number(t.durationInSeconds) || 0,
+  //           isUploading: false,
+  //           uploadProgress: null,
+  //           left_transition_id: null,
+  //           right_transition_id: null,
+  //           groupped_scrubbers: t.groupped_scrubbers || null,
+  //         }));
+  //         setTextItems(textItems);
+  //       } else {
+  //         const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
+  //         const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
+  //         const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
+  //         const textItems: typeof mediaBinItems = (allScrubbers || [])
+  //           .filter((s: ScrubberState) => s && s.mediaType === "text" && s.text)
+  //           .map((s: ScrubberState) => ({
+  //             id: s.sourceMediaBinId || s.id,
+  //             name: s.text?.textContent || "Text",
+  //             mediaType: "text" as const,
+  //             media_width: s.media_width || 0,
+  //             media_height: s.media_height || 0,
+  //             text: s.text || null,
+  //             mediaUrlLocal: null,
+  //             mediaUrlRemote: null,
+  //             durationInSeconds: s.durationInSeconds || 0,
+  //             isUploading: false,
+  //             uploadProgress: null,
+  //             left_transition_id: null,
+  //             right_transition_id: null,
+  //             groupped_scrubbers: null,
+  //           }));
+  //         if (textItems.length) setTextItems(textItems);
+  //       }
+  //     } catch {
+  //       console.error("Failed to load project");
+  //     }
+  //   })();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [projectId]);
 
   // Re-link scrubbers to remote asset URLs after assets hydrate
   // Ensures images/videos/audios render after refresh (when local blob URLs are gone)
-  useEffect(() => {
-    if (isMediaLoading) return;
-    if (!mediaBinItems || mediaBinItems.length === 0) return;
+  // useEffect(() => {
+  //   if (isMediaLoading) return;
+  //   if (!mediaBinItems || mediaBinItems.length === 0) return;
 
-    const current = getTimelineState();
-    let changed = false;
+  //   const current = getTimelineState();
+  //   let changed = false;
 
-    const assetsByName = new Map(
-      mediaBinItems.filter((i) => i.mediaType !== "text" && i.mediaUrlRemote).map((i) => [i.name, i]),
-    );
+  //   const assetsByName = new Map();
+  //   for (const item of mediaBinItems) {
+  //     if (item.mediaType === "text") continue;
+  //     if (!item.mediaUrlRemote) continue;
+  //     assetsByName.set(item.name, item);
+  //   }
 
-    const newTracks = current.tracks.map((track) => ({
-      ...track,
-      scrubbers: track.scrubbers.map((s) => {
-        if (s.mediaType === "text") return s;
-        if (!s.mediaUrlRemote) {
-          const match = assetsByName.get(s.name);
-          if (match && match.mediaUrlRemote) {
-            changed = true;
-            return {
-              ...s,
-              mediaUrlRemote: match.mediaUrlRemote,
-              sourceMediaBinId: match.id,
-              media_width: match.media_width || s.media_width,
-              media_height: match.media_height || s.media_height,
-            };
-          }
-        }
-        return s;
-      }),
-    }));
+  //   const newTracks = current.tracks.map((track) => ({
+  //     ...track,
+  //     scrubbers: track.scrubbers.map((s) => {
+  //       if (s.mediaType === "text") return s;
+  //       if (!s.mediaUrlRemote) {
+  //         const match = assetsByName.get(s.name);
+  //         if (match && match.mediaUrlRemote) {
+  //           changed = true;
+  //           return {
+  //             ...s,
+  //             mediaUrlRemote: match.mediaUrlRemote,
+  //             sourceMediaBinId: match.id,
+  //             media_width: match.media_width || s.media_width,
+  //             media_height: match.media_height || s.media_height,
+  //           };
+  //         }
+  //       }
+  //       return s;
+  //     }),
+  //   }));
 
-    if (changed) {
-      setTimelineFromServer({ ...current, tracks: newTracks });
-    }
-  }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
+  //   if (changed) {
+  //     setTimelineFromServer({ ...current, tracks: newTracks });
+  //   }
+  // }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
 
   // Save timeline to server
+  // const handleSaveTimeline = useCallback(async () => {
+  //   try {
+  //     toast.info("Saving state of the project...");
+  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
+  //     if (!id) {
+  //       toast.error("No project ID");
+  //       return;
+  //     }
+  //     const timelineState = getTimelineState();
+  //     // persist current text items alongside timeline
+  //     const textItemsPayload = getMediaBinItems().filter((i) => i.mediaType === "text");
+  //     const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+  //       method: "PATCH",
+  //       credentials: "include",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         timeline: timelineState,
+  //         textBinItems: textItemsPayload,
+  //       }),
+  //     });
+  //     if (!res.ok) throw new Error(await res.text());
+  //     toast.success("Timeline saved");
+  //   } catch (e) {
+  //     console.error(e);
+  //     toast.error("Failed to save");
+  //   }
+  // }, [getMediaBinItems, getTimelineState, projectId]);
+
   const handleSaveTimeline = useCallback(async () => {
-    try {
-      toast.info("Saving state of the project...");
-      const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-      if (!id) {
-        toast.error("No project ID");
-        return;
-      }
-      const timelineState = getTimelineState();
-      // persist current text items alongside timeline
-      const textItemsPayload = getMediaBinItems().filter((i) => i.mediaType === "text");
-      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timeline: timelineState,
-          textBinItems: textItemsPayload,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      toast.success("Timeline saved");
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to save");
-    }
-  }, [getMediaBinItems, getTimelineState, projectId]);
+    alert("save timeline");
+  }, []);
 
   // Global Ctrl/Cmd+S to save timeline (registered after handler is defined)
   useEffect(() => {

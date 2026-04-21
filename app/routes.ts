@@ -6,13 +6,16 @@ export default [
   route("/login", "routes/login.tsx"),
   route("/projects", "routes/projects.tsx"),
   route("/profile", "routes/profile.tsx"),
-  route("/home", "routes/home.tsx"),
+  // route("/home", "routes/home.tsx"), // just for testing purposes.
+  route("/project/:id", "routes/home.tsx"), // i am using home.tsx here. it works but eventually we'll clean it up and make it nicer.
+
   // route("/project/:id", "routes/project.$id.tsx", [
   //   index("components/timeline/MediaBin.tsx"),
   //   route("text-editor", "components/media/TextEditor.tsx"),
   //   route("media-bin", "components/timeline/MediaBinPage.tsx"),
   //   route("transitions", "components/media/Transitions.tsx"),
   // ]),
+
   route("/learn", "routes/learn.tsx"),
   route("/roadmap", "routes/roadmap.tsx"),
   route("/privacy", "routes/privacy.tsx"),

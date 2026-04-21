@@ -17,6 +17,7 @@ export default function LoginPage() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
+    console.log("credentialResponse", credentialResponse);
     const response = await axios.post("/ai/api/auth/google", {
       credential: credentialResponse.credential,
     });

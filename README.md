@@ -67,11 +67,14 @@ docker compose up
 ## 🧑‍💻Development
 
 ```
-pnpm i
+docker compose -f docker-compose.dev.yml up
+migrate the db (docker exec -i videoeditor-postgres-dev psql -U videoeditor -d videoeditor -f /dev/stdin < migrations/000_init.sql)
 pnpm run dev (frontend)
 pnpm dlx tsx app/videorender/videorender.ts (backend)
 cd backend
 uv run main.py
+
+localhost:8080 for the server
 ```
 
 ## 📃TODO
