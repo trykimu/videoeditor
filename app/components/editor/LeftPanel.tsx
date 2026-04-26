@@ -48,6 +48,7 @@ export default function LeftPanel({
     return "media-bin"; // default
   };
 
+  console.log("mediabinitems", mediaBinItems);
   const activeTab = getActiveTab();
 
   return (

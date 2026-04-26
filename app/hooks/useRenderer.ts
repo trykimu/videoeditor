@@ -22,7 +22,7 @@ export const useRenderer = () => {
         // Test server connection first
         setRenderStatus("Connecting to render server...");
         try {
-          await axios.get("/health", { timeout: 5000 });
+          await axios.get("/api/health", { timeout: 5000 });
         } catch (healthError) {
           throw new Error("Cannot connect to render server. Make sure the server is running on http://localhost:8000");
         }
@@ -66,7 +66,7 @@ export const useRenderer = () => {
         setRenderStatus("Rendering video...");
 
         const response = await axios.post(
-          "/render",
+          "/api/render",
           {
             timelineData: timelineData,
             compositionWidth: compositionWidth,
