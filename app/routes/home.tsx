@@ -329,8 +329,25 @@ export default function TimelineEditor() {
   // }, [getMediaBinItems, getTimelineState, projectId]);
 
   const handleSaveTimeline = useCallback(async () => {
-    alert("save timeline");
-  }, []);
+    try {
+      toast.info("Saving state of the project...");
+      const id = projectId;
+      if (!id) {
+        toast.error("No project ID");
+        return;
+      }
+
+      const timelineState = getTimelineState();
+      await axios.put(`/ai/api/api/projects/${encodeURIComponent(id)}`, timelineState, {
+        withCredentials: true,
+      });
+
+      toast.success("Timeline saved");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save");
+    }
+  }, [getTimelineState, projectId]);
 
   // Global Ctrl/Cmd+S to save timeline (registered after handler is defined)
   useEffect(() => {

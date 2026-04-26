@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.schema import CreateProjectRequest
@@ -70,3 +72,33 @@ async def create_project(
             "created_at": row["created_at"].isoformat(),
         }
     }
+
+
+@router.put("/projects/{project_id}")
+async def save_project(
+    project_id: str, timeline: dict, user: KimuJWT = Depends(get_current_user)
+) -> dict:
+    """
+    Save the project timeline to the database.
+    """
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE projects
+            SET timeline_state = $1::jsonb
+            WHERE id = $2 AND user_id = $3
+            RETURNING id
+            """,
+            json.dumps(timeline),
+            project_id,
+            user.user_id,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    return {"ok": True, "project_id": str(row["id"])}
