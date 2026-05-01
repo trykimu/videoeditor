@@ -56,35 +56,118 @@
 <br> and much more...</p>
 </samp>
 
-## 🐋Deployment
+## 💻 Development
+
+<strong> 🛠️ <ins>Local Development</ins></strong>
+
+Only postgres runs in Docker. All three services run directly on your machine — Vite handles proxying so no nginx is needed.
+
+```bash
+# Install dependencies
+pnpm i
+cd backend && uv sync && cd ..
+
+# 1. Start postgres
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. Start FastAPI  (terminal 1)
+cd backend && uv run uvicorn main:app --reload --port 3000
+
+# 3. Start renderer  (terminal 2)
+pnpm dlx tsx app/videorender/videorender.ts
+
+# 4. Start frontend  (terminal 3)
+pnpm dev
+```
+
+Open **`http://localhost:5173`**. The Vite dev server proxies requests transparently:
+
+<samp>
+
+- `/backend/*` → FastAPI at `:3000`
+- `/renderer/*` → Renderer at `:8000`
+- `/*` → React Router SSR (Vite)
+
+</samp>
+
+`Requirements`
+
+<samp>
+  
+- Node.js 20+
+- Python 3.12+
+- pnpm
+- Docker (for postgres only)
+
+</samp>
+
+## 🚀 Production
+
+Everything runs in Docker behind nginx. One command:
+
+```bash
+docker compose up -d
+```
+
+**With Custom Domain:**
+
+```bash
+PROD_DOMAIN=yourdomain.com docker compose up -d
+```
+
+nginx routes:
+
+<samp>
+
+- `/backend/*` → FastAPI
+- `/renderer/*` → Renderer (video rendering)
+- `/*` → Frontend (React Router SSR)
+
+</samp>
+
+**Ports:**
+
+- HTTP: `80` (redirects to HTTPS)
+- HTTPS: `443`
+
+## ⚙️ Environment Configuration
+
+Create a `.env` file for custom settings:
+
+```env
+# Domain Configuration
+PROD_DOMAIN=yourdomain.com
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/videoeditor
+
+# Authentication (Google OAuth)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# AI Features (Optional -> /backend)
+GEMINI_API_KEY=your_gemini_api_key
 
 ```
-git clone https://github.com/robinroy03/videoeditor.git
-cd videoeditor
-docker compose up
-```
 
-## 🧑‍💻Development
+**Environment Variables Explained:**
 
-```
-docker compose -f docker-compose.dev.yml up
-migrate the db (docker exec -i videoeditor-postgres-dev psql -U videoeditor -d videoeditor -f /dev/stdin < migrations/000_init.sql)
-pnpm run dev (frontend)
-pnpm dlx tsx app/videorender/videorender.ts (backend)
-cd backend
-uv run main.py
+- `PROD_DOMAIN`: Your production domain (host only, e.g., `yourdomain.com`)
+- `DATABASE_URL`: PostgreSQL connection string
+- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials for authentication
+- `GEMINI_API_KEY`: Required for AI-powered video editing features
 
-localhost:8080 for the server
-```
+<br>
 
 ## 📃TODO
 
-We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support.
+<samp> We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support. </samp>
 
 ## ❤️Contribution
 
-We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md).
+<samp> We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md). </samp>
 
 ## 📜License
 
-This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
+<samp> This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project. </samp>
+

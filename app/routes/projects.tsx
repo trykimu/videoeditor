@@ -58,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (res.status !== 200) throw redirect("/login");
   const { origin } = new URL(request.url);
 
-  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/ai/api/api/projects`, {
+  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/backend/projects`, {
     headers: { Cookie: request.headers.get("Cookie") },
   });
 
@@ -252,7 +252,7 @@ export default function Projects() {
     const name = (projectName || newProjectName || "Untitled Project").trim();
     setCreating(true);
     try {
-      const { data } = await axios.post("/ai/api/api/create-project", { name }, { withCredentials: true });
+      const { data } = await axios.post("/backend/projects", { name }, { withCredentials: true });
       navigate(`/project/${data.project.id}`);
     } finally {
       setCreating(false);
@@ -291,7 +291,7 @@ export default function Projects() {
             user={{ name: user.name, email: user.email, image: user.avatar_url }}
             starCount={starCount}
             onSignOut={async () => {
-              await axios.post("/ai/api/auth/logout", {}, { withCredentials: true });
+              await axios.post("/backend/auth/logout", {}, { withCredentials: true });
             }}
           />
         </div>
@@ -387,7 +387,7 @@ export default function Projects() {
               setDrawerOpen(true);
             }}
             onDelete={async (projectId) => {
-              const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
+              const res = await fetch(`/backend/projects/${encodeURIComponent(projectId)}`, {
                 method: "DELETE",
                 credentials: "include",
               });
@@ -448,7 +448,7 @@ export default function Projects() {
                     const id = renameProjectId!;
                     const newName = renameValue.trim();
                     if (!newName) return;
-                    const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+                    const res = await fetch(`/backend/projects/${encodeURIComponent(id)}`, {
                       method: "PATCH",
                       credentials: "include",
                       headers: { "Content-Type": "application/json" },
@@ -484,7 +484,7 @@ export default function Projects() {
               onClick={async () => {
                 const id = renameProjectId!;
                 if (!id) return;
-                const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+                const res = await fetch(`/backend/projects/${encodeURIComponent(id)}`, {
                   method: "DELETE",
                   credentials: "include",
                 });

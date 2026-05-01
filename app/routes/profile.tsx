@@ -17,7 +17,7 @@ export default function Profile() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/storage", { credentials: "include" });
+        const res = await fetch("/backend/storage", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) {
@@ -32,7 +32,7 @@ export default function Profile() {
     })();
     (async () => {
       try {
-        const res = await fetch("/api/auth/session", { credentials: "include" });
+        const res = await fetch("/backend/auth/session", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
         const created = j?.user?.createdAt || j?.user?.created_at || j?.user?.created_at_ms || null;
@@ -43,7 +43,7 @@ export default function Profile() {
     })();
     (async () => {
       try {
-        const res = await fetch("/api/projects", { credentials: "include" });
+        const res = await fetch("/backend/projects", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) setProjectCount(Array.isArray(j?.projects) ? j.projects.length : 0);

@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
     console.log("credentialResponse", credentialResponse);
-    const response = await axios.post("/ai/api/auth/google", {
+    const response = await axios.post("/backend/auth/google", {
       credential: credentialResponse.credential,
     });
     if (response.status === 200) {

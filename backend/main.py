@@ -15,7 +15,7 @@ app = FastAPI()
 
 _ALLOWED_ORIGINS = [
     "https://trykimu.com",
-    "http://localhost:8080",  # this is a lil finnicky but it works for now. we will move to an env based permanent solution later.
+    "http://localhost:5173",  # Vite dev server
 ]
 
 app.add_middleware(

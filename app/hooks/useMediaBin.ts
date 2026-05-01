@@ -8,7 +8,7 @@ export const deleteMediaFile = async (
   filename: string,
 ): Promise<{ success: boolean; message?: string; error?: string }> => {
   try {
-    const response = await fetch(`/media/${encodeURIComponent(filename)}`, {
+    const response = await fetch(`/renderer/media/${encodeURIComponent(filename)}`, {
       method: "DELETE",
     });
 
@@ -42,7 +42,7 @@ export const cloneMediaFile = async (
   error?: string;
 }> => {
   try {
-    const response = await fetch("/clone-media", {
+    const response = await fetch("/renderer/clone-media", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -274,7 +274,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       formData.append("media", file);
 
       console.log("Uploading file to server...");
-      const uploadResponse = await axios.post("/api/upload", formData, {
+      const uploadResponse = await axios.post("/renderer/upload", formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -392,7 +392,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         }
         // Call authenticated delete by asset id
         const assetId = item.id;
-        const res = await fetch(`/api/assets/${assetId}`, {
+        const res = await fetch(`/renderer/assets/${assetId}`, {
           method: "DELETE",
           credentials: "include",
         });
@@ -426,7 +426,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       }
 
       // Clone via authenticated API (server will copy within out/ and record)
-      const res = await fetch(`/api/assets/${videoItem.id}/clone`, {
+      const res = await fetch(`/renderer/assets/${videoItem.id}/clone`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -338,7 +338,7 @@ export default function TimelineEditor() {
       }
 
       const timelineState = getTimelineState();
-      await axios.put(`/ai/api/api/projects/${encodeURIComponent(id)}`, timelineState, {
+      await axios.put(`/backend/projects/${encodeURIComponent(id)}`, timelineState, {
         withCredentials: true,
       });
 

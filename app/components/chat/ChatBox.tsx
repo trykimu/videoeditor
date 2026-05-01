@@ -214,7 +214,7 @@ export function ChatBox({
       }));
 
       // Make API call to the backend
-      const response = await axios.post("/ai", {
+      const response = await axios.post("/backend/ai", {
         message: messageContent,
         mentioned_scrubber_ids: mentionedScrubberIds,
         timeline_state: timelineState,

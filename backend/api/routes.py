@@ -2,19 +2,16 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.schema import CreateProjectRequest
+from api.schema import CreateProjectRequest, RenameProjectRequest
 from auth.routes import get_current_user
 from auth.schema import KimuJWT
 from db import get_db_pool
 
-router = APIRouter(prefix="/api", tags=["api"])
+router = APIRouter(tags=["api"])
 
 
 @router.get("/projects")
 async def list_projects(user: KimuJWT = Depends(get_current_user)) -> dict:
-    """
-    Return all projects for the authenticated user.
-    """
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -39,14 +36,11 @@ async def list_projects(user: KimuJWT = Depends(get_current_user)) -> dict:
     return {"projects": projects}
 
 
-@router.post("/create-project", status_code=status.HTTP_201_CREATED)
+@router.post("/projects", status_code=status.HTTP_201_CREATED)
 async def create_project(
     body: CreateProjectRequest,
     user: KimuJWT = Depends(get_current_user),
 ) -> dict:
-    """
-    Create a new project for the authenticated user.
-    """
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -78,9 +72,6 @@ async def create_project(
 async def save_project(
     project_id: str, timeline: dict, user: KimuJWT = Depends(get_current_user)
 ) -> dict:
-    """
-    Save the project timeline to the database.
-    """
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -102,3 +93,52 @@ async def save_project(
         )
 
     return {"ok": True, "project_id": str(row["id"])}
+
+
+@router.patch("/projects/{project_id}")
+async def rename_project(
+    project_id: str, body: RenameProjectRequest, user: KimuJWT = Depends(get_current_user)
+) -> dict:
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE projects
+            SET name = $1
+            WHERE id = $2 AND user_id = $3
+            RETURNING id
+            """,
+            body.name,
+            project_id,
+            user.user_id,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    return {"ok": True, "project_id": str(row["id"])}
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(
+    project_id: str, user: KimuJWT = Depends(get_current_user)
+) -> None:
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            """
+            DELETE FROM projects
+            WHERE id = $1 AND user_id = $2
+            """,
+            project_id,
+            user.user_id,
+        )
+
+    if result == "DELETE 0":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
