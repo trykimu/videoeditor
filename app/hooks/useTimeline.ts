@@ -35,7 +35,7 @@ export const useTimeline = () => {
   const [redoStack, setRedoStack] = useState<TimelineState[]>([]);
   const isApplyingHistoryRef = useRef(false);
 
-  const deepClone = useCallback(<T>(obj: T): T => JSON.parse(JSON.stringify(obj)), []);
+  const deepClone = useCallback(<T>(obj: T): T => structuredClone(obj), []);
 
   const snapshotTimeline = useCallback(() => {
     setUndoStack((prev) => {
@@ -142,11 +142,6 @@ export const useTimeline = () => {
     }));
   }, []);
 
-  // TODO: remove this after testing
-  // useEffect(() => {
-  //   console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
-  // }, [timeline])
-
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const pixelsPerSecond = getPixelsPerSecond();
 
@@ -163,7 +158,7 @@ export const useTimeline = () => {
           endTime: (scrubber.left + scrubber.width) / pixelsPerSecond,
           duration: scrubber.width / pixelsPerSecond,
           trackId: track.id,
-          trackIndex: scrubber.y || 0,
+          trackIndex: scrubber.y ?? 0,
           media_width: scrubber.media_width,
           media_height: scrubber.media_height,
           text: scrubber.text,
@@ -207,8 +202,6 @@ export const useTimeline = () => {
         transitions: transitions,
       },
     ];
-
-    // console.log('bahahh', JSON.stringify(timelineData, null, 2));
 
     return timelineData;
   }, [timeline, getPixelsPerSecond]);
@@ -296,7 +289,7 @@ export const useTimeline = () => {
 
         if (currentTrackIndex === -1) return prev;
 
-        const newTrackIndex = updatedScrubber.y || 0;
+        const newTrackIndex = updatedScrubber.y ?? 0;
 
         // If track hasn't changed, just update in place
         if (currentTrackIndex === newTrackIndex) {
@@ -459,7 +452,6 @@ export const useTimeline = () => {
   );
 
   const handleAddScrubberToTrack = useCallback((trackId: string, newScrubber: ScrubberState) => {
-    console.log("Adding scrubber to track", trackId, newScrubber);
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) =>
@@ -549,8 +541,6 @@ export const useTimeline = () => {
   const handleDropOnTrack = useCallback(
     (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
       snapshotTimeline();
-      console.log("Dropped", item.name, "on track", trackId, "at", dropLeftPx, "px");
-
       const pixelsPerSecond = getPixelsPerSecond();
       let widthPx = item.mediaType === "text" ? 80 : 150;
       if (
@@ -564,7 +554,7 @@ export const useTimeline = () => {
       widthPx = Math.max(20, widthPx);
 
       const targetTrackIndex = timeline.tracks.findIndex((t) => t.id === trackId);
-      if (targetTrackIndex === -1) return;
+      if (targetTrackIndex === -1) return "";
 
       // For text elements, provide default dimensions if they're 0
       const playerWidth =
@@ -639,6 +629,7 @@ export const useTimeline = () => {
       } else {
         handleAddScrubberToTrack(trackId, newScrubber);
       }
+      return newScrubber.id;
     },
     [
       timeline.tracks,

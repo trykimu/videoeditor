@@ -1,9 +1,12 @@
+import logging
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from auth.schema import SessionUser
 from db import get_db_pool
+
+logger = logging.getLogger(__name__)
 
 _BETTER_AUTH_COOKIE = "better-auth.session_token"
 
@@ -48,6 +51,7 @@ async def get_current_user(
         )
 
     if row is None:
+        logger.warning("Invalid or expired session token attempted")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
 
     return SessionUser(

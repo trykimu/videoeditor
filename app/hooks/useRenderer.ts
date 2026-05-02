@@ -16,46 +16,30 @@ export const useRenderer = () => {
     ) => {
       setIsRendering(true);
       setRenderStatus("Starting render...");
-      console.log("Render server base URL:", "/render");
 
       try {
-        // Test server connection first
         setRenderStatus("Connecting to render server...");
         try {
           await axios.get("/renderer/health", { timeout: 5000 });
-        } catch (healthError) {
-          throw new Error("Cannot connect to render server. Make sure the server is running on http://localhost:8000");
+        } catch {
+          throw new Error("Cannot connect to render server. Run: pnpm dlx tsx app/videorender/videorender.ts");
         }
 
         const timelineData = getTimelineData();
-        // Calculate composition width if not provided
+
         if (compositionWidth === null) {
-          let maxWidth = 0;
-          for (const item of timelineData) {
-            for (const scrubber of item.scrubbers) {
-              if (scrubber.media_width !== null && scrubber.media_width > maxWidth) {
-                maxWidth = scrubber.media_width;
-              }
-            }
-          }
-          compositionWidth = maxWidth || 1920; // Default to 1920 if no media found
+          compositionWidth = timelineData.flatMap((d) => d.scrubbers).reduce(
+            (max, s) => (s.media_width && s.media_width > max ? s.media_width : max),
+            0,
+          ) || 1920;
         }
 
-        // Calculate composition height if not provided
         if (compositionHeight === null) {
-          let maxHeight = 0;
-          for (const item of timelineData) {
-            for (const scrubber of item.scrubbers) {
-              if (scrubber.media_height !== null && scrubber.media_height > maxHeight) {
-                maxHeight = scrubber.media_height;
-              }
-            }
-          }
-          compositionHeight = maxHeight || 1080; // Default to 1080 if no media found
+          compositionHeight = timelineData.flatMap((d) => d.scrubbers).reduce(
+            (max, s) => (s.media_height && s.media_height > max ? s.media_height : max),
+            0,
+          ) || 1080;
         }
-
-        console.log("Composition width:", compositionWidth);
-        console.log("Composition height:", compositionHeight);
 
         if (timeline.tracks.length === 0 || timeline.tracks.every((t) => t.scrubbers.length === 0)) {
           setRenderStatus("Error: No timeline data to render");
@@ -71,20 +55,9 @@ export const useRenderer = () => {
             timelineData: timelineData,
             compositionWidth: compositionWidth,
             compositionHeight: compositionHeight,
-            durationInFrames: (() => {
-              const timelineData = getTimelineData();
-              let maxEndTime = 0;
-
-              timelineData.forEach((timelineItem) => {
-                timelineItem.scrubbers.forEach((scrubber) => {
-                  if (scrubber.endTime > maxEndTime) {
-                    maxEndTime = scrubber.endTime;
-                  }
-                });
-              });
-              console.log("Max end time:", maxEndTime * 30);
-              return Math.ceil(maxEndTime * FPS);
-            })(),
+            durationInFrames: Math.ceil(
+              timelineData.flatMap((d) => d.scrubbers).reduce((max, s) => (s.endTime > max ? s.endTime : max), 0) * FPS,
+            ),
             getPixelsPerSecond: getPixelsPerSecond(),
           },
           {
@@ -110,19 +83,20 @@ export const useRenderer = () => {
 
         setRenderStatus("Video rendered and downloaded successfully!");
       } catch (error) {
-        console.error("Render error:", error);
         if (axios.isAxiosError(error)) {
           if (error.code === "ECONNABORTED") {
-            setRenderStatus("Error: Render timeout - try a shorter video");
+            setRenderStatus("Error: Render timed out — try a shorter video");
           } else if (error.response?.status === 500) {
-            setRenderStatus(`Error: ${error.response.data?.message || "Server error during rendering"}`);
+            setRenderStatus("Error: Server error during rendering. Check render server logs.");
+          } else if (error.response?.status === 413) {
+            setRenderStatus("Error: Timeline data too large to render");
           } else if (error.request) {
-            setRenderStatus(
-              "Error: Cannot connect to render server. Make sure the backend is running on localhost:8000. Run: pnpm dlx tsx app/videorender/videorender.ts",
-            );
+            setRenderStatus("Error: Cannot connect to render server. Run: pnpm dlx tsx app/videorender/videorender.ts");
           } else {
             setRenderStatus(`Error: ${error.message}`);
           }
+        } else if (error instanceof Error) {
+          setRenderStatus(`Error: ${error.message}`);
         } else {
           setRenderStatus("Error: Unknown rendering error occurred");
         }

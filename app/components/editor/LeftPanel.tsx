@@ -25,6 +25,11 @@ interface LeftPanelProps {
   handleDeleteFromContext: () => void;
   handleSplitAudioFromContext: () => void;
   handleCloseContextMenu: () => void;
+  showTabs?: boolean;
+  arrangeMode?: "default" | "group";
+  sortBy?: "default" | "name_asc" | "name_desc";
+  onArrangeModeChange?: (mode: "default" | "group") => void;
+  onSortByChange?: (sort: "default" | "name_asc" | "name_desc") => void;
 }
 
 export default function LeftPanel({
@@ -37,6 +42,11 @@ export default function LeftPanel({
   handleDeleteFromContext,
   handleSplitAudioFromContext,
   handleCloseContextMenu,
+  showTabs = true,
+  arrangeMode,
+  sortBy,
+  onArrangeModeChange,
+  onSortByChange,
 }: LeftPanelProps) {
   const location = useLocation();
 
@@ -48,47 +58,47 @@ export default function LeftPanel({
     return "media-bin"; // default
   };
 
-  console.log("mediabinitems", mediaBinItems);
   const activeTab = getActiveTab();
 
   return (
     <div className="h-full flex flex-col bg-background">
       <Tabs value={activeTab} className="h-full flex flex-col">
         {/* Tab Headers */}
-        <div className="border-b border-border bg-muted/30">
-          <TabsList className="grid w-full grid-cols-3 h-9 bg-transparent p-0">
-            <TabsTrigger
-              value="media-bin"
-              asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Link to="media-bin" className="flex items-center gap-1.5">
-                <FileImage className="h-3 w-3" />
-              </Link>
-            </TabsTrigger>
-            <TabsTrigger
-              value="text-editor"
-              asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Link to="text-editor" className="flex items-center gap-1.5">
-                <Type className="h-3 w-3" />
-              </Link>
-            </TabsTrigger>
-            <TabsTrigger
-              value="transitions"
-              asChild
-              className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Link to="transitions" className="flex items-center gap-1.5">
-                <BetweenVerticalEnd className="h-3 w-3" />
-              </Link>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        {showTabs && (
+          <div className="border-b border-border bg-muted/30">
+            <TabsList className="grid w-full grid-cols-3 h-9 bg-transparent p-0">
+              <TabsTrigger
+                value="media-bin"
+                asChild
+                className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Link to="media-bin" className="flex items-center gap-1.5">
+                  <FileImage className="h-3 w-3" />
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger
+                value="text-editor"
+                asChild
+                className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Link to="text-editor" className="flex items-center gap-1.5">
+                  <Type className="h-3 w-3" />
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger
+                value="transitions"
+                asChild
+                className="h-8 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Link to="transitions" className="flex items-center gap-1.5">
+                  <BetweenVerticalEnd className="h-3 w-3" />
+                </Link>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        )}
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden p-2">
           <Outlet
             context={{
-              // MediaBin props
               mediaBinItems,
               isMediaLoading,
               onAddMedia,
@@ -98,6 +108,10 @@ export default function LeftPanel({
               handleDeleteFromContext,
               handleSplitAudioFromContext,
               handleCloseContextMenu,
+              arrangeModeExternal: arrangeMode,
+              sortByExternal: sortBy,
+              onArrangeModeChange,
+              onSortByChange,
             }}
           />
         </div>

@@ -52,8 +52,13 @@ export function TimelineComposition({
 }: TimelineCompositionProps) {
   // Resolve pixels per second based on rendering mode
   const resolvedPixelsPerSecond = isRendering ? (getPixelsPerSecond as number) : (getPixelsPerSecond as () => number)();
+
+  if (!timelineData?.length) {
+    return <AbsoluteFill style={outer} />;
+  }
+
   // Get all transitions from timelineData
-  const allTransitions = timelineData[0].transitions;
+  const allTransitions = timelineData[0].transitions ?? {};
 
   // Step 1: Group scrubbers by trackIndex
   const trackGroups: {
@@ -120,6 +125,7 @@ export function TimelineComposition({
         const imageUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!imageUrl) break;
         content = (
           <AbsoluteFill
             style={{
@@ -128,7 +134,7 @@ export function TimelineComposition({
               width: scrubber.width_player,
               height: scrubber.height_player,
             }}>
-            <Img src={imageUrl!} />
+            <Img src={imageUrl} />
           </AbsoluteFill>
         );
         break;
@@ -137,6 +143,7 @@ export function TimelineComposition({
         const videoUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!videoUrl) break;
         content = (
           <AbsoluteFill
             style={{
@@ -146,7 +153,7 @@ export function TimelineComposition({
               height: scrubber.height_player,
             }}>
             <Video
-              src={videoUrl!}
+              src={videoUrl}
               trimBefore={scrubber.trimBefore || undefined}
               trimAfter={scrubber.trimAfter || undefined}
             />
@@ -158,9 +165,10 @@ export function TimelineComposition({
         const audioUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!audioUrl) break;
         content = (
           <Audio
-            src={audioUrl!}
+            src={audioUrl}
             trimBefore={scrubber.trimBefore || undefined}
             trimAfter={scrubber.trimAfter || undefined}
           />
@@ -168,7 +176,6 @@ export function TimelineComposition({
         break;
       }
       default:
-        console.warn(`Unknown media type: ${scrubber.mediaType}`);
         break;
     }
 
@@ -176,7 +183,7 @@ export function TimelineComposition({
   };
 
   // Helper function to get transition presentation
-  const getTransitionPresentation = (transition: Transition) => {
+  const getTransitionPresentation = (transition: Transition): TransitionPresentation => {
     switch (transition.presentation) {
       case "fade":
         return fade();
@@ -187,7 +194,9 @@ export function TimelineComposition({
       case "flip":
         return flip();
       case "iris":
-        return iris({ width: 1000, height: 1000 });
+        return iris({ width: 1920, height: 1080 });
+      default:
+        return fade();
     }
   };
 
@@ -243,7 +252,6 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Transition
             key={`left-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
             presentation={getTransitionPresentation(transition)}
             timing={getTransitionTiming(transition)}
           />,
@@ -265,8 +273,7 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-left-transition`}
-                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
-                presentation={getTransitionPresentation(transition)}
+                    presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
             );
@@ -321,8 +328,7 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-right-transition`}
-                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
-                presentation={getTransitionPresentation(transition)}
+                    presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
             );
@@ -378,7 +384,6 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Transition
             key={`right-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
             presentation={getTransitionPresentation(transition)}
             timing={getTransitionTiming(transition)}
           />,

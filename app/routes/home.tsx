@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import type { PlayerRef, CallbackListener } from "@remotion/player";
 import {
   Play,
@@ -12,6 +13,10 @@ import {
   Save as SaveIcon,
   CornerUpLeft,
   CornerUpRight,
+  File,
+  Type,
+  BetweenVerticalEnd,
+  Bot,
 } from "lucide-react";
 
 // Custom video controls
@@ -39,36 +44,43 @@ import { useTimeline } from "~/hooks/useTimeline";
 import { useMediaBin } from "~/hooks/useMediaBin";
 import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
+import { useAuth } from "~/hooks/useAuth";
 
 // Types and constants
 import {
   FPS,
   type MediaBinItem,
+  type TimelineState,
   type Transition,
   type TrackState,
   type ScrubberState,
 } from "~/components/timeline/types";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
+import { GitHubRepoStatsSchema, ProjectStateResponseSchema } from "~/schemas";
 
 interface Message {
   id: string;
   content: string;
   isUser: boolean;
   timestamp: Date;
+  snapshot?: TimelineState | null;
 }
 
 export default function TimelineEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const leftPanelRef = useRef<ImperativePanelHandle | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams();
   const projectId = params?.id as string | undefined;
-  console.log("projectId", projectId);
   const [projectName, setProjectName] = useState<string>("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isUserExpandingSidebar, setIsUserExpandingSidebar] = useState<boolean>(false);
 
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
@@ -88,6 +100,7 @@ export default function TimelineEditor() {
   }, [height]);
 
   const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
+  const { user, signOut } = useAuth();
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
@@ -125,7 +138,7 @@ export default function TimelineEditor() {
     handleDeleteTransition,
     getConnectedElements,
     handleUpdateScrubberWithLocking,
-    // setTimelineFromServer,
+    setTimelineFromServer,
     // undo/redo
     undo,
     redo,
@@ -148,6 +161,9 @@ export default function TimelineEditor() {
     handleSplitAudioFromContext,
     handleCloseContextMenu,
   } = useMediaBin(handleDeleteScrubbersByMediaBinId);
+
+  const [mediaArrangeMode, setMediaArrangeMode] = useState<"default" | "group">("default");
+  const [mediaSortBy, setMediaSortBy] = useState<"default" | "name_asc" | "name_desc">("default");
 
   const {
     rulerPositionPx,
@@ -189,144 +205,60 @@ export default function TimelineEditor() {
     fileInputRef.current?.click();
   }, []);
 
-  // // Hydrate project name and timeline from API
-  // useEffect(() => {
-  //   (async () => {
-  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-  //     if (!id) return;
-  //     let j;
-  //     try {
-  //       const { data } = await axios.get(`/api/projects/${encodeURIComponent(id)}`, {
-  //         withCredentials: true,
-  //       });
-  //       j = data;
-  //     } catch {
-  //       navigate("/projects");
-  //       return;
-  //     }
-  //     setProjectName(j.project?.name || "Project");
-  //     if (j.timeline) setTimelineFromServer(j.timeline);
-  //     // Use saved textBinItems if present, else extract from timeline
-  //     try {
-  //       if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
-  //         const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
-  //           id: t.id,
-  //           name: t.name,
-  //           mediaType: "text" as const,
-  //           media_width: Number(t.media_width) || 0,
-  //           media_height: Number(t.media_height) || 0,
-  //           text: t.text || null,
-  //           mediaUrlLocal: null,
-  //           mediaUrlRemote: null,
-  //           durationInSeconds: Number(t.durationInSeconds) || 0,
-  //           isUploading: false,
-  //           uploadProgress: null,
-  //           left_transition_id: null,
-  //           right_transition_id: null,
-  //           groupped_scrubbers: t.groupped_scrubbers || null,
-  //         }));
-  //         setTextItems(textItems);
-  //       } else {
-  //         const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
-  //         const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
-  //         const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
-  //         const textItems: typeof mediaBinItems = (allScrubbers || [])
-  //           .filter((s: ScrubberState) => s && s.mediaType === "text" && s.text)
-  //           .map((s: ScrubberState) => ({
-  //             id: s.sourceMediaBinId || s.id,
-  //             name: s.text?.textContent || "Text",
-  //             mediaType: "text" as const,
-  //             media_width: s.media_width || 0,
-  //             media_height: s.media_height || 0,
-  //             text: s.text || null,
-  //             mediaUrlLocal: null,
-  //             mediaUrlRemote: null,
-  //             durationInSeconds: s.durationInSeconds || 0,
-  //             isUploading: false,
-  //             uploadProgress: null,
-  //             left_transition_id: null,
-  //             right_transition_id: null,
-  //             groupped_scrubbers: null,
-  //           }));
-  //         if (textItems.length) setTextItems(textItems);
-  //       }
-  //     } catch {
-  //       console.error("Failed to load project");
-  //     }
-  //   })();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [projectId]);
+  // Hydrate project name + timeline snapshot from backend
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      if (!projectId) return;
+      try {
+        const { data } = await axios.get(`/backend/projects/${encodeURIComponent(projectId)}`, {
+          withCredentials: true,
+        });
+        const parsed = ProjectStateResponseSchema.safeParse(data);
+        if (!parsed.success || !isMounted) return;
+        setProjectName(parsed.data.project.name);
+        if (parsed.data.timeline && typeof parsed.data.timeline === "object") {
+          setTimelineFromServer(parsed.data.timeline as TimelineState);
+        }
+      } catch {
+        if (isMounted) navigate("/projects");
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId, navigate, setTimelineFromServer]);
 
-  // Re-link scrubbers to remote asset URLs after assets hydrate
-  // Ensures images/videos/audios render after refresh (when local blob URLs are gone)
-  // useEffect(() => {
-  //   if (isMediaLoading) return;
-  //   if (!mediaBinItems || mediaBinItems.length === 0) return;
+  const openSection = useCallback(
+    (section: "media-bin" | "text-editor" | "transitions") => {
+      const isProjectRoot = /^\/project\/[^/]+\/?$/.test(location.pathname);
+      const isActive =
+        (section === "media-bin" && (location.pathname.includes("/media-bin") || isProjectRoot)) ||
+        (section !== "media-bin" && location.pathname.includes(`/${section}`));
 
-  //   const current = getTimelineState();
-  //   let changed = false;
+      if (isActive) {
+        if (isSidebarCollapsed) {
+          leftPanelRef.current?.expand?.();
+          setIsSidebarCollapsed(false);
+          setIsUserExpandingSidebar(true);
+          setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+        } else {
+          leftPanelRef.current?.collapse?.();
+          setIsSidebarCollapsed(true);
+        }
+        return;
+      }
 
-  //   const assetsByName = new Map();
-  //   for (const item of mediaBinItems) {
-  //     if (item.mediaType === "text") continue;
-  //     if (!item.mediaUrlRemote) continue;
-  //     assetsByName.set(item.name, item);
-  //   }
-
-  //   const newTracks = current.tracks.map((track) => ({
-  //     ...track,
-  //     scrubbers: track.scrubbers.map((s) => {
-  //       if (s.mediaType === "text") return s;
-  //       if (!s.mediaUrlRemote) {
-  //         const match = assetsByName.get(s.name);
-  //         if (match && match.mediaUrlRemote) {
-  //           changed = true;
-  //           return {
-  //             ...s,
-  //             mediaUrlRemote: match.mediaUrlRemote,
-  //             sourceMediaBinId: match.id,
-  //             media_width: match.media_width || s.media_width,
-  //             media_height: match.media_height || s.media_height,
-  //           };
-  //         }
-  //       }
-  //       return s;
-  //     }),
-  //   }));
-
-  //   if (changed) {
-  //     setTimelineFromServer({ ...current, tracks: newTracks });
-  //   }
-  // }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
-
-  // Save timeline to server
-  // const handleSaveTimeline = useCallback(async () => {
-  //   try {
-  //     toast.info("Saving state of the project...");
-  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-  //     if (!id) {
-  //       toast.error("No project ID");
-  //       return;
-  //     }
-  //     const timelineState = getTimelineState();
-  //     // persist current text items alongside timeline
-  //     const textItemsPayload = getMediaBinItems().filter((i) => i.mediaType === "text");
-  //     const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-  //       method: "PATCH",
-  //       credentials: "include",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         timeline: timelineState,
-  //         textBinItems: textItemsPayload,
-  //       }),
-  //     });
-  //     if (!res.ok) throw new Error(await res.text());
-  //     toast.success("Timeline saved");
-  //   } catch (e) {
-  //     console.error(e);
-  //     toast.error("Failed to save");
-  //   }
-  // }, [getMediaBinItems, getTimelineState, projectId]);
+      if (isSidebarCollapsed) {
+        leftPanelRef.current?.expand?.();
+        setIsSidebarCollapsed(false);
+        setIsUserExpandingSidebar(true);
+        setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+      }
+      navigate(section);
+    },
+    [isSidebarCollapsed, navigate, location.pathname],
+  );
 
   const handleSaveTimeline = useCallback(async () => {
     try {
@@ -657,7 +589,8 @@ export default function TimelineEditor() {
         const response = await fetch("https://api.github.com/repos/robinroy03/videoeditor");
         if (response.ok) {
           const data = await response.json();
-          setStarCount(data.stargazers_count);
+          const parsed = GitHubRepoStatsSchema.safeParse(data);
+          if (parsed.success) setStarCount(parsed.data.stargazers_count);
         }
       } catch (error) {
         console.error("Failed to fetch GitHub stars:", error);
@@ -718,7 +651,7 @@ export default function TimelineEditor() {
       }}>
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <KimuLogo className="h-4 w-4" />
           <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
@@ -755,37 +688,99 @@ export default function TimelineEditor() {
             {isRendering ? "Rendering..." : "Export"}
           </Button>
 
-          <ProfileMenu
-            user={{ name: "test", email: "test@test.com", image: "https://github.com/shadcn.png" }}
-            starCount={starCount}
-            onSignOut={() => {}}
-          />
         </div>
       </header>
 
-      {/* Main content: Left panel full height, center preview+timeline, right chat always visible */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* Left Panel - Media Bin & Tools (full height) */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-          <div className="h-full border-r border-border">
-            <LeftPanel
-              mediaBinItems={mediaBinItems}
-              isMediaLoading={isMediaLoading}
-              onAddMedia={handleAddMediaToBin}
-              onAddText={handleAddTextToBin}
-              contextMenu={contextMenu}
-              handleContextMenu={handleContextMenu}
-              handleDeleteFromContext={handleDeleteFromContext}
-              handleSplitAudioFromContext={handleSplitAudioFromContext}
-              handleCloseContextMenu={handleCloseContextMenu}
+      {/* Main content with sidebar rail + editor panels */}
+      <div className="flex flex-1 min-h-0">
+        <div className="w-12 border-r border-border/50 bg-muted/30 flex flex-col items-center justify-between py-2">
+          <div className="flex flex-col gap-1 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                location.pathname.includes("/media-bin") || /^\/project\/[^/]+\/?$/.test(location.pathname)
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("media-bin")}
+              title="Media Bin">
+              <File className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                location.pathname.includes("/text-editor") ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("text-editor")}
+              title="Text Editor">
+              <Type className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                location.pathname.includes("/transitions") ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("transitions")}
+              title="Transitions">
+              <BetweenVerticalEnd className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="h-9 w-9 flex items-center justify-center">
+            <ProfileMenu
+              user={{ name: user?.name, email: user?.email, image: user?.image ?? undefined }}
+              starCount={starCount}
+              onSignOut={async () => {
+                await signOut();
+                window.location.assign("/login");
+              }}
             />
           </div>
-        </ResizablePanel>
+        </div>
 
-        <ResizableHandle withHandle />
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1"
+          onLayout={(sizes: number[]) => {
+            const leftSize = sizes?.[0] ?? 0;
+            if (isSidebarCollapsed && leftSize > 0 && !isUserExpandingSidebar) {
+              leftPanelRef.current?.collapse?.();
+              setIsSidebarCollapsed(true);
+              return;
+            }
+            if (isUserExpandingSidebar && leftSize >= 12) {
+              setIsUserExpandingSidebar(false);
+            }
+            setIsSidebarCollapsed(leftSize < 1);
+          }}>
+          {/* Left Panel - Media Bin & Tools */}
+          <ResizablePanel ref={leftPanelRef} defaultSize={20} minSize={15} maxSize={40} collapsible collapsedSize={0}>
+            <div className="h-full border-r border-border">
+              <LeftPanel
+                mediaBinItems={mediaBinItems}
+                isMediaLoading={isMediaLoading}
+                onAddMedia={handleAddMediaToBin}
+                onAddText={handleAddTextToBin}
+                contextMenu={contextMenu}
+                handleContextMenu={handleContextMenu}
+                handleDeleteFromContext={handleDeleteFromContext}
+                handleSplitAudioFromContext={handleSplitAudioFromContext}
+                handleCloseContextMenu={handleCloseContextMenu}
+                showTabs={false}
+                arrangeMode={mediaArrangeMode}
+                sortBy={mediaSortBy}
+                onArrangeModeChange={setMediaArrangeMode}
+                onSortByChange={setMediaSortBy}
+              />
+            </div>
+          </ResizablePanel>
 
-        {/* Center Area: Preview and Timeline */}
-        <ResizablePanel defaultSize={55}>
+          <ResizableHandle withHandle className={isSidebarCollapsed ? "opacity-0 pointer-events-none" : undefined} />
+
+          {/* Center Area: Preview and Timeline */}
+          <ResizablePanel defaultSize={isChatMinimized ? 80 : 55}>
           <ResizablePanelGroup direction="vertical">
             {/* Preview Area */}
             <ResizablePanel defaultSize={65} minSize={40}>
@@ -860,7 +855,7 @@ export default function TimelineEditor() {
                           onClick={() => setIsChatMinimized(false)}
                           className="h-6 w-6 p-0 text-primary"
                           title="Open Chat">
-                          <KimuLogo className="h-3 w-3" />
+                          <Bot className="h-3 w-3" />
                         </Button>
                       </>
                     )}
@@ -1028,28 +1023,32 @@ export default function TimelineEditor() {
           </ResizablePanelGroup>
         </ResizablePanel>
 
-        {/* Right Panel - Chat (toggleable) */}
-        {!isChatMinimized && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-              <div className="h-full border-l border-border">
-                <ChatBox
-                  mediaBinItems={mediaBinItems}
-                  handleDropOnTrack={handleDropOnTrack}
-                  isMinimized={false}
-                  onToggleMinimize={() => setIsChatMinimized(true)}
-                  messages={chatMessages}
-                  onMessagesChange={setChatMessages}
-                  timelineState={timeline}
-                  handleUpdateScrubber={handleUpdateScrubberWithLocking}
-                  handleDeleteScrubber={handleDeleteScrubber}
-                />
-              </div>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+          {/* Right Panel - Chat (toggleable) */}
+          {!isChatMinimized && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+                <div className="h-full border-l border-border">
+                  <ChatBox
+                    mediaBinItems={mediaBinItems}
+                    handleDropOnTrack={handleDropOnTrack}
+                    isMinimized={false}
+                    onToggleMinimize={() => setIsChatMinimized(true)}
+                    messages={chatMessages}
+                    onMessagesChange={setChatMessages}
+                    timelineState={timeline}
+                    handleUpdateScrubber={handleUpdateScrubberWithLocking}
+                    handleDeleteScrubber={handleDeleteScrubber}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    handleAddTrack={handleAddTrack}
+                    restoreTimeline={setTimelineFromServer}
+                  />
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      </div>
 
       {/* Hidden file input */}
       <input

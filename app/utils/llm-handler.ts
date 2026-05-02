@@ -19,14 +19,14 @@ export function llmAddScrubberToTimeline(
   mediaBinItems: MediaBinItem[],
   track: string,
   dropLeftPx: number,
-  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void,
+  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => string,
 ) {
   // take a scrubber from the media bin and add it to the timeline. It is best to leave the import to media bin to the user.
   const scrubber = mediaBinItems.find((item) => item.id === id);
   if (!scrubber) {
     throw new Error(`Scrubber with id ${id} not found`);
   }
-  handleDropOnTrack(scrubber, track, dropLeftPx);
+  return handleDropOnTrack(scrubber, track, dropLeftPx);
 }
 
 // everything below is untested and written by claude
@@ -37,7 +37,7 @@ export function llmAddScrubberByName(
   trackNumber: number,
   positionSeconds: number,
   pixelsPerSecond: number,
-  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => void,
+  handleDropOnTrack: (item: MediaBinItem, trackId: string, dropLeftPx: number) => string,
 ) {
   const scrubber = mediaBinItems.find((item) => item.name.toLowerCase().includes(name.toLowerCase()));
   if (!scrubber) {
@@ -45,7 +45,7 @@ export function llmAddScrubberByName(
   }
   const trackId = `track-${trackNumber}`;
   const dropLeftPx = positionSeconds * pixelsPerSecond;
-  handleDropOnTrack(scrubber, trackId, dropLeftPx);
+  return handleDropOnTrack(scrubber, trackId, dropLeftPx);
 }
 
 export function llmMoveScrubber(

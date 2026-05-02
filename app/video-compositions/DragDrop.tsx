@@ -223,7 +223,6 @@ export const SelectionOutline: React.FC<{
         return;
       }
 
-      console.log("onPointerDown is called", ScrubberState.id);
       setSelectedItem(ScrubberState.id);
       startDragging(e);
     },

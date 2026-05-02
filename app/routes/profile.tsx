@@ -1,13 +1,17 @@
 import React from "react";
+import { useAuth } from "~/hooks/useAuth";
 import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor, HardDrive, FolderOpen, Calendar, ArrowLeft } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Progress } from "~/components/ui/progress";
+import { BackendProjectsResponseSchema, StorageResponseSchema } from "~/schemas";
+import { getAuthCreatedAt } from "~/schemas/auth";
 
 export default function Profile() {
-  const { theme, setTheme, systemTheme } = useTheme();
+  const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
   const [limitBytes, setLimitBytes] = React.useState<number>(2 * 1024 * 1024 * 1024);
   const [projectCount, setProjectCount] = React.useState<number | null>(null);
@@ -21,10 +25,10 @@ export default function Profile() {
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) {
-          const u = Number(j?.usedBytes || 0);
-          const l = Number(j?.limitBytes || limitBytes);
-          setUsedBytes(Number.isFinite(u) ? u : 0);
-          setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
+          const parsed = StorageResponseSchema.safeParse(j);
+          if (!parsed.success) return;
+          setUsedBytes(parsed.data.usedBytes);
+          setLimitBytes(parsed.data.limitBytes);
         }
       } catch (error) {
         console.error("Failed to fetch storage info:", error);
@@ -34,7 +38,7 @@ export default function Profile() {
       try {
         const { authClient } = await import("~/lib/auth-client");
         const session = await authClient.getSession();
-        const created = session?.data?.user?.createdAt ?? null;
+        const created = getAuthCreatedAt(session);
         if (!cancelled && created) setMemberSince(String(created));
       } catch (error) {
         console.error("Failed to fetch user session:", error);
@@ -45,7 +49,10 @@ export default function Profile() {
         const res = await fetch("/backend/projects", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
-        if (!cancelled) setProjectCount(Array.isArray(j?.projects) ? j.projects.length : 0);
+        if (!cancelled) {
+          const parsed = BackendProjectsResponseSchema.safeParse(j);
+          setProjectCount(parsed.success ? parsed.data.projects.length : 0);
+        }
       } catch (error) {
         console.error("Failed to fetch projects:", error);
       }
@@ -53,7 +60,7 @@ export default function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [limitBytes]);
+  }, []);
 
   const formatBytes = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -78,10 +85,15 @@ export default function Profile() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <img src={"/kimu.svg"} alt="avatar" className="h-16 w-16 rounded-full border border-border object-cover" />
+            <img
+              src={user?.image || "/kimu.svg"}
+              alt={user?.name || user?.email || "avatar"}
+              className="h-16 w-16 rounded-full border border-border object-cover"
+              referrerPolicy="no-referrer"
+            />
             <div>
-              <h1 className="text-xl font-semibold">John Doe</h1>
-              <div className="text-sm text-muted-foreground">john.doe@example.com</div>
+              <h1 className="text-xl font-semibold">{user?.name || "User"}</h1>
+              <div className="text-sm text-muted-foreground">{user?.email || "No email"}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:justify-end">
@@ -141,7 +153,9 @@ export default function Profile() {
               <Calendar className="h-4 w-4" /> Member since
             </div>
             <div className="text-2xl font-semibold mt-1">
-              {memberSince ? new Date(memberSince).toLocaleDateString() : "—"}
+              {memberSince
+                ? new Date(/^\d+$/.test(memberSince) ? Number(memberSince) : memberSince).toLocaleDateString()
+                : "—"}
             </div>
           </Card>
         </div>

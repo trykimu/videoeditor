@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(py|toml|txt|json\\)$\")",
+      "Bash(xargs ls *)",
+      "Bash(xargs cat *)"
+    ]
+  }
+}

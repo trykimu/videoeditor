@@ -3,7 +3,6 @@ import { TimelineComposition } from "../video-compositions/VideoPlayer";
 
 export default function RenderComposition() {
   const inputProps = getInputProps();
-  console.log("Input props:", inputProps);
   return (
     <Composition
       id="TimelineComposition"

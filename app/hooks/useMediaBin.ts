@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import { type MediaBinItem, type ScrubberState } from "~/components/timeline/types";
 import { generateUUID } from "~/utils/uuid";
 
@@ -167,65 +168,6 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     item: MediaBinItem;
   } | null>(null);
 
-  // Hydrate existing assets for the logged-in user
-  // DISABLED: Loading assets feature temporarily commented out
-  /*
-  useEffect(() => {
-    const loadAssets = async () => {
-      try {
-        const url = projectId
-          ? `/api/assets?projectId=${encodeURIComponent(projectId)}`
-          : "/api/assets";
-        const res = await fetch(apiUrl(url, false, true), {
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const assets = (json.assets || []) as Array<{
-          id: string;
-          name: string;
-          mediaUrlRemote: string;
-          width: number | null;
-          height: number | null;
-          durationInSeconds: number | null;
-        }>;
-        const items: MediaBinItem[] = assets.map((a) => ({
-          id: a.id,
-          name: a.name,
-          mediaType: ((): "video" | "image" | "audio" | "text" => {
-            const ext = a.name.toLowerCase();
-            if (/(mp4|mov|webm|mkv|avi)$/.test(ext)) return "video";
-            if (/(mp3|wav|aac|ogg|flac)$/.test(ext)) return "audio";
-            if (/(jpg|jpeg|png|gif|bmp|webp)$/.test(ext)) return "image";
-            return "image";
-          })(),
-          mediaUrlLocal: null, // restored assets will use remote URL; local may be null
-          mediaUrlRemote: a.mediaUrlRemote,
-          durationInSeconds: a.durationInSeconds ?? 0,
-          media_width: a.width ?? 0,
-          media_height: a.height ?? 0,
-          text: null,
-          isUploading: false,
-          uploadProgress: null,
-          left_transition_id: null,
-          right_transition_id: null,
-        }));
-        // Merge: keep existing text items, replace non-text items with fetched assets
-        setMediaBinItems((prev) => {
-          const textItems = prev.filter((i) => i.mediaType === "text");
-          return [...textItems, ...items];
-        });
-      } catch (e) {
-        console.error("Failed to load assets", e);
-      } finally {
-        setIsMediaLoading(false);
-      }
-    };
-    loadAssets();
-  }, [projectId]);
-  */
-
-  // Manually set loading to false since we're not loading assets
   useEffect(() => {
     setIsMediaLoading(false);
   }, []);
@@ -238,18 +180,13 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     else if (file.type.startsWith("image/")) mediaType = "image";
     else if (file.type.startsWith("audio/")) mediaType = "audio";
     else {
-      alert("Unsupported file type. Please select a video or image.");
+      toast.error("Unsupported file type. Please select a video, image, or audio file.");
       return;
     }
 
-    console.log("Adding to bin:", name, mediaType);
-
     try {
       const mediaUrlLocal = URL.createObjectURL(file);
-
-      console.log(`Parsing ${mediaType} file for metadata...`);
       const metadata = await getMediaMetadata(file, mediaType);
-      console.log("Media metadata:", metadata);
 
       // Add item to media bin immediately with upload progress tracking
       const newItem: MediaBinItem = {
@@ -278,9 +215,6 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload progress: ${percentCompleted}%`);
-
-            // Update upload progress in the media bin
             setMediaBinItems((prev) =>
               prev.map((item) => (item.id === id ? { ...item, uploadProgress: percentCompleted } : item)),
             );
@@ -289,7 +223,6 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       });
 
       const uploadResult = uploadResponse.data;
-      console.log("Upload successful:", uploadResult);
 
       // Update item with successful upload result and remove progress tracking
       setMediaBinItems((prev) =>
@@ -516,7 +449,6 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     };
 
     setMediaBinItems((prev) => [...prev, newItem]);
-    console.log("Added grouped scrubber to media bin:", newItem.name);
   }, []);
 
   return {

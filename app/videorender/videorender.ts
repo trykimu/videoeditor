@@ -13,11 +13,8 @@ const compositionId = "TimelineComposition";
 // for multiple renders that you can parametrize using input props.
 const bundleLocation = await bundle({
   entryPoint: path.resolve("./app/videorender/index.ts"),
-  // If you have a webpack override in remotion.config.ts, pass it here as well.
   webpackOverride: (config) => config,
 });
-
-console.log(bundleLocation);
 
 // Ensure output directory exists
 if (!fs.existsSync("out")) {
@@ -113,7 +110,7 @@ app.post("/upload", upload.single("media"), (req: Request, res: Response): void 
     }
 
     const fileUrl = `/media/${encodeURIComponent(req.file.filename)}`;
-    const fullUrl = `http://localhost:${port}${fileUrl}`; // Direct backend URL for Remotion
+    const fullUrl = `${host}${fileUrl}`;
 
     console.log(`📁 File uploaded: ${req.file.originalname} -> ${req.file.filename}`);
 
@@ -144,7 +141,7 @@ app.post("/upload-multiple", upload.array("media", 10), (req: Request, res: Resp
       filename: file.filename,
       originalName: file.originalname,
       url: `/media/${encodeURIComponent(file.filename)}`,
-      fullUrl: `http://localhost:${port}/media/${encodeURIComponent(file.filename)}`, // Direct backend URL for Remotion
+      fullUrl: `${host}/media/${encodeURIComponent(file.filename)}`,
       size: file.size,
       path: file.path,
     }));
@@ -197,9 +194,7 @@ app.post("/clone-media", (req: Request, res: Response): void => {
 
     const fileStats = fs.statSync(destPath);
     const fileUrl = `/media/${encodeURIComponent(newFilename)}`;
-    const fullUrl = `http://localhost:${port}${fileUrl}`;
-
-    console.log(`📋 File cloned: ${decodedFilename} -> ${newFilename}`);
+    const fullUrl = `${host}${fileUrl}`;
 
     res.json({
       success: true,
@@ -219,7 +214,8 @@ app.post("/clone-media", (req: Request, res: Response): void => {
 // Delete file endpoint
 app.delete("/media/:filename", (req: Request, res: Response): void => {
   try {
-    const filename = decodeURIComponent(req.params.filename);
+    const rawFilename = req.params.filename;
+    const filename = decodeURIComponent(Array.isArray(rawFilename) ? rawFilename[0] : rawFilename);
     const filePath = path.resolve("out", filename);
 
     // Security check - ensure file is in the out directory
@@ -272,8 +268,6 @@ app.post("/render", async (req, res) => {
       isRendering: true,
     };
 
-    // console.log("Input props:", typeof inputProps.compositionWidth);
-    console.log("Input props:", JSON.stringify(inputProps, null, 2));
     // Get the composition you want to render
     const composition = await selectComposition({
       serveUrl: bundleLocation,
@@ -340,26 +334,14 @@ app.post("/render", async (req, res) => {
 
     res.status(500).json({
       error: "Video rendering failed",
-      message: "Your laptop might be under heavy load. Try closing other apps and rendering again.",
-      tip: "Videos are limited to 5 seconds at half resolution for performance.",
+      message: "Rendering failed. Check server logs for details.",
     });
   }
 });
 
 const port = process.env.PORT || 8000;
+const host = process.env.RENDER_HOST || `http://localhost:${port}`;
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
-  console.log(`🎬 Video rendering: POST http://localhost:${port}/render`);
-  console.log(`📁 Media files: http://localhost:${port}/media/`);
-  console.log(`📤 Upload file: POST http://localhost:${port}/upload`);
-  console.log(`📤 Upload multiple: POST http://localhost:${port}/upload-multiple`);
-  console.log(`📋 Clone media: POST http://localhost:${port}/clone-media`);
-  console.log(`🗑️ Delete file: DELETE http://localhost:${port}/media/:filename`);
-  console.log(`🖥️ Optimized for 4vCPU, 8GB RAM server:`);
-  console.log(`   - Multi-threaded processing (3 cores)`);
-  console.log(`   - Balanced quality/speed encoding`);
-  console.log(`   - Full resolution rendering`);
-  console.log(`   - 15-minute timeout for longer videos`);
-  console.log(`📂 Media files are served from: ${path.resolve("out")}`);
+  console.log(`🚀 Render server listening on ${host}`);
+  console.log(`📂 Media files served from: ${path.resolve("out")}`);
 });

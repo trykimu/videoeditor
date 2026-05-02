@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { parseDuration } from "@alwatr/parse-duration";
 import {
   Send,
   Bot,
@@ -42,7 +41,6 @@ import { Separator } from "~/components/ui/separator";
 import { type MediaBinItem, type TimelineState, type ScrubberState } from "../timeline/types";
 import { cn } from "~/lib/utils";
 import axios from "axios";
-import { apiUrl } from "~/utils/api";
 import {
   AiResponseSchema,
   MoveScrubberArgsSchema,
@@ -465,7 +463,7 @@ export function ChatBox({
       // Use the stored mentioned items to get their IDs
       const mentionedScrubberIds = itemsToSend.map((item) => item.id);
 
-      const response = await axios.post(apiUrl("/ai", true), {
+      const response = await axios.post("/backend/ai", {
         message: messageContent,
         mentioned_scrubber_ids: mentionedScrubberIds,
         timeline_state: timelineState,
@@ -510,11 +508,6 @@ export function ChatBox({
           if (typeof val === "number") return Number.isFinite(val) ? val : undefined;
           if (typeof val !== "string") return undefined;
           const raw = val.trim().toLowerCase();
-          // Try @alwatr/parse-duration (returns ms)
-          try {
-            const ms = (parseDuration as unknown as (v: unknown) => number)(raw);
-            if (typeof ms === "number" && Number.isFinite(ms)) return ms / 1000;
-          } catch {}
           // Try hh:mm:ss / mm:ss
           const colon = raw.match(/^\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*$/);
           if (colon) {
