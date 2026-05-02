@@ -1,20 +1,37 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from urllib.parse import unquote
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from auth.schema import SessionUser
 from db import get_db_pool
 
 _BETTER_AUTH_COOKIE = "better-auth.session_token"
 
+
+def _extract_session_token_from_cookies(request: Request) -> str | None:
+    """
+    Better Auth stores a signed cookie value as "<token>.<signature>".
+    Extract the raw token used in the session table.
+    """
+    raw_cookie_value = request.cookies.get(_BETTER_AUTH_COOKIE)
+    if not raw_cookie_value:
+        return None
+
+    decoded_cookie = unquote(raw_cookie_value)
+    token = decoded_cookie.split(".", 1)[0]
+    return token or None
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 async def get_current_user(
-    session_token: str | None = Cookie(default=None, alias=_BETTER_AUTH_COOKIE),
+    request: Request,
 ) -> SessionUser:
     """
     FastAPI dependency. Reads the BetterAuth session token from the HttpOnly
     cookie and validates it against the session/user tables in Postgres.
     """
+    session_token = _extract_session_token_from_cookies(request)
     if not session_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 

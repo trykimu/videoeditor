@@ -1,7 +1,9 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- BetterAuth: user table
 CREATE TABLE "user" (
-  id             TEXT PRIMARY KEY,
-  name           TEXT,
+  id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  name           TEXT NOT NULL,
   email          TEXT NOT NULL UNIQUE,
   "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE,
   image          TEXT,
@@ -11,7 +13,7 @@ CREATE TABLE "user" (
 
 -- BetterAuth: session table
 CREATE TABLE session (
-  id           TEXT PRIMARY KEY,
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   "expiresAt"  TIMESTAMPTZ NOT NULL,
   token        TEXT NOT NULL UNIQUE,
   "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -23,9 +25,9 @@ CREATE TABLE session (
 
 -- BetterAuth: account table (OAuth providers)
 CREATE TABLE account (
-  id                      TEXT PRIMARY KEY,
-  "accountId"             TEXT,
-  "providerId"            TEXT,
+  id                      TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "accountId"             TEXT NOT NULL,
+  "providerId"            TEXT NOT NULL,
   "userId"                TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   "accessToken"           TEXT,
   "refreshToken"          TEXT,
@@ -40,13 +42,33 @@ CREATE TABLE account (
 
 -- BetterAuth: verification table
 CREATE TABLE verification (
-  id           TEXT PRIMARY KEY,
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   identifier   TEXT NOT NULL,
   value        TEXT NOT NULL,
   "expiresAt"  TIMESTAMPTZ NOT NULL,
   "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Guard against adapter inserts that send null for user.id
+CREATE OR REPLACE FUNCTION set_user_id() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.id IS NULL OR NEW.id = '' THEN
+    NEW.id = gen_random_uuid()::text;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Guard against adapter inserts that send null for verification.id
+CREATE OR REPLACE FUNCTION set_verification_id() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.id IS NULL OR NEW.id = '' THEN
+    NEW.id = gen_random_uuid()::text;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Auto-update "updatedAt" on row changes
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
@@ -64,6 +86,10 @@ CREATE TRIGGER trg_account_updated_at
   BEFORE UPDATE ON account FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_verification_updated_at
   BEFORE UPDATE ON verification FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_user_set_id
+  BEFORE INSERT ON "user" FOR EACH ROW EXECUTE FUNCTION set_user_id();
+CREATE TRIGGER trg_verification_set_id
+  BEFORE INSERT ON verification FOR EACH ROW EXECUTE FUNCTION set_verification_id();
 
 -- Application: projects
 CREATE TABLE projects (
@@ -96,6 +122,7 @@ CREATE INDEX idx_session_token          ON session(token);
 CREATE INDEX idx_session_user_id        ON session("userId");
 CREATE INDEX idx_account_user_id        ON account("userId");
 CREATE INDEX idx_account_provider       ON account("providerId", "accountId");
+CREATE INDEX idx_verification_identifier ON verification(identifier);
 CREATE INDEX idx_projects_user_id       ON projects(user_id, created_at DESC);
 CREATE INDEX idx_assets_user_id         ON assets(user_id, created_at DESC);
 CREATE INDEX idx_assets_user_project_id ON assets(user_id, project_id, created_at DESC);

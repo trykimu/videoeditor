@@ -57,9 +57,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (!user) throw redirect("/login");
   const { origin } = new URL(request.url);
 
-  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/backend/projects`, {
-    headers: { Cookie: request.headers.get("Cookie") },
-  });
+  let projectsRes;
+  try {
+    projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/backend/projects`, {
+      headers: { Cookie: request.headers.get("Cookie") ?? "" },
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw redirect("/login");
+    }
+    throw error;
+  }
 
   return {
     user,
