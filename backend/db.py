@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 import asyncpg  # type: ignore[import-untyped]
@@ -15,5 +16,6 @@ async def get_db_pool() -> asyncpg.Pool:
     """
     global _pool
     if _pool is None:
-        _pool = await asyncpg.create_pool(DATABASE_URL)
+        ssl = "require" if os.getenv("DATABASE_SSL") == "true" else None
+        _pool = await asyncpg.create_pool(DATABASE_URL, ssl=ssl)
     return _pool

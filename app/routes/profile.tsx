@@ -32,10 +32,9 @@ export default function Profile() {
     })();
     (async () => {
       try {
-        const res = await fetch("/backend/auth/session", { credentials: "include" });
-        if (!res.ok) return;
-        const j = await res.json();
-        const created = j?.user?.createdAt || j?.user?.created_at || j?.user?.created_at_ms || null;
+        const { authClient } = await import("~/lib/auth-client");
+        const session = await authClient.getSession();
+        const created = session?.data?.user?.createdAt ?? null;
         if (!cancelled && created) setMemberSince(String(created));
       } catch (error) {
         console.error("Failed to fetch user session:", error);

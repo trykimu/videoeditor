@@ -53,9 +53,8 @@ type Project = {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const res = await requireUser(request);
-  // the user does not have a cookie or the cookie is invalid, so we redirect to the login page
-  if (res.status !== 200) throw redirect("/login");
+  const user = await requireUser(request);
+  if (!user) throw redirect("/login");
   const { origin } = new URL(request.url);
 
   const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/backend/projects`, {
@@ -63,7 +62,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 
   return {
-    user: res.data,
+    user,
     projects: projectsRes.data.projects,
   };
 }
@@ -288,10 +287,11 @@ export default function Projects() {
         </div>
         <div className="flex items-center gap-2">
           <ProfileMenu
-            user={{ name: user.name, email: user.email, image: user.avatar_url }}
+            user={{ name: user.name, email: user.email, image: user.image ?? undefined }}
             starCount={starCount}
             onSignOut={async () => {
-              await axios.post("/backend/auth/logout", {}, { withCredentials: true });
+              const { authClient } = await import("~/lib/auth-client");
+              await authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } });
             }}
           />
         </div>

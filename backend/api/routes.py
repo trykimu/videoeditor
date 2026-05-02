@@ -4,14 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.schema import CreateProjectRequest, RenameProjectRequest
 from auth.routes import get_current_user
-from auth.schema import KimuJWT
+from auth.schema import SessionUser
 from db import get_db_pool
 
 router = APIRouter(tags=["api"])
 
 
 @router.get("/projects")
-async def list_projects(user: KimuJWT = Depends(get_current_user)) -> dict:
+async def list_projects(user: SessionUser = Depends(get_current_user)) -> dict:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -39,7 +39,7 @@ async def list_projects(user: KimuJWT = Depends(get_current_user)) -> dict:
 @router.post("/projects", status_code=status.HTTP_201_CREATED)
 async def create_project(
     body: CreateProjectRequest,
-    user: KimuJWT = Depends(get_current_user),
+    user: SessionUser = Depends(get_current_user),
 ) -> dict:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
@@ -70,7 +70,7 @@ async def create_project(
 
 @router.put("/projects/{project_id}")
 async def save_project(
-    project_id: str, timeline: dict, user: KimuJWT = Depends(get_current_user)
+    project_id: str, timeline: dict, user: SessionUser = Depends(get_current_user)
 ) -> dict:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
@@ -97,7 +97,7 @@ async def save_project(
 
 @router.patch("/projects/{project_id}")
 async def rename_project(
-    project_id: str, body: RenameProjectRequest, user: KimuJWT = Depends(get_current_user)
+    project_id: str, body: RenameProjectRequest, user: SessionUser = Depends(get_current_user)
 ) -> dict:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
@@ -124,7 +124,7 @@ async def rename_project(
 
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
-    project_id: str, user: KimuJWT = Depends(get_current_user)
+    project_id: str, user: SessionUser = Depends(get_current_user)
 ) -> None:
     pool = await get_db_pool()
     async with pool.acquire() as conn:

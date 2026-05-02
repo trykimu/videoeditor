@@ -1,32 +1,19 @@
-import axios, { type AxiosResponse } from "axios";
+import { auth } from "~/lib/auth.server";
 
-// the data in the cookie
 export type SessionUser = {
-  user_id: string;
+  id: string;
   email: string;
   name: string;
-  avatar_url: string;
+  image: string | null;
 };
 
-export async function requireUser(request: Request): Promise<AxiosResponse<SessionUser>> {
-  const cookie = request.headers.get("Cookie");
-
-  // there is no cookie, so we return a 401
-  if (!cookie)
-    return {
-      data: {} as SessionUser,
-      status: 401,
-      statusText: "Unauthorized",
-      headers: {},
-      config: {} as never,
-    };
-
-  const { origin } = new URL(request.url);
-
-  const res = await axios.get<SessionUser>(`${origin}/backend/auth/me`, {
-    headers: { Cookie: cookie }, // include the cookie in the request headers because we are in server code and not in the browser
-    validateStatus: null,
-  });
-
-  return res;
+export async function requireUser(request: Request): Promise<SessionUser | null> {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) return null;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image ?? null,
+  };
 }

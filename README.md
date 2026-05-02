@@ -132,30 +132,36 @@ nginx routes:
 
 ## ⚙️ Environment Configuration
 
-Create a `.env` file for custom settings:
+Copy `.env.example` to `.env` and fill in your values:
 
 ```env
-# Domain Configuration
-PROD_DOMAIN=yourdomain.com
+# Local/Docker Postgres (dev or self-hosted prod):
+DATABASE_URL=postgresql://videoeditor:videoeditor@localhost:5432/videoeditor
 
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/videoeditor
+# — OR — Supabase Session Pooler (cloud):
+DATABASE_URL=postgresql://postgres.REF:password@aws-0-REGION.pooler.supabase.com:5432/postgres
+DATABASE_SSL=true   # required for Supabase; omit for local/Docker Postgres
 
-# Authentication (Google OAuth)
+# BetterAuth
+BETTER_AUTH_SECRET=   # generate with: openssl rand -hex 32
+BETTER_AUTH_URL=https://yourdomain.com   # http://localhost:5173 for dev
+
+# Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-# AI Features (Optional -> /backend)
+# AI Features (optional)
 GEMINI_API_KEY=your_gemini_api_key
-
 ```
 
 **Environment Variables Explained:**
 
-- `PROD_DOMAIN`: Your production domain (host only, e.g., `yourdomain.com`)
-- `DATABASE_URL`: PostgreSQL connection string
-- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials for authentication
-- `GEMINI_API_KEY`: Required for AI-powered video editing features
+- `DATABASE_URL`: PostgreSQL connection string. Use the local Docker URL for dev/self-hosted prod, or the Supabase Session Pooler URL for cloud.
+- `DATABASE_SSL`: Set to `"true"` when connecting to Supabase or any remote DB that requires SSL. Leave unset for local/Docker Postgres.
+- `BETTER_AUTH_SECRET`: Random secret used to sign sessions — generate with `openssl rand -hex 32`.
+- `BETTER_AUTH_URL`: The public URL of the app. Used by BetterAuth for OAuth callbacks.
+- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials — register at [console.cloud.google.com](https://console.cloud.google.com).
+- `GEMINI_API_KEY`: Required for AI-powered video editing features.
 
 <br>
 
