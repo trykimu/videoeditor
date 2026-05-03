@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
 import { Trash2, Group, Ungroup, Archive } from "lucide-react";
 
-// something something for the css not gonna bother with it for now
 export interface SnapConfig {
   enabled: boolean;
   distance: number; // snap distance in pixels
@@ -25,7 +24,9 @@ export interface ScrubberProps {
   onUngroupScrubber: (scrubberId: string) => void;
   onMoveToMediaBin?: (scrubberId: string) => void;
   selectedScrubberIds: string[];
-  onBeginTransform?: () => void; // drag or resize start snapshot
+  onBeginTransform?: () => void;
+  rulerPositionPx?: number;
+  onRippleEdit?: (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => void;
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -46,16 +47,21 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   onMoveToMediaBin,
   selectedScrubberIds = [],
   onBeginTransform,
+  rulerPositionPx,
+  onRippleEdit,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeMode, setResizeMode] = useState<"left" | "right" | null>(null);
+  const [snappedEdge, setSnappedEdge] = useState<"left" | "right" | null>(null);
   const dragStateRef = useRef({
     offsetX: 0,
     startX: 0,
     startLeft: 0,
     startWidth: 0,
   });
+  const altHeldRef = useRef(false);
+  const rippleThresholdRef = useRef(0);
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
     x: number;
@@ -80,12 +86,15 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     [otherScrubbers],
   );
 
-  // Find nearest snap point
+  // Find nearest snap point (grid, scrubber edges, playhead)
   const findSnapPoint = useCallback(
     (position: number, excludeId?: string): number => {
       if (!snapConfig.enabled) return position;
       const distance = snapConfig.distance;
 
+      if (rulerPositionPx !== undefined && Math.abs(position - rulerPositionPx) < distance) {
+        return rulerPositionPx;
+      }
       for (const snapPos of gridSnapPoints) {
         if (Math.abs(position - snapPos) < distance) return snapPos;
       }
@@ -96,7 +105,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       }
       return position;
     },
-    [snapConfig, gridSnapPoints, scrubberSnapPoints],
+    [snapConfig, gridSnapPoints, scrubberSnapPoints, rulerPositionPx],
   );
 
   const handleMouseDown = useCallback(
@@ -128,6 +137,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         dragStateRef.current.startX = e.clientX;
         dragStateRef.current.startLeft = scrubber.left;
         dragStateRef.current.startWidth = scrubber.width;
+        rippleThresholdRef.current = scrubber.left + scrubber.width;
+        altHeldRef.current = false;
       }
     },
     [scrubber, onSelect, onBeginTransform],
@@ -155,6 +166,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
         // Apply snapping to the position
         const snappedLeft = findSnapPoint(rawNewLeft, scrubber.id);
+        setSnappedEdge(snappedLeft !== rawNewLeft ? "left" : null);
         const updatedScrubber = { ...scrubber, left: snappedLeft, y: newTrack };
 
         // Let the timeline handle collision detection and connected scrubber logic
@@ -175,6 +187,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           }
         }
       } else if (isResizing) {
+        altHeldRef.current = e.altKey;
         const deltaX = e.clientX - dragStateRef.current.startX;
 
         if (resizeMode === "left") {
@@ -189,7 +202,9 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           newWidth = Math.max(MINIMUM_WIDTH, newWidth);
 
           // Apply snapping to left edge
+          const rawLeft = newLeft;
           newLeft = findSnapPoint(newLeft, scrubber.id);
+          setSnappedEdge(newLeft !== rawLeft ? "left" : null);
           newWidth = dragStateRef.current.startLeft + dragStateRef.current.startWidth - newLeft;
 
           if (newLeft === 0) {
@@ -210,6 +225,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           // Apply snapping to right edge
           const rightEdge = dragStateRef.current.startLeft + newWidth;
           const snappedRightEdge = findSnapPoint(rightEdge, scrubber.id);
+          setSnappedEdge(snappedRightEdge !== rightEdge ? "right" : null);
           newWidth = snappedRightEdge - dragStateRef.current.startLeft;
 
           if (dragStateRef.current.startLeft + newWidth > timelineWidth) {
@@ -243,10 +259,19 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   );
 
   const handleMouseUp = useCallback(() => {
+    if (isResizing && resizeMode === "right" && altHeldRef.current && onRippleEdit) {
+      const newRightEdge = scrubber.left + scrubber.width;
+      const delta = newRightEdge - rippleThresholdRef.current;
+      if (delta !== 0) {
+        onRippleEdit(scrubber.id, rippleThresholdRef.current, delta);
+      }
+    }
     setIsDragging(false);
     setIsResizing(false);
     setResizeMode(null);
-  }, []);
+    setSnappedEdge(null);
+    altHeldRef.current = false;
+  }, [isResizing, resizeMode, scrubber, onRippleEdit]);
 
   useEffect(() => {
     document.addEventListener("mousemove", handleMouseMove);
@@ -429,6 +454,14 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
         onContextMenu={handleContextMenu}>
+        {/* Snap indicators — yellow line on the edge that just snapped */}
+        {snappedEdge === "left" && (
+          <div className="absolute top-0 left-0 w-0.5 h-full bg-yellow-400 z-30 pointer-events-none rounded-l-sm" />
+        )}
+        {snappedEdge === "right" && (
+          <div className="absolute top-0 right-0 w-0.5 h-full bg-yellow-400 z-30 pointer-events-none rounded-r-sm" />
+        )}
+
         {/* Media type indicator - positioned after left resize handle */}
         <div className="absolute top-0.5 left-3 text-xs font-medium opacity-80 pointer-events-none">
           {scrubber.mediaType === "video" && "V"}

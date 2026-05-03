@@ -36,6 +36,7 @@ interface TimelineTracksProps {
   onGroupScrubbers: () => void;
   onUngroupScrubber: (scrubberId: string) => void;
   onMoveToMediaBin?: (scrubberId: string) => void;
+  onRippleEdit?: (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -60,6 +61,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onGroupScrubbers,
   onUngroupScrubber,
   onMoveToMediaBin,
+  onRippleEdit,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -265,7 +267,9 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     snapConfig={{ enabled: true, distance: 10 }}
                     trackCount={timeline.tracks.length}
                     pixelsPerSecond={pixelsPerSecond}
+                    rulerPositionPx={rulerPositionPx}
                     onBeginTransform={onBeginScrubberTransform}
+                    onRippleEdit={onRippleEdit}
                   />
                 );
               })}

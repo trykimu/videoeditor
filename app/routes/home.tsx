@@ -137,6 +137,7 @@ export default function TimelineEditor() {
     handleGroupScrubbers,
     handleUngroupScrubber,
     handleMoveGroupToMediaBin,
+    handleRippleEdit,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -1066,6 +1067,7 @@ export default function TimelineEditor() {
                     onUngroupScrubber={handleUngroupSelected}
                     onMoveToMediaBin={handleMoveToMediaBinSelected}
                     onBeginScrubberTransform={snapshotTimeline}
+                    onRippleEdit={handleRippleEdit}
                   />
                 </div>
               </ResizablePanel>

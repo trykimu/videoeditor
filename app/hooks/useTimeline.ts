@@ -1478,6 +1478,32 @@ export const useTimeline = () => {
     });
   }, []);
 
+  // Ripple edit: shift all clips on the same track that start at or after `originalRightEdgePx`
+  // by `deltaPx`. Called when Alt is held during a right-edge resize.
+  const handleRippleEdit = useCallback(
+    (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => {
+      if (deltaPx === 0) return;
+      snapshotTimeline();
+      setTimeline((prev) => {
+        const target = prev.tracks.flatMap((t) => t.scrubbers).find((s) => s.id === scrubberId);
+        if (!target) return prev;
+        return {
+          ...prev,
+          tracks: prev.tracks.map((track) => ({
+            ...track,
+            scrubbers: track.scrubbers.map((s) => {
+              if (s.id === scrubberId) return s;
+              if (s.y !== target.y) return s;
+              if (s.left < originalRightEdgePx) return s;
+              return { ...s, left: Math.max(0, s.left + deltaPx) };
+            }),
+          })),
+        };
+      });
+    },
+    [snapshotTimeline],
+  );
+
   // Move a grouped scrubber to media bin and remove from timeline
   const handleMoveGroupToMediaBin = useCallback(
     (groupedScrubberId: string, addToMediaBin: (scrubber: ScrubberState, pixelsPerSecond: number) => void) => {
@@ -1530,6 +1556,7 @@ export const useTimeline = () => {
     handleGroupScrubbers,
     handleUngroupScrubber,
     handleMoveGroupToMediaBin,
+    handleRippleEdit,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
