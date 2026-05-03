@@ -1,23 +1,47 @@
 import { useState, useCallback, useEffect } from "react";
-import axios from "axios";
 import { toast } from "sonner";
 import { type MediaBinItem, type ScrubberState } from "~/components/timeline/types";
 import { generateUUID } from "~/utils/uuid";
 
-// Delete media file from server
+async function hashFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function inferMediaTypeFromMime(mimeType: string): "video" | "image" | "audio" | null {
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return null;
+}
+
+type RendererAsset = {
+  id: string;
+  filename: string;
+  mediaType: "video" | "image" | "audio" | null;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  durationInSeconds: number | null;
+  assetUrl: string;
+};
+
+// Delete asset from R2 + DB via asset ID
 export const deleteMediaFile = async (
-  filename: string,
+  assetId: string,
 ): Promise<{ success: boolean; message?: string; error?: string }> => {
   try {
-    const response = await fetch(`/renderer/media/${encodeURIComponent(filename)}`, {
+    const response = await fetch(`/renderer/assets/${assetId}`, {
       method: "DELETE",
+      credentials: "include",
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to delete file");
+      throw new Error(errorData.error || "Failed to delete asset");
     }
-
     return await response.json();
   } catch (error) {
     console.error("Delete API error:", error);
@@ -28,39 +52,27 @@ export const deleteMediaFile = async (
   }
 };
 
-// Clone/copy media file on server
+// Clone asset in R2 + DB via asset ID
 export const cloneMediaFile = async (
-  filename: string,
-  originalName: string,
+  assetId: string,
   suffix: string,
 ): Promise<{
   success: boolean;
-  filename?: string;
-  originalName?: string;
-  url?: string;
-  fullUrl?: string;
-  size?: number;
+  asset?: { id: string; assetUrl: string; [key: string]: unknown };
   error?: string;
 }> => {
   try {
-    const response = await fetch("/renderer/clone-media", {
+    const response = await fetch(`/renderer/assets/${assetId}/clone`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        filename,
-        originalName,
-        suffix,
-      }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ suffix }),
     });
-
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to clone file");
+      throw new Error(errorData.error || "Failed to clone asset");
     }
-
-    return await response.json();
+    return { success: true, ...(await response.json()) };
   } catch (error) {
     console.error("Clone API error:", error);
     return {
@@ -169,8 +181,67 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
   } | null>(null);
 
   useEffect(() => {
-    setIsMediaLoading(false);
-  }, []);
+    let cancelled = false;
+
+    const loadAssets = async () => {
+      try {
+        const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+        const res = await fetch(`/renderer/assets${query}`, { credentials: "include" });
+        if (!res.ok) return;
+
+        const payload = (await res.json()) as { assets?: RendererAsset[] };
+        const assets = Array.isArray(payload.assets) ? payload.assets : [];
+
+        const loadedItems: MediaBinItem[] = assets.flatMap((asset) => {
+          const mediaType = asset.mediaType ?? inferMediaTypeFromMime(asset.mimeType);
+          if (!mediaType) return [];
+
+          return [
+            {
+              id: asset.id,
+              name: asset.filename,
+              mediaType,
+              mediaUrlLocal: null,
+              mediaUrlRemote: asset.assetUrl,
+              durationInSeconds: asset.durationInSeconds ?? 0,
+              media_width: asset.width ?? 0,
+              media_height: asset.height ?? 0,
+              text: null,
+              isUploading: false,
+              uploadProgress: null,
+              left_transition_id: null,
+              right_transition_id: null,
+              groupped_scrubbers: null,
+            },
+          ];
+        });
+
+        if (!cancelled) {
+          setMediaBinItems((prev) => {
+            const loadedIds = new Set(loadedItems.map((item) => item.id));
+            const preservedItems = prev.filter(
+              (item) =>
+                item.mediaType === "text" ||
+                item.mediaType === "groupped_scrubber" ||
+                item.isUploading ||
+                !loadedIds.has(item.id),
+            );
+            return [...loadedItems, ...preservedItems];
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load media bin assets:", error);
+      } finally {
+        if (!cancelled) setIsMediaLoading(false);
+      }
+    };
+
+    void loadAssets();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   const handleAddMediaToBin = useCallback(async (file: File) => {
     const id = generateUUID();
@@ -207,33 +278,71 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       };
       setMediaBinItems((prev) => [...prev, newItem]);
 
-      const formData = new FormData();
-      formData.append("media", file);
+      // Step 1: Hash file content for deduplication (WebCrypto SHA-256)
+      const contentHash = await hashFile(file);
 
-      console.log("Uploading file to server...");
-      const uploadResponse = await axios.post("/renderer/upload", formData, {
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setMediaBinItems((prev) =>
-              prev.map((item) => (item.id === id ? { ...item, uploadProgress: percentCompleted } : item)),
-            );
-          }
-        },
+      // Step 2: Initiate upload — server checks dedup and returns either
+      //   { alreadyExists: true, assetUrl }  ← file already in R2, skip upload
+      //   { assetUrl }                        ← new file, proceed with upload
+      const initiateRes = await fetch("/renderer/assets/initiate-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          assetId: id,
+          filename: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          mediaType,
+          contentHash,
+          projectId,
+        }),
       });
+      if (!initiateRes.ok) throw new Error("Failed to initiate upload");
+      const initiateResult = await initiateRes.json() as {
+        alreadyExists?: boolean;
+        assetUrl: string;
+      };
 
-      const uploadResult = uploadResponse.data;
+      if (!initiateResult.alreadyExists) {
+        // Step 3: Upload raw bytes to renderer (same-origin) to avoid browser↔R2 CORS
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", `/renderer/assets/upload/${id}`);
+          xhr.setRequestHeader("Content-Type", file.type);
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              setMediaBinItems((prev) =>
+                prev.map((item) => (item.id === id ? { ...item, uploadProgress: pct } : item)),
+              );
+            }
+          };
+          xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)));
+          xhr.onerror = () => reject(new Error("Network error during R2 upload"));
+          xhr.send(file);
+        });
 
-      // Update item with successful upload result and remove progress tracking
+        // Step 4: Confirm upload — persist media dimensions/duration to DB
+        const completeRes = await fetch("/renderer/assets/complete-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            assetId: id,
+            width: metadata.width,
+            height: metadata.height,
+            durationInSeconds: metadata.durationInSeconds,
+          }),
+        });
+        if (!completeRes.ok) throw new Error("Failed to complete upload");
+      }
+
+      // Step 5: Store authenticated asset URL and mark upload done
       setMediaBinItems((prev) =>
         prev.map((item) =>
           item.id === id
-            ? {
-                ...item,
-                mediaUrlRemote: uploadResult.fullUrl,
-                isUploading: false,
-                uploadProgress: null,
-              }
+            ? { ...item, mediaUrlRemote: initiateResult.assetUrl, isUploading: false, uploadProgress: null }
             : item,
         ),
       );
@@ -246,7 +355,7 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
 
       throw new Error(`Failed to add media: ${errorMessage}`);
     }
-  }, []);
+  }, [projectId]);
 
   const handleAddTextToBin = useCallback(
     (
@@ -353,28 +462,17 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     }
 
     try {
-      // Extract filename from mediaUrlRemote URL
-      if (!videoItem.mediaUrlRemote) {
-        throw new Error("No remote URL found for video item");
-      }
+      // Clone via authenticated API (server copies in R2 and records in DB)
+      const cloneResult = await cloneMediaFile(videoItem.id, "(Audio)");
+      if (!cloneResult.success || !cloneResult.asset) throw new Error("Failed to clone media file");
 
-      // Clone via authenticated API (server will copy within out/ and record)
-      const res = await fetch(`/renderer/assets/${videoItem.id}/clone`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suffix: "(Audio)" }),
-      });
-      if (!res.ok) throw new Error("Failed to clone media file");
-      const cloneResult = await res.json();
-
-      // Create a new audio media item using returned URL
+      // Create a new audio media item using the returned authenticated URL
       const audioItem: MediaBinItem = {
-        id: generateUUID(),
+        id: cloneResult.asset.id,
         name: `${videoItem.name} (Audio)`,
         mediaType: "audio",
-        mediaUrlLocal: videoItem.mediaUrlLocal, // Reuse the original video's blob URL
-        mediaUrlRemote: cloneResult.asset?.mediaUrlRemote!,
+        mediaUrlLocal: videoItem.mediaUrlLocal, // Reuse the original video's blob URL for preview
+        mediaUrlRemote: cloneResult.asset.assetUrl,
         durationInSeconds: videoItem.durationInSeconds,
         media_width: 0, // Audio doesn't have visual dimensions
         media_height: 0,

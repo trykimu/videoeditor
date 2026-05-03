@@ -60,26 +60,19 @@ export const useRenderer = () => {
             ),
             getPixelsPerSecond: getPixelsPerSecond(),
           },
-          {
-            responseType: "blob",
-            timeout: 900000,
-            onDownloadProgress: (progressEvent) => {
-              if (progressEvent.lengthComputable && progressEvent.total) {
-                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                setRenderStatus(`Downloading rendered video: ${percentCompleted}%`);
-              }
-            },
-          },
+          { timeout: 900000 },
         );
 
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const { downloadUrl } = response.data as { downloadUrl: string };
+
+        // Trigger download from R2 presigned URL — browser downloads directly from R2
+        setRenderStatus("Downloading rendered video...");
         const link = document.createElement("a");
-        link.href = url;
+        link.href = downloadUrl;
         link.setAttribute("download", "rendered-video.mp4");
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(url);
 
         setRenderStatus("Video rendered and downloaded successfully!");
       } catch (error) {

@@ -41,8 +41,6 @@ services:
       PORT: 8000
     # ports:
     #   - "8000:8000"
-    volumes:
-      - ./out:/app/out
     # Memory configuration for video rendering
     mem_limit: 2g
     memswap_limit: 2g

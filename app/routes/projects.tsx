@@ -395,7 +395,7 @@ export default function Projects() {
               setDrawerOpen(true);
             }}
             onDelete={async (projectId) => {
-              const res = await fetch(`/backend/projects/${encodeURIComponent(projectId)}`, {
+              const res = await fetch(`/renderer/projects/${encodeURIComponent(projectId)}`, {
                 method: "DELETE",
                 credentials: "include",
               });
@@ -492,7 +492,7 @@ export default function Projects() {
               onClick={async () => {
                 const id = renameProjectId!;
                 if (!id) return;
-                const res = await fetch(`/backend/projects/${encodeURIComponent(id)}`, {
+                const res = await fetch(`/renderer/projects/${encodeURIComponent(id)}`, {
                   method: "DELETE",
                   credentials: "include",
                 });

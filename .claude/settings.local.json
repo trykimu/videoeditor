@@ -3,7 +3,12 @@
     "allow": [
       "Bash(grep -E \"\\\\.\\(py|toml|txt|json\\)$\")",
       "Bash(xargs ls *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(pnpm add *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx --yes pnpm@latest add @aws-sdk/client-s3 @aws-sdk/s3-request-presigner @aws-sdk/lib-storage pg @types/pg)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k: d[k] for k in ['dependencies','devDependencies'] if k in d}, indent=2\\)\\)\")"
     ]
   }
 }

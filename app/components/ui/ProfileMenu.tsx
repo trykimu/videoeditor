@@ -35,7 +35,7 @@ export function ProfileMenu({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/backend/storage", { credentials: "include" });
+        const res = await fetch("/renderer/storage", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) {

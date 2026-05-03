@@ -178,6 +178,26 @@ async def rename_project(
     return {"ok": True, "project_id": str(row["id"])}
 
 
+@router.get("/storage")
+async def get_storage(user: SessionUser = Depends(get_current_user)) -> dict:
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        used_bytes = await conn.fetchval(
+            """
+            SELECT COALESCE(SUM(file_size), 0)
+              FROM assets
+             WHERE user_id = $1
+               AND deleted_at IS NULL
+               AND status = 'ready'
+            """,
+            user.user_id,
+        )
+    return {
+        "usedBytes": int(used_bytes or 0),
+        "limitBytes": 2 * 1024 * 1024 * 1024,  # 2 GB per user (adjust per plan later)
+    }
+
+
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: str, user: SessionUser = Depends(get_current_user)
@@ -185,10 +205,7 @@ async def delete_project(
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
-            """
-            DELETE FROM projects
-            WHERE id = $1 AND user_id = $2
-            """,
+            "DELETE FROM projects WHERE id = $1 AND user_id = $2",
             project_id,
             user.user_id,
         )

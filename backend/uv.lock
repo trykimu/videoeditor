@@ -86,6 +86,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "fastapi", extra = ["standard"] },
     { name = "google-genai" },
+    { name = "python-dotenv" },
     { name = "python-multipart" },
 ]
 
@@ -101,6 +102,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.13" },
     { name = "google-genai", specifier = ">=1.22.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-multipart", specifier = ">=0.0.22" },
 ]
 
