@@ -6,9 +6,9 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import fs from "fs";
 import dotenv from "dotenv";
+import { Transform } from "stream";
 import {
   S3Client,
-  PutObjectCommand,
   DeleteObjectCommand,
   CopyObjectCommand,
   GetObjectCommand,
@@ -36,6 +36,7 @@ const r2 = new S3Client({
 const ASSETS_BUCKET = process.env.R2_ASSETS_BUCKET!;
 const RENDERS_BUCKET = process.env.R2_RENDERS_BUCKET!;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_ASSET_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 function getAssetUrl(assetId: string): string {
   return `/renderer/assets/${assetId}/file`;
@@ -43,7 +44,10 @@ function getAssetUrl(assetId: string): string {
 
 // ─── Database pool ────────────────────────────────────────────────────────────
 
-const db = new Pool({ connectionString: process.env.DATABASE_URL!.trim() });
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL!.trim(),
+  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : false,
+});
 
 // ─── Remotion bundle ──────────────────────────────────────────────────────────
 
@@ -353,7 +357,6 @@ app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise
 
 app.put(
   "/assets/upload/:assetId",
-  express.raw({ type: "*/*", limit: "500mb" }),
   async (req: Request, res: Response): Promise<void> => {
     const userId = await getAuthenticatedUserId(req);
     if (!userId) {
@@ -362,13 +365,13 @@ app.put(
     }
 
     const { assetId } = req.params;
-    const body = req.body as Buffer;
     if (!assetId) {
       res.status(400).json({ error: "assetId is required" });
       return;
     }
-    if (!Buffer.isBuffer(body) || body.length === 0) {
-      res.status(400).json({ error: "File body is required" });
+    const declaredLength = Number(req.headers["content-length"] || 0);
+    if (declaredLength > MAX_ASSET_UPLOAD_BYTES) {
+      res.status(413).json({ error: "File too large" });
       return;
     }
 
@@ -389,17 +392,50 @@ app.put(
       const fallbackMimeType = rows[0].mime_type || "application/octet-stream";
       const reqMimeType = req.headers["content-type"];
       const contentType = typeof reqMimeType === "string" ? reqMimeType : fallbackMimeType;
+      let actualFileSize = 0;
+      const sizeGuardStream = new Transform({
+        transform(chunk, _encoding, callback) {
+          const chunkSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk));
+          actualFileSize += chunkSize;
+          if (actualFileSize > MAX_ASSET_UPLOAD_BYTES) {
+            callback(new Error("UPLOAD_TOO_LARGE"));
+            return;
+          }
+          callback(null, chunk);
+        },
+      });
 
-      await r2.send(
-        new PutObjectCommand({
+      req.on("aborted", () => {
+        sizeGuardStream.destroy(new Error("UPLOAD_ABORTED"));
+      });
+      req.on("error", (streamErr) => {
+        sizeGuardStream.destroy(streamErr);
+      });
+      req.pipe(sizeGuardStream);
+
+      const upload = new Upload({
+        client: r2,
+        params: {
           Bucket: ASSETS_BUCKET,
           Key: r2Key,
-          Body: body,
+          Body: sizeGuardStream,
           ContentType: contentType,
-        }),
-      );
+        },
+        queueSize: 4,
+        partSize: 10 * 1024 * 1024,
+      });
+      await upload.done();
 
-      const actualFileSize = body.length;
+      if (actualFileSize === 0) {
+        await r2.send(
+          new DeleteObjectCommand({
+            Bucket: ASSETS_BUCKET,
+            Key: r2Key,
+          }),
+        );
+        res.status(400).json({ error: "File body is required" });
+        return;
+      }
       await db.query(
         `UPDATE assets
             SET file_size = $3
@@ -417,6 +453,10 @@ app.put(
 
       res.json({ success: true });
     } catch (err) {
+      if (err instanceof Error && err.message === "UPLOAD_TOO_LARGE") {
+        res.status(413).json({ error: "File too large" });
+        return;
+      }
       console.error("upload-bytes error:", err);
       res.status(500).json({ error: "Failed to upload file" });
     }

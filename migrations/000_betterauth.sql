@@ -69,8 +69,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Keep camelCase BetterAuth updatedAt current.
-CREATE OR REPLACE FUNCTION set_updated_at_camel() RETURNS TRIGGER AS $$
+-- Keep BetterAuth updatedAt current.
+CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
 BEGIN
   NEW."updatedAt" = now();
   RETURN NEW;
@@ -81,25 +81,25 @@ DROP TRIGGER IF EXISTS trg_user_updated_at ON "user";
 CREATE TRIGGER trg_user_updated_at
   BEFORE UPDATE ON "user"
   FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at_camel();
+  EXECUTE FUNCTION set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_session_updated_at ON session;
 CREATE TRIGGER trg_session_updated_at
   BEFORE UPDATE ON session
   FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at_camel();
+  EXECUTE FUNCTION set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_account_updated_at ON account;
 CREATE TRIGGER trg_account_updated_at
   BEFORE UPDATE ON account
   FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at_camel();
+  EXECUTE FUNCTION set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_verification_updated_at ON verification;
 CREATE TRIGGER trg_verification_updated_at
   BEFORE UPDATE ON verification
   FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at_camel();
+  EXECUTE FUNCTION set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_user_set_id ON "user";
 CREATE TRIGGER trg_user_set_id

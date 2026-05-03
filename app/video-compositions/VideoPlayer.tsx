@@ -20,6 +20,8 @@ import { SortedOutlines, layerContainer, outer } from "./DragDrop";
 type TimelineCompositionProps = {
   timelineData: TimelineDataItem[];
   isRendering: boolean; // it's either render (True) or preview (False)
+  compositionWidth?: number | null;
+  compositionHeight?: number | null;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   timeline: TimelineState;
@@ -44,6 +46,8 @@ export type VideoPlayerProps = {
 export function TimelineComposition({
   timelineData,
   isRendering,
+  compositionWidth,
+  compositionHeight,
   selectedItem,
   setSelectedItem,
   timeline,
@@ -187,6 +191,8 @@ export function TimelineComposition({
   // is not assignable to any single TransitionPresentation<P>, so we erase the prop generic to a
   // permissive `Record<string, unknown>` (Remotion accepts any presentation factory at runtime).
   type AnyPresentation = TransitionPresentation<Record<string, unknown>>;
+  const safeTransitionWidth = compositionWidth && compositionWidth > 0 ? compositionWidth : 1920;
+  const safeTransitionHeight = compositionHeight && compositionHeight > 0 ? compositionHeight : 1080;
   const getTransitionPresentation = (transition: Transition): AnyPresentation => {
     const cast = (p: unknown) => p as AnyPresentation;
     switch (transition.presentation) {
@@ -199,7 +205,7 @@ export function TimelineComposition({
       case "flip":
         return cast(flip());
       case "iris":
-        return cast(iris({ width: 1920, height: 1080 }));
+        return cast(iris({ width: safeTransitionWidth, height: safeTransitionHeight }));
       default:
         return cast(fade());
     }
@@ -496,6 +502,8 @@ export function VideoPlayer({
         timelineData,
         durationInFrames,
         isRendering: false,
+        compositionWidth: safeWidth,
+        compositionHeight: safeHeight,
         selectedItem,
         setSelectedItem,
         timeline,

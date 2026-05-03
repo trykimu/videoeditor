@@ -453,7 +453,7 @@ export function ChatBox({
       ];
     }
 
-    const captureSnapshot = (): TimelineState => JSON.parse(JSON.stringify(latestTimelineRef.current));
+    const captureSnapshot = (): TimelineState => structuredClone(latestTimelineRef.current);
 
     const userMessage: Message = {
       id: Date.now().toString(),
