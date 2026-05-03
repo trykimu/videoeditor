@@ -85,6 +85,12 @@ export const useRenderer = () => {
       const evtSource = new EventSource(`/renderer/render/${jobId}/events`);
       evtSourceRef.current = evtSource;
 
+      // Track whether a terminal event was already received. When the server
+      // closes the SSE connection after sending "completed", EventSource fires
+      // onerror (it can't distinguish intentional close from a crash). We must
+      // not show an error toast in that case.
+      let receivedFinalEvent = false;
+
       const finish = () => {
         evtSource.close();
         evtSourceRef.current = null;
@@ -108,6 +114,7 @@ export const useRenderer = () => {
         if (event.type === "progress") {
           setRenderProgress(event.percent);
         } else if (event.type === "completed") {
+          receivedFinalEvent = true;
           setRenderProgress(100);
           toast.success("Export complete — download starting");
           const link = document.createElement("a");
@@ -118,14 +125,17 @@ export const useRenderer = () => {
           link.remove();
           finish();
         } else if (event.type === "failed" || event.type === "error") {
+          receivedFinalEvent = true;
           toast.error(`Export failed: ${event.message}`);
           finish();
         }
       };
 
       evtSource.onerror = () => {
-        toast.error("Lost connection to render server");
-        finish();
+        if (!receivedFinalEvent) {
+          toast.error("Lost connection to render server");
+          finish();
+        }
       };
     },
     [],

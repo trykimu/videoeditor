@@ -16,11 +16,21 @@ export const ProjectsResponseSchema = z.object({
   projects: z.array(ProjectMetaSchema),
 });
 
-// Timeline payload accepts either a fully-validated TimelineState or any plain object
-// (older saves pre-date the schema). Loaders fall back to a default state on parse failure.
+// asyncpg may return the jsonb column as a JSON string in certain driver
+// versions/configs. Preprocess to JSON.parse if needed so both code paths work.
+const timelineField = z.preprocess(
+  (val) => {
+    if (typeof val === "string") {
+      try { return JSON.parse(val); } catch { return null; }
+    }
+    return val;
+  },
+  z.union([TimelineStateSchema, z.record(z.string(), z.unknown())]).nullable(),
+);
+
 export const ProjectStateResponseSchema = z.object({
   project: ProjectMetaSchema,
-  timeline: z.union([TimelineStateSchema, z.record(z.string(), z.unknown())]).nullable(),
+  timeline: timelineField,
   textBinItems: z.array(MediaBinItemSchema).default([]),
 });
 
