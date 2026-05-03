@@ -16,6 +16,8 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import pkg, { type PoolClient } from "pg";
+import { Queue, Worker, QueueEvents, Job } from "bullmq";
+import IORedis from "ioredis";
 const { Pool } = pkg;
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +64,131 @@ const bundleLocation = await bundle({
 if (!fs.existsSync("out")) {
   fs.mkdirSync("out", { recursive: true });
 }
+
+// ─── BullMQ render queue ──────────────────────────────────────────────────────
+
+function createRedisConnection() {
+  return new IORedis(process.env.REDIS_URL ?? "redis://localhost:6379", {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  });
+}
+
+interface RenderJobData {
+  userId: string;
+  renderJobId: string;
+  inputProps: {
+    timelineData: unknown;
+    durationInFrames: number;
+    compositionWidth: number;
+    compositionHeight: number;
+    getPixelsPerSecond: number;
+    isRendering: boolean;
+  };
+}
+
+const renderQueue = new Queue<RenderJobData>("renders", { connection: createRedisConnection() });
+const renderQueueEvents = new QueueEvents("renders", { connection: createRedisConnection() });
+
+const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
+  "renders",
+  async (job) => {
+    const { userId, renderJobId, inputProps } = job.data;
+    const localOutputPath = `out/${renderJobId}.mp4`;
+
+    await job.updateProgress(5);
+
+    const composition = await selectComposition({
+      serveUrl: bundleLocation,
+      id: compositionId,
+      inputProps,
+    });
+
+    await job.updateProgress(10);
+
+    let lastReportedProgress = 10;
+    await renderMedia({
+      composition,
+      serveUrl: bundleLocation,
+      codec: "h264",
+      outputLocation: localOutputPath,
+      inputProps,
+      concurrency: 3,
+      verbose: true,
+      logLevel: "info",
+      onProgress: ({ progress }) => {
+        const percent = Math.round(10 + progress * 80);
+        if (percent >= lastReportedProgress + 2) {
+          lastReportedProgress = percent;
+          void job.updateProgress(percent);
+        }
+      },
+      ffmpegOverride: ({ args }) => [
+        ...args,
+        "-preset", "fast",
+        "-crf", "28",
+        "-threads", "3",
+        "-tune", "film",
+        "-x264-params", "ref=3:me=hex:subme=6:trellis=1",
+        "-g", "30",
+        "-bf", "2",
+        "-maxrate", "5M",
+        "-bufsize", "10M",
+      ],
+      timeoutInMilliseconds: 900000,
+    });
+
+    console.log("✅ Render completed — uploading to R2");
+    await job.updateProgress(92);
+
+    const renderKey = `${userId}/${renderJobId}.mp4`;
+    const fileStream = fs.createReadStream(localOutputPath);
+    const upload = new Upload({
+      client: r2,
+      params: {
+        Bucket: RENDERS_BUCKET,
+        Key: renderKey,
+        Body: fileStream,
+        ContentType: "video/mp4",
+      },
+      queueSize: 4,
+      partSize: 10 * 1024 * 1024,
+    });
+    await upload.done();
+
+    await job.updateProgress(97);
+
+    const downloadUrl = await getSignedUrl(
+      r2,
+      new GetObjectCommand({
+        Bucket: RENDERS_BUCKET,
+        Key: renderKey,
+        ResponseContentDisposition: 'attachment; filename="rendered-video.mp4"',
+      }),
+      { expiresIn: 3600 },
+    );
+
+    try { fs.unlinkSync(localOutputPath); } catch {}
+
+    console.log(`📦 Render uploaded: ${renderKey}`);
+    return { downloadUrl };
+  },
+  {
+    connection: createRedisConnection(),
+    concurrency: 1,
+  },
+);
+
+renderWorker.on("failed", (job, err) => {
+  console.error(`❌ Render job ${job?.id} failed:`, err.message);
+  const renderJobId = job?.data?.renderJobId;
+  if (renderJobId) {
+    try {
+      const p = `out/${renderJobId}.mp4`;
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    } catch {}
+  }
+});
 
 // ─── Cookie parsing ───────────────────────────────────────────────────────────
 
@@ -810,14 +937,12 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
 });
 
 // ─── POST /render ──────────────────────────────────────────────────────────────
-// Runs Remotion + FFmpeg, uploads output to the renders bucket, returns a
-// presigned download URL (1h TTL). Local temp file is cleaned up after upload.
+// Enqueues a render job and returns { jobId } immediately.
+// Client opens GET /render/:jobId/events for SSE progress updates.
 
 app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const userId = (await getAuthenticatedUserId(req)) ?? "anonymous";
-  // Per-job unique filename prevents concurrent renders from overwriting each other.
   const renderJobId = generateUUID();
-  const localOutputPath = `out/${renderJobId}.mp4`;
 
   const inputProps = {
     timelineData: req.body.timelineData,
@@ -829,103 +954,100 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   };
 
   try {
-    const composition = await selectComposition({
-      serveUrl: bundleLocation,
-      id: compositionId,
-      inputProps,
-    });
-
-    // Render optimized for 4vCPU, 8GB RAM
-    await renderMedia({
-      composition,
-      serveUrl: bundleLocation,
-      codec: "h264",
-      outputLocation: localOutputPath,
-      inputProps,
-      concurrency: 3,
-      verbose: true,
-      logLevel: "info",
-      ffmpegOverride: ({ args }) => [
-        ...args,
-        "-preset",
-        "fast",
-        "-crf",
-        "28",
-        "-threads",
-        "3",
-        "-tune",
-        "film",
-        "-x264-params",
-        "ref=3:me=hex:subme=6:trellis=1",
-        "-g",
-        "30",
-        "-bf",
-        "2",
-        "-maxrate",
-        "5M",
-        "-bufsize",
-        "10M",
-      ],
-      timeoutInMilliseconds: 900000,
-    });
-
-    console.log("✅ Render completed — uploading to R2");
-
-    // Stream-upload to renders bucket using multipart (avoids loading full file in memory)
-    const renderKey = `${userId}/${renderJobId}.mp4`;
-
-    const fileStream = fs.createReadStream(localOutputPath);
-    const upload = new Upload({
-      client: r2,
-      params: {
-        Bucket: RENDERS_BUCKET,
-        Key: renderKey,
-        Body: fileStream,
-        ContentType: "video/mp4",
-      },
-      queueSize: 4,
-      partSize: 10 * 1024 * 1024, // 10MB parts
-    });
-    await upload.done();
-
-    // Presigned download URL — 1h TTL (user downloads immediately)
-    const downloadUrl = await getSignedUrl(
-      r2,
-      new GetObjectCommand({
-        Bucket: RENDERS_BUCKET,
-        Key: renderKey,
-        ResponseContentDisposition: 'attachment; filename="rendered-video.mp4"',
-      }),
-      { expiresIn: 3600 },
-    );
-
-    // Clean up local temp file
-    try {
-      fs.unlinkSync(localOutputPath);
-    } catch {
-      // Non-fatal if cleanup fails
-    }
-
-    console.log(`📦 Render uploaded: ${renderKey}`);
-    res.json({ success: true, downloadUrl });
+    const job = await renderQueue.add("render", { userId, renderJobId, inputProps });
+    console.log(`📬 Render job queued: ${job.id}`);
+    res.json({ jobId: job.id });
   } catch (err) {
-    console.error("❌ Render failed:", err);
-
-    // Clean up failed local output
-    try {
-      if (fs.existsSync(localOutputPath)) {
-        fs.unlinkSync(localOutputPath);
-        console.log("🧹 Cleaned up partial render file");
-      }
-    } catch {
-      // ignore
-    }
-
-    res.status(500).json({
-      error: "Video rendering failed",
-      message: "Rendering failed. Check server logs for details.",
-    });
+    console.error("❌ Failed to enqueue render:", err);
+    res.status(500).json({ error: "Failed to queue render job" });
   }
+});
+
+// ─── GET /render/:jobId/events ─────────────────────────────────────────────────
+// SSE stream of render progress. Server pushes events — no client polling.
+
+app.get("/render/:jobId/events", async (req: Request, res: Response): Promise<void> => {
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).end();
+    return;
+  }
+
+  const { jobId } = req.params;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const send = (data: object) => {
+    if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) res.write(": heartbeat\n\n");
+  }, 30_000);
+
+  // Handle reconnects: check if job already finished
+  const job = await Job.fromId(renderQueue, jobId);
+  if (!job) {
+    send({ type: "error", message: "Job not found" });
+    clearInterval(heartbeat);
+    res.end();
+    return;
+  }
+
+  const state = await job.getState();
+  if (state === "completed") {
+    const rv = job.returnvalue as { downloadUrl: string } | undefined;
+    send({ type: "completed", downloadUrl: rv?.downloadUrl ?? "" });
+    clearInterval(heartbeat);
+    res.end();
+    return;
+  }
+  if (state === "failed") {
+    send({ type: "failed", message: job.failedReason ?? "Render failed" });
+    clearInterval(heartbeat);
+    res.end();
+    return;
+  }
+
+  const onProgress = ({ jobId: jId, data }: { jobId: string; data: unknown }) => {
+    if (jId !== jobId) return;
+    send({ type: "progress", percent: typeof data === "number" ? data : 0 });
+  };
+
+  const onCompleted = ({ jobId: jId, returnvalue }: { jobId: string; returnvalue: string }) => {
+    if (jId !== jobId) return;
+    try {
+      const rv = JSON.parse(returnvalue) as { downloadUrl: string };
+      send({ type: "completed", downloadUrl: rv.downloadUrl });
+    } catch {
+      send({ type: "error", message: "Failed to parse render result" });
+    }
+    cleanup();
+    res.end();
+  };
+
+  const onFailed = ({ jobId: jId, failedReason }: { jobId: string; failedReason: string }) => {
+    if (jId !== jobId) return;
+    send({ type: "failed", message: failedReason ?? "Render failed" });
+    cleanup();
+    res.end();
+  };
+
+  const cleanup = () => {
+    clearInterval(heartbeat);
+    renderQueueEvents.off("progress", onProgress);
+    renderQueueEvents.off("completed", onCompleted);
+    renderQueueEvents.off("failed", onFailed);
+  };
+
+  renderQueueEvents.on("progress", onProgress);
+  renderQueueEvents.on("completed", onCompleted);
+  renderQueueEvents.on("failed", onFailed);
+  req.on("close", cleanup);
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

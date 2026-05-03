@@ -107,6 +107,10 @@ export default function TimelineEditor() {
   // Avoid initial blank render; don't delay render on a 'mounted' gate
 
   const [selectedScrubberIds, setSelectedScrubberIds] = useState<string[]>([]);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextAutoSave = useRef(false);
+  const isInitialMountRef = useRef(true);
 
   // video player media selection state
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -176,7 +180,7 @@ export default function TimelineEditor() {
     updateRulerFromPlayer,
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
 
-  const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
+  const { isRendering, renderStatus, renderProgress, handleRenderVideo } = useRenderer();
 
   // Wrapper function for transition drop handler to match expected interface
   const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
@@ -231,7 +235,9 @@ export default function TimelineEditor() {
         }
         const strictTimeline = TimelineStateSchema.safeParse(parsed.data.timeline);
         if (strictTimeline.success) {
+          skipNextAutoSave.current = true;
           setTimelineFromServer(strictTimeline.data as TimelineState);
+          setSaveStatus("saved");
         }
       } catch {
         if (isMounted) navigate("/projects");
@@ -273,26 +279,31 @@ export default function TimelineEditor() {
     [isSidebarCollapsed, navigate, location.pathname],
   );
 
+  const saveTimelineSilently = useCallback(async () => {
+    const id = projectId;
+    if (!id) throw new Error("No project ID");
+    setSaveStatus("saving");
+    await axios.put(`/backend/projects/${encodeURIComponent(id)}`, getTimelineState(), {
+      withCredentials: true,
+    });
+    setSaveStatus("saved");
+  }, [getTimelineState, projectId]);
+
   const handleSaveTimeline = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     try {
       toast.info("Saving state of the project...");
-      const id = projectId;
-      if (!id) {
-        toast.error("No project ID");
-        return;
-      }
-
-      const timelineState = getTimelineState();
-      await axios.put(`/backend/projects/${encodeURIComponent(id)}`, timelineState, {
-        withCredentials: true,
-      });
-
+      await saveTimelineSilently();
       toast.success("Timeline saved");
     } catch (error) {
       console.error(error);
+      setSaveStatus("unsaved");
       toast.error("Failed to save");
     }
-  }, [getTimelineState, projectId]);
+  }, [saveTimelineSilently]);
 
   // Global Ctrl/Cmd+S to save timeline (registered after handler is defined)
   useEffect(() => {
@@ -339,6 +350,30 @@ export default function TimelineEditor() {
         capture: true,
       } as AddEventListenerOptions);
   }, [handleSaveTimeline, undo, redo, selectedItem, handleDeleteScrubber, setSelectedItem]);
+
+  // Debounced auto-save: fires 3s after the last meaningful timeline change
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    if (skipNextAutoSave.current) {
+      skipNextAutoSave.current = false;
+      return;
+    }
+    setSaveStatus("unsaved");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await saveTimelineSilently();
+      } catch {
+        setSaveStatus("unsaved");
+      }
+    }, 3000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [timeline, saveTimelineSilently]);
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -669,9 +704,11 @@ export default function TimelineEditor() {
           <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
 
-        {/* Center project name */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {/* Center project name + save status */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5">
           <span className="text-xs leading-none text-muted-foreground font-mono">{projectName || "Project"}</span>
+          {saveStatus === "unsaved" && <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 shrink-0" title="Unsaved changes" />}
+          {saveStatus === "saving" && <span className="text-xs leading-none text-muted-foreground">saving...</span>}
         </div>
 
         <div className="flex items-center gap-1">
@@ -1075,7 +1112,7 @@ export default function TimelineEditor() {
       {/* Render Status as Toast */}
       {renderStatus && (
         <div className="fixed bottom-4 right-4 z-50">
-          <RenderStatus renderStatus={renderStatus} />
+          <RenderStatus renderStatus={renderStatus} renderProgress={renderProgress} />
         </div>
       )}
     </div>
