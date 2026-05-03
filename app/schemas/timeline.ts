@@ -51,6 +51,9 @@ export const ScrubberStateSchema = MediaBinItemSchema.extend({
   is_dragging: z.boolean(),
   trimBefore: z.number().int().nullable(),
   trimAfter: z.number().int().nullable(),
+  playbackRate: z.number().positive().optional(),
+  volume: z.number().min(0).max(1).optional(),
+  muted: z.boolean().optional(),
 });
 
 export const TrackStateSchema = z.object({

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { Trash2, Group, Ungroup, Archive } from "lucide-react";
+import { Trash2, Group, Ungroup, Archive, Volume2, VolumeX } from "lucide-react";
 
 export interface SnapConfig {
   enabled: boolean;
@@ -67,6 +67,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     x: number;
     y: number;
   }>({ visible: false, x: 0, y: 0 });
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   const MINIMUM_WIDTH = 20;
 
@@ -411,6 +412,16 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     [onUngroupScrubber, scrubber.id],
   );
 
+  // Handle speed change
+  const handleSpeedChange = useCallback(
+    (rate: number) => {
+      onUpdate({ ...scrubber, playbackRate: rate });
+      setContextMenu({ visible: false, x: 0, y: 0 });
+      setShowSpeedMenu(false);
+    },
+    [onUpdate, scrubber],
+  );
+
   // Handle context menu move to media bin action
   const handleContextMenuMoveToMediaBin = useCallback(
     (e: React.MouseEvent) => {
@@ -474,6 +485,18 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         {/* Media name */}
         <div className="absolute top-0.5 left-6 right-6 text-xs truncate opacity-90 pointer-events-none">
           {scrubber.name}
+        </div>
+
+        {/* Speed / mute badges */}
+        <div className="absolute bottom-0.5 right-1 flex items-center gap-0.5 pointer-events-none">
+          {scrubber.muted && (
+            <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">M</div>
+          )}
+          {scrubber.playbackRate !== undefined && scrubber.playbackRate !== 1 && (
+            <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">
+              {scrubber.playbackRate}x
+            </div>
+          )}
         </div>
 
         {/* Left resize handle - more visible */}
@@ -563,6 +586,64 @@ export const Scrubber: React.FC<ScrubberProps> = ({
               <Archive className="h-3 w-3" />
               Move to Media Bin
             </button>
+          )}
+
+          {/* Volume control — video and audio only */}
+          {(scrubber.mediaType === "video" || scrubber.mediaType === "audio") && (
+            <div className="px-3 py-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs">Volume</span>
+                <button
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => onUpdate({ ...scrubber, muted: !scrubber.muted })}>
+                  {scrubber.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                </button>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
+                onChange={(e) => onUpdate({ ...scrubber, volume: parseFloat(e.target.value), muted: false })}
+                className="w-full h-1 accent-primary cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="text-[10px] text-muted-foreground text-right mt-0.5">
+                {scrubber.muted ? "muted" : `${Math.round((scrubber.volume ?? 1) * 100)}%`}
+              </div>
+            </div>
+          )}
+
+          {/* Speed submenu — video and audio only */}
+          {(scrubber.mediaType === "video" || scrubber.mediaType === "audio") && (
+            <div className="relative">
+              <button
+                className="flex items-center justify-between w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+                onMouseEnter={() => setShowSpeedMenu(true)}
+                onMouseLeave={() => setShowSpeedMenu(false)}
+                onClick={() => setShowSpeedMenu((v) => !v)}>
+                <span>Speed</span>
+                <span className="text-muted-foreground">{scrubber.playbackRate ?? 1}x ›</span>
+              </button>
+              {showSpeedMenu && (
+                <div
+                  className="absolute left-full top-0 bg-popover border border-border rounded-md shadow-lg py-1 z-[10000]"
+                  onMouseEnter={() => setShowSpeedMenu(true)}
+                  onMouseLeave={() => setShowSpeedMenu(false)}>
+                  {[0.25, 0.5, 1, 1.5, 2, 4].map((rate) => (
+                    <button
+                      key={rate}
+                      className={`flex items-center w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left ${
+                        (scrubber.playbackRate ?? 1) === rate ? "text-primary font-semibold" : ""
+                      }`}
+                      onClick={() => handleSpeedChange(rate)}>
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           <button

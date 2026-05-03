@@ -160,6 +160,8 @@ export function TimelineComposition({
               src={videoUrl}
               trimBefore={scrubber.trimBefore || undefined}
               trimAfter={scrubber.trimAfter || undefined}
+              playbackRate={scrubber.playbackRate ?? 1}
+              volume={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
             />
           </AbsoluteFill>
         );
@@ -175,6 +177,8 @@ export function TimelineComposition({
             src={audioUrl}
             trimBefore={scrubber.trimBefore || undefined}
             trimAfter={scrubber.trimAfter || undefined}
+            playbackRate={scrubber.playbackRate ?? 1}
+            volume={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
           />
         );
         break;

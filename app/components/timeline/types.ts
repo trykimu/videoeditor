@@ -64,6 +64,12 @@ export interface ScrubberState extends MediaBinItem {
   // for video scrubbers (and audio in the future)
   trimBefore: number | null; // in frames
   trimAfter: number | null; // in frames
+
+  playbackRate?: number; // 0.25 | 0.5 | 1 | 1.5 | 2 | 4 — undefined defaults to 1
+
+  // audio mixing
+  volume?: number; // 0–1, undefined defaults to 1
+  muted?: boolean; // undefined defaults to false
 }
 
 // state of the track in the timeline
@@ -95,6 +101,10 @@ export interface TimelineDataItem {
     // for video scrubbers (and audio in the future)
     trimBefore: number | null; // in frames
     trimAfter: number | null; // in frames
+
+    playbackRate?: number;
+    volume?: number;
+    muted?: boolean;
   })[];
   transitions: { [id: string]: Transition };
 }

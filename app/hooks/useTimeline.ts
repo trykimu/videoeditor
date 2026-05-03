@@ -172,6 +172,9 @@ export const useTimeline = () => {
           // for video scrubbers (and audio in the future)
           trimBefore: scrubber.trimBefore,
           trimAfter: scrubber.trimAfter,
+          playbackRate: scrubber.playbackRate,
+          volume: scrubber.volume,
+          muted: scrubber.muted,
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
@@ -606,6 +609,9 @@ export const useTimeline = () => {
         // for video scrubbers (and audio in the future)
         trimBefore: null,
         trimAfter: null,
+        playbackRate: 1,
+        volume: 1,
+        muted: false,
 
         left_transition_id: null,
         right_transition_id: null,

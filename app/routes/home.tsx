@@ -26,6 +26,7 @@ import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
 import LeftPanel from "~/components/editor/LeftPanel";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
 import { RenderStatus } from "~/components/timeline/RenderStatus";
+import { ClipInspector } from "~/components/timeline/ClipInspector";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
 import { Button } from "~/components/ui/button";
@@ -1110,6 +1111,22 @@ export default function TimelineEditor() {
         className="hidden"
         onChange={handleFileInputChange}
       />
+
+      {/* Clip Inspector — shown when exactly one clip is selected */}
+      {selectedScrubberIds.length === 1 && (() => {
+        const s = getAllScrubbers().find((sc) => sc.id === selectedScrubberIds[0]);
+        if (!s) return null;
+        return (
+          <div className="fixed bottom-4 right-4 z-50">
+            <ClipInspector
+              scrubber={s}
+              pixelsPerSecond={getPixelsPerSecond()}
+              onUpdate={handleUpdateScrubberWithLocking}
+              onClose={() => setSelectedScrubberIds([])}
+            />
+          </div>
+        );
+      })()}
 
       {/* Render Status as Toast */}
       {renderStatus && (
