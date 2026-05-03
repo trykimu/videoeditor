@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
 import { Trash2, Group, Ungroup, Archive, Volume2, VolumeX } from "lucide-react";
+import { useWaveform } from "~/hooks/useWaveform";
+import { WaveformCanvas } from "./WaveformCanvas";
 
 export interface SnapConfig {
   enabled: boolean;
@@ -70,6 +72,16 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   const MINIMUM_WIDTH = 20;
+
+  // Waveform: only for audio clips. Video files can be hundreds of MB — don't
+  // fetch them just for waveform. Use remote URL (proxy-authenticated) when
+  // available, fall back to local blob URL for freshly-uploaded files.
+  const waveformUrl =
+    scrubber.mediaType === "audio"
+      ? (scrubber.mediaUrlRemote ?? scrubber.mediaUrlLocal)
+      : null;
+  const waveformPeaks = useWaveform(waveformUrl);
+  const scrubberH = DEFAULT_TRACK_HEIGHT - 4;
 
   // Pre-compute the static grid snap points; only depend on timeline geometry.
   const gridSnapPoints = useMemo(() => {
@@ -471,6 +483,16 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         )}
         {snappedEdge === "right" && (
           <div className="absolute top-0 right-0 w-0.5 h-full bg-yellow-400 z-30 pointer-events-none rounded-r-sm" />
+        )}
+
+        {/* Waveform — renders for audio clips once peaks are decoded */}
+        {waveformPeaks && (
+          <WaveformCanvas
+            peaks={waveformPeaks}
+            width={scrubber.width}
+            height={scrubberH}
+            color="rgba(255,255,255,0.5)"
+          />
         )}
 
         {/* Media type indicator - positioned after left resize handle */}
