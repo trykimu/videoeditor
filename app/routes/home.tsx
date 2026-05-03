@@ -5,18 +5,18 @@ import {
   Play,
   Pause,
   Upload,
-  Download,
   Settings,
   Plus,
   Minus,
   Scissors,
-  Save as SaveIcon,
   CornerUpLeft,
   CornerUpRight,
   File,
   Type,
   BetweenVerticalEnd,
   Bot,
+  SlidersHorizontal,
+  Clapperboard,
 } from "lucide-react";
 
 // Custom video controls
@@ -25,8 +25,8 @@ import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
 // Components
 import LeftPanel from "~/components/editor/LeftPanel";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
-import { RenderStatus } from "~/components/timeline/RenderStatus";
-import { ClipInspector } from "~/components/timeline/ClipInspector";
+import { InspectorPanel } from "~/components/editor/InspectorPanel";
+import { ExportPanel } from "~/components/editor/ExportPanel";
 import { TimelineRuler } from "~/components/timeline/TimelineRuler";
 import { TimelineTracks } from "~/components/timeline/TimelineTracks";
 import { Button } from "~/components/ui/button";
@@ -182,7 +182,8 @@ export default function TimelineEditor() {
     updateRulerFromPlayer,
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
 
-  const { isRendering, renderStatus, renderProgress, handleRenderVideo } = useRenderer();
+  const { isRendering, renderProgress, handleRenderVideo } = useRenderer();
+  const [sidebarMode, setSidebarMode] = useState<"default" | "inspector" | "export">("default");
 
   // Wrapper function for transition drop handler to match expected interface
   const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
@@ -252,6 +253,19 @@ export default function TimelineEditor() {
 
   const openSection = useCallback(
     (section: "media-bin" | "text-editor" | "transitions") => {
+      // If we're in a non-default mode, just switch back to default and navigate
+      if (sidebarMode !== "default") {
+        setSidebarMode("default");
+        if (isSidebarCollapsed) {
+          leftPanelRef.current?.expand?.();
+          setIsSidebarCollapsed(false);
+          setIsUserExpandingSidebar(true);
+          setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+        }
+        navigate(section);
+        return;
+      }
+
       const isProjectRoot = /^\/project\/[^/]+\/?$/.test(location.pathname);
       const isActive =
         (section === "media-bin" && (location.pathname.includes("/media-bin") || isProjectRoot)) ||
@@ -278,7 +292,24 @@ export default function TimelineEditor() {
       }
       navigate(section);
     },
-    [isSidebarCollapsed, navigate, location.pathname],
+    [sidebarMode, isSidebarCollapsed, navigate, location.pathname],
+  );
+
+  const openSidePanel = useCallback(
+    (mode: "inspector" | "export") => {
+      if (sidebarMode === mode) {
+        setSidebarMode("default");
+        return;
+      }
+      setSidebarMode(mode);
+      if (isSidebarCollapsed) {
+        leftPanelRef.current?.expand?.();
+        setIsSidebarCollapsed(false);
+        setIsUserExpandingSidebar(true);
+        setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+      }
+    },
+    [sidebarMode, isSidebarCollapsed],
   );
 
   const saveTimelineSilently = useCallback(async () => {
@@ -407,22 +438,6 @@ export default function TimelineEditor() {
     },
     [handleAddMediaToBin],
   );
-
-  const handleRenderClick = useCallback(() => {
-    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
-      toast.error("No timeline to render. Add some media first!");
-      return;
-    }
-
-    handleRenderVideo(
-      getTimelineData,
-      timeline,
-      isAutoSize ? null : width,
-      isAutoSize ? null : height,
-      getPixelsPerSecond,
-    );
-    toast.info("Starting render...");
-  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData, getPixelsPerSecond]);
 
   const handleLogTimelineData = useCallback(() => {
     if (timelineData.length === 0) {
@@ -706,38 +721,28 @@ export default function TimelineEditor() {
           <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
 
-        {/* Center project name + save status */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5">
+        {/* Center: project name */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <span className="text-xs leading-none text-muted-foreground font-mono">{projectName || "Project"}</span>
-          {saveStatus === "unsaved" && <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 shrink-0" title="Unsaved changes" />}
-          {saveStatus === "saving" && <span className="text-xs leading-none text-muted-foreground">saving...</span>}
         </div>
 
-        <div className="flex items-center gap-1">
-          {/* Save / Import / Export */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSaveTimeline}
-            className="h-7 px-2 text-xs"
-            title="Save timeline (Ctrl/Cmd+S)">
-            <SaveIcon className="h-3 w-3 mr-1" />
-            Save
-          </Button>
-
+        {/* Right: save status + Import */}
+        <div className="flex items-center gap-2">
+          {saveStatus === "saved" && (
+            <span className="text-[10px] leading-none text-muted-foreground/50">saved</span>
+          )}
+          {saveStatus === "saving" && (
+            <span className="text-[10px] leading-none text-muted-foreground">saving…</span>
+          )}
+          {saveStatus === "unsaved" && (
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-yellow-500 shrink-0"
+              title="Unsaved changes — Ctrl/Cmd+S to save"
+            />
+          )}
           <Button variant="ghost" size="sm" onClick={handleAddMediaClick} className="h-7 px-2 text-xs">
             <Upload className="h-3 w-3 mr-1" />
             Import
-          </Button>
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleRenderClick}
-            disabled={isRendering}
-            className="h-7 px-2 text-xs">
-            <Download className="h-3 w-3 mr-1" />
-            {isRendering ? "Rendering..." : "Export"}
           </Button>
         </div>
       </header>
@@ -778,6 +783,29 @@ export default function TimelineEditor() {
               title="Transitions">
               <BetweenVerticalEnd className="h-5 w-5" />
             </Button>
+
+            <div className="w-6 border-t border-border/30 my-1" />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "inspector" ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSidePanel("inspector")}
+              title="Inspector">
+              <SlidersHorizontal className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "export" ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSidePanel("export")}
+              title="Export">
+              <Clapperboard className="h-5 w-5" />
+            </Button>
           </div>
           <div className="h-9 w-9 flex items-center justify-center">
             <ProfileMenu
@@ -806,25 +834,46 @@ export default function TimelineEditor() {
             }
             setIsSidebarCollapsed(leftSize < 1);
           }}>
-          {/* Left Panel - Media Bin & Tools */}
+          {/* Left Panel - Media Bin, Inspector, or Export */}
           <ResizablePanel ref={leftPanelRef} defaultSize={20} minSize={15} maxSize={40} collapsible collapsedSize={0}>
             <div className="h-full border-r border-border">
-              <LeftPanel
-                mediaBinItems={mediaBinItems}
-                isMediaLoading={isMediaLoading}
-                onAddMedia={handleAddMediaToBin}
-                onAddText={handleAddTextToBin}
-                contextMenu={contextMenu}
-                handleContextMenu={handleContextMenu}
-                handleDeleteFromContext={handleDeleteFromContext}
-                handleSplitAudioFromContext={handleSplitAudioFromContext}
-                handleCloseContextMenu={handleCloseContextMenu}
-                showTabs={false}
-                arrangeMode={mediaArrangeMode}
-                sortBy={mediaSortBy}
-                onArrangeModeChange={setMediaArrangeMode}
-                onSortByChange={setMediaSortBy}
-              />
+              {sidebarMode === "inspector" ? (
+                <InspectorPanel
+                  selectedScrubberIds={selectedScrubberIds}
+                  getAllScrubbers={getAllScrubbers}
+                  pixelsPerSecond={getPixelsPerSecond()}
+                  onUpdate={handleUpdateScrubberWithLocking}
+                  onClose={() => setSidebarMode("default")}
+                />
+              ) : sidebarMode === "export" ? (
+                <ExportPanel
+                  isRendering={isRendering}
+                  renderProgress={renderProgress}
+                  timeline={timeline}
+                  timelineData={timelineData}
+                  getTimelineData={getTimelineData}
+                  getPixelsPerSecond={getPixelsPerSecond}
+                  handleRenderVideo={handleRenderVideo}
+                  onClose={() => setSidebarMode("default")}
+                />
+              ) : (
+                <LeftPanel
+                  mediaBinItems={mediaBinItems}
+                  isMediaLoading={isMediaLoading}
+                  onAddMedia={handleAddMediaToBin}
+                  onAddText={handleAddTextToBin}
+                  contextMenu={contextMenu}
+                  handleContextMenu={handleContextMenu}
+                  handleDeleteFromContext={handleDeleteFromContext}
+                  handleSplitAudioFromContext={handleSplitAudioFromContext}
+                  handleCloseContextMenu={handleCloseContextMenu}
+                  showTabs={false}
+                  arrangeMode={mediaArrangeMode}
+                  sortBy={mediaSortBy}
+                  onArrangeModeChange={setMediaArrangeMode}
+                  onSortByChange={setMediaSortBy}
+                />
+              )}
             </div>
           </ResizablePanel>
 
@@ -1112,28 +1161,6 @@ export default function TimelineEditor() {
         onChange={handleFileInputChange}
       />
 
-      {/* Clip Inspector — shown when exactly one clip is selected */}
-      {selectedScrubberIds.length === 1 && (() => {
-        const s = getAllScrubbers().find((sc) => sc.id === selectedScrubberIds[0]);
-        if (!s) return null;
-        return (
-          <div className="fixed bottom-4 right-4 z-50">
-            <ClipInspector
-              scrubber={s}
-              pixelsPerSecond={getPixelsPerSecond()}
-              onUpdate={handleUpdateScrubberWithLocking}
-              onClose={() => setSelectedScrubberIds([])}
-            />
-          </div>
-        );
-      })()}
-
-      {/* Render Status as Toast */}
-      {renderStatus && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <RenderStatus renderStatus={renderStatus} renderProgress={renderProgress} />
-        </div>
-      )}
     </div>
   );
 }

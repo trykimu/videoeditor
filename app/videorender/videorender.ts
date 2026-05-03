@@ -77,6 +77,8 @@ function createRedisConnection() {
 interface RenderJobData {
   userId: string;
   renderJobId: string;
+  codec: "h264" | "h265" | "vp9";
+  crf: number;
   inputProps: {
     timelineData: unknown;
     durationInFrames: number;
@@ -87,14 +89,22 @@ interface RenderJobData {
   };
 }
 
+function extForCodec(codec: string) {
+  return codec === "vp9" ? "webm" : "mp4";
+}
+function mimeForCodec(codec: string) {
+  return codec === "vp9" ? "video/webm" : "video/mp4";
+}
+
 const renderQueue = new Queue<RenderJobData>("renders", { connection: createRedisConnection() });
 const renderQueueEvents = new QueueEvents("renders", { connection: createRedisConnection() });
 
 const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
   "renders",
   async (job) => {
-    const { userId, renderJobId, inputProps } = job.data;
-    const localOutputPath = `out/${renderJobId}.mp4`;
+    const { userId, renderJobId, inputProps, codec = "h264", crf = 28 } = job.data;
+    const ext = extForCodec(codec);
+    const localOutputPath = `out/${renderJobId}.${ext}`;
 
     await job.updateProgress(5);
 
@@ -110,7 +120,7 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
     await renderMedia({
       composition,
       serveUrl: bundleLocation,
-      codec: "h264",
+      codec,
       outputLocation: localOutputPath,
       inputProps,
       concurrency: 3,
@@ -123,25 +133,29 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
           void job.updateProgress(percent);
         }
       },
-      ffmpegOverride: ({ args }) => [
-        ...args,
-        "-preset", "fast",
-        "-crf", "28",
-        "-threads", "3",
-        "-tune", "film",
-        "-x264-params", "ref=3:me=hex:subme=6:trellis=1",
-        "-g", "30",
-        "-bf", "2",
-        "-maxrate", "5M",
-        "-bufsize", "10M",
-      ],
+      ffmpegOverride: codec === "h264"
+        ? ({ args }) => [
+            ...args,
+            "-preset", "fast",
+            "-crf", String(crf),
+            "-threads", "3",
+            "-tune", "film",
+            "-x264-params", "ref=3:me=hex:subme=6:trellis=1",
+            "-g", "30",
+            "-bf", "2",
+            "-maxrate", "8M",
+            "-bufsize", "16M",
+          ]
+        : codec === "h265"
+          ? ({ args }) => [...args, "-preset", "fast", "-crf", String(crf), "-tag:v", "hvc1"]
+          : ({ args }) => [...args, "-b:v", "0", "-crf", String(crf)],
       timeoutInMilliseconds: 900000,
     });
 
     console.log("✅ Render completed — uploading to R2");
     await job.updateProgress(92);
 
-    const renderKey = `${userId}/${renderJobId}.mp4`;
+    const renderKey = `${userId}/${renderJobId}.${ext}`;
     const fileStream = fs.createReadStream(localOutputPath);
     const upload = new Upload({
       client: r2,
@@ -149,7 +163,7 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
         Bucket: RENDERS_BUCKET,
         Key: renderKey,
         Body: fileStream,
-        ContentType: "video/mp4",
+        ContentType: mimeForCodec(codec),
       },
       queueSize: 4,
       partSize: 10 * 1024 * 1024,
@@ -163,7 +177,7 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
       new GetObjectCommand({
         Bucket: RENDERS_BUCKET,
         Key: renderKey,
-        ResponseContentDisposition: 'attachment; filename="rendered-video.mp4"',
+        ResponseContentDisposition: `attachment; filename="rendered-video.${ext}"`,
       }),
       { expiresIn: 3600 },
     );
@@ -248,6 +262,43 @@ function generateUUID(): string {
     return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
+
+// ─── Renderer-internal asset proxy (no auth — called by headless Chrome) ─────
+// Headless Chrome launched by Remotion has no session cookies. This route lets
+// it fetch assets during rendering. The path matches `mediaUrlLocal` values
+// stored as `/renderer/assets/{id}/file` in the timeline JSON.
+
+app.get("/renderer/assets/:assetId/file", async (req: Request, res: Response): Promise<void> => {
+  const { assetId } = req.params;
+  if (!UUID_PATTERN.test(assetId)) {
+    res.status(400).end();
+    return;
+  }
+  try {
+    const { rows } = await db.query<{ r2_key: string; mime_type: string }>(
+      `SELECT r2_key, mime_type FROM assets WHERE id = $1 AND deleted_at IS NULL AND status = 'ready' LIMIT 1`,
+      [assetId],
+    );
+    if (rows.length === 0) {
+      res.status(404).end();
+      return;
+    }
+    const object = await r2.send(new GetObjectCommand({ Bucket: ASSETS_BUCKET, Key: rows[0].r2_key }));
+    const body = object.Body as NodeJS.ReadableStream | undefined;
+    if (!body || typeof (body as { pipe?: unknown }).pipe !== "function") {
+      res.status(500).end();
+      return;
+    }
+    res.setHeader("Content-Type", object.ContentType || rows[0].mime_type || "application/octet-stream");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    if (typeof object.ContentLength === "number") res.setHeader("Content-Length", String(object.ContentLength));
+    body.on("error", () => { if (!res.headersSent) res.status(500).end(); else res.end(); });
+    body.pipe(res);
+  } catch (err) {
+    console.error("renderer asset proxy error:", err);
+    res.status(500).end();
+  }
+});
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 
@@ -944,6 +995,12 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const userId = (await getAuthenticatedUserId(req)) ?? "anonymous";
   const renderJobId = generateUUID();
 
+  const VALID_CODECS = new Set(["h264", "h265", "vp9"]);
+  const codec = VALID_CODECS.has(req.body.codec) ? req.body.codec : "h264";
+  const crf = typeof req.body.crf === "number" && req.body.crf >= 0 && req.body.crf <= 51
+    ? Math.round(req.body.crf)
+    : 28;
+
   const inputProps = {
     timelineData: req.body.timelineData,
     durationInFrames: req.body.durationInFrames,
@@ -954,7 +1011,7 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   };
 
   try {
-    const job = await renderQueue.add("render", { userId, renderJobId, inputProps });
+    const job = await renderQueue.add("render", { userId, renderJobId, codec, crf, inputProps });
     console.log(`📬 Render job queued: ${job.id}`);
     res.json({ jobId: job.id });
   } catch (err) {
