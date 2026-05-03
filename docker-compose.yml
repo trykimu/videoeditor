@@ -51,3 +51,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: videoeditor-fastapi
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000

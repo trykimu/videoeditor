@@ -1,6 +1,6 @@
 import { Player, type PlayerRef } from "@remotion/player";
 import { Sequence, AbsoluteFill, Img, Video, Audio } from "remotion";
-import { linearTiming, springTiming, TransitionSeries, type TransitionPresentation } from "@remotion/transitions";
+import { linearTiming, springTiming, TransitionSeries } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { iris } from "@remotion/transitions/iris";
 import { wipe } from "@remotion/transitions/wipe";
@@ -183,7 +183,7 @@ export function TimelineComposition({
   };
 
   // Helper function to get transition presentation
-  const getTransitionPresentation = (transition: Transition): TransitionPresentation => {
+  const getTransitionPresentation = (transition: Transition) => {
     switch (transition.presentation) {
       case "fade":
         return fade();
