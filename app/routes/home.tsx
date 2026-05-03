@@ -238,9 +238,38 @@ export default function TimelineEditor() {
         }
         const strictTimeline = TimelineStateSchema.safeParse(parsed.data.timeline);
         if (strictTimeline.success) {
+          const tl = strictTimeline.data as TimelineState;
           skipNextAutoSave.current = true;
-          setTimelineFromServer(strictTimeline.data as TimelineState);
+          setTimelineFromServer(tl);
           setSaveStatus("saved");
+
+          // Restore text media bin items from the saved timeline scrubbers.
+          // Text clips aren't stored as renderer assets so they'd otherwise
+          // disappear from the media bin on reload.
+          const seenBinIds = new Set<string>();
+          const textItems = tl.tracks.flatMap((track) =>
+            track.scrubbers.flatMap((s) => {
+              if (s.mediaType !== "text" || !s.text || seenBinIds.has(s.sourceMediaBinId)) return [];
+              seenBinIds.add(s.sourceMediaBinId);
+              return [{
+                id: s.sourceMediaBinId,
+                name: s.name,
+                mediaType: "text" as const,
+                media_width: 0,
+                media_height: 0,
+                text: s.text,
+                mediaUrlLocal: null,
+                mediaUrlRemote: null,
+                durationInSeconds: 0,
+                isUploading: false,
+                uploadProgress: null,
+                left_transition_id: null,
+                right_transition_id: null,
+                groupped_scrubbers: null,
+              }];
+            }),
+          );
+          if (textItems.length > 0) setTextItems(textItems);
         }
       } catch {
         if (isMounted) navigate("/projects");
@@ -755,7 +784,8 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                location.pathname.includes("/media-bin") || /^\/project\/[^/]+\/?$/.test(location.pathname)
+                sidebarMode === "default" &&
+                (location.pathname.includes("/media-bin") || /^\/project\/[^/]+\/?$/.test(location.pathname))
                   ? "bg-background text-primary"
                   : "text-muted-foreground"
               }`}
@@ -767,7 +797,9 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                location.pathname.includes("/text-editor") ? "bg-background text-primary" : "text-muted-foreground"
+                sidebarMode === "default" && location.pathname.includes("/text-editor")
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
               }`}
               onClick={() => openSection("text-editor")}
               title="Text Editor">
@@ -777,7 +809,9 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                location.pathname.includes("/transitions") ? "bg-background text-primary" : "text-muted-foreground"
+                sidebarMode === "default" && location.pathname.includes("/transitions")
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
               }`}
               onClick={() => openSection("transitions")}
               title="Transitions">
@@ -843,7 +877,6 @@ export default function TimelineEditor() {
                   getAllScrubbers={getAllScrubbers}
                   pixelsPerSecond={getPixelsPerSecond()}
                   onUpdate={handleUpdateScrubberWithLocking}
-                  onClose={() => setSidebarMode("default")}
                 />
               ) : sidebarMode === "export" ? (
                 <ExportPanel
@@ -854,7 +887,6 @@ export default function TimelineEditor() {
                   getTimelineData={getTimelineData}
                   getPixelsPerSecond={getPixelsPerSecond}
                   handleRenderVideo={handleRenderVideo}
-                  onClose={() => setSidebarMode("default")}
                 />
               ) : (
                 <LeftPanel

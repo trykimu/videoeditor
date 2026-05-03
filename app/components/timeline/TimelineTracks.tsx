@@ -81,11 +81,15 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [onScroll, containerRef]);
 
-  // Global click handler to deselect when clicking outside timeline
+  // Global click handler to deselect when clicking outside timeline.
+  // Clicks inside panels marked data-no-deselect (e.g. Inspector) are exempt
+  // so users can edit clip properties without losing their selection.
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (target.closest('[data-no-deselect="true"]')) return;
       const timelineContainer = containerRef.current;
-      if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
+      if (timelineContainer && !timelineContainer.contains(target)) {
         onSelectScrubber(null, false);
       }
     };

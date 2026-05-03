@@ -1,5 +1,5 @@
 import React from "react";
-import { Volume2, VolumeX, X, MousePointerClick } from "lucide-react";
+import { Volume2, VolumeX, MousePointerClick } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { type ScrubberState } from "~/components/timeline/types";
 
@@ -8,7 +8,6 @@ interface InspectorPanelProps {
   getAllScrubbers: () => ScrubberState[];
   pixelsPerSecond: number;
   onUpdate: (s: ScrubberState) => void;
-  onClose: () => void;
 }
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2, 4];
@@ -21,19 +20,16 @@ const MEDIA_TYPE_LABELS: Record<string, string> = {
   groupped_scrubber: "Group",
 };
 
-export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPerSecond, onUpdate, onClose }: InspectorPanelProps) {
+export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPerSecond, onUpdate }: InspectorPanelProps) {
   const scrubber = selectedScrubberIds.length === 1
     ? getAllScrubbers().find((s) => s.id === selectedScrubberIds[0]) ?? null
     : null;
 
   return (
-    <div className="h-full flex flex-col bg-background text-foreground">
+    <div data-no-deselect="true" className="h-full flex flex-col bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 shrink-0">
+      <div className="flex items-center px-3 py-2 border-b border-border/50 shrink-0">
         <span className="text-xs font-semibold">Inspector</span>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <X className="h-3.5 w-3.5" />
-        </button>
       </div>
 
       {!scrubber ? (

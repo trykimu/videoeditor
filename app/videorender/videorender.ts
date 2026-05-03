@@ -106,12 +106,28 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
     const ext = extForCodec(codec);
     const localOutputPath = `out/${renderJobId}.${ext}`;
 
+    // Headless Chrome launched by Remotion loads from Remotion's own bundle
+    // server (e.g. port 3001), not from this Express app. Relative asset URLs
+    // like /renderer/assets/{id}/file would resolve against that bundle server
+    // and 404. Rewrite them to absolute loopback URLs so Chrome fetches from
+    // this Express app regardless of environment (local dev or Docker).
+    const rendererPort = process.env.PORT ?? "8000";
+    const absInputProps = {
+      ...inputProps,
+      timelineData: JSON.parse(
+        JSON.stringify(inputProps.timelineData).replace(
+          /\/renderer\/assets\//g,
+          `http://127.0.0.1:${rendererPort}/renderer/assets/`,
+        ),
+      ) as unknown,
+    };
+
     await job.updateProgress(5);
 
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: compositionId,
-      inputProps,
+      inputProps: absInputProps,
     });
 
     await job.updateProgress(10);
@@ -122,7 +138,7 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
       serveUrl: bundleLocation,
       codec,
       outputLocation: localOutputPath,
-      inputProps,
+      inputProps: absInputProps,
       concurrency: 3,
       verbose: true,
       logLevel: "info",

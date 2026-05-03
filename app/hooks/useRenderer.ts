@@ -8,7 +8,6 @@ export interface RenderOptions {
   crf?: number;
 }
 
-const RENDER_TOAST_ID = "kimu-render";
 
 export const useRenderer = () => {
   const [isRendering, setIsRendering] = useState(false);
@@ -36,14 +35,11 @@ export const useRenderer = () => {
 
       setIsRendering(true);
       setRenderProgress(0);
-      toast.loading("Connecting to render server…", { id: RENDER_TOAST_ID });
 
       try {
         await axios.get("/renderer/health", { timeout: 5000 });
       } catch {
-        toast.error("Cannot reach render server. Start it with: pnpm dlx tsx app/videorender/videorender.ts", {
-          id: RENDER_TOAST_ID,
-        });
+        toast.error("Cannot reach render server. Start it with: pnpm dlx tsx app/videorender/videorender.ts");
         setIsRendering(false);
         return;
       }
@@ -63,8 +59,6 @@ export const useRenderer = () => {
             .reduce((max, s) => (s.media_height && s.media_height > max ? s.media_height : max), 0) || 1080;
       }
 
-      toast.loading("Queuing render job…", { id: RENDER_TOAST_ID });
-
       let jobId: string;
       try {
         const { data } = await axios.post<{ jobId: string }>("/renderer/render", {
@@ -83,12 +77,10 @@ export const useRenderer = () => {
         const msg = axios.isAxiosError(err) && err.response?.status === 500
           ? "Server error — check render server logs"
           : "Failed to queue render job";
-        toast.error(msg, { id: RENDER_TOAST_ID });
+        toast.error(msg);
         setIsRendering(false);
         return;
       }
-
-      toast.loading("Render queued — waiting for worker…", { id: RENDER_TOAST_ID, description: "0%" });
 
       const evtSource = new EventSource(`/renderer/render/${jobId}/events`);
       evtSourceRef.current = evtSource;
@@ -115,10 +107,9 @@ export const useRenderer = () => {
 
         if (event.type === "progress") {
           setRenderProgress(event.percent);
-          toast.loading("Rendering…", { id: RENDER_TOAST_ID, description: `${event.percent}%` });
         } else if (event.type === "completed") {
           setRenderProgress(100);
-          toast.success("Render complete — download starting", { id: RENDER_TOAST_ID });
+          toast.success("Export complete — download starting");
           const link = document.createElement("a");
           link.href = event.downloadUrl;
           link.setAttribute("download", "rendered-video.mp4");
@@ -127,13 +118,13 @@ export const useRenderer = () => {
           link.remove();
           finish();
         } else if (event.type === "failed" || event.type === "error") {
-          toast.error(`Render failed: ${event.message}`, { id: RENDER_TOAST_ID });
+          toast.error(`Export failed: ${event.message}`);
           finish();
         }
       };
 
       evtSource.onerror = () => {
-        toast.error("Lost connection to render server", { id: RENDER_TOAST_ID });
+        toast.error("Lost connection to render server");
         finish();
       };
     },
