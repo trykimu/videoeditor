@@ -1,5 +1,6 @@
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,7 +14,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 from ai.routes import router as ai_router  # noqa: E402
 from api.routes import router as api_router  # noqa: E402
 from auth.routes import router as auth_router  # noqa: E402
-from db import close_db_pool
+from db import close_db_pool  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Starting up")
     yield
     logger.info("Shutting down — closing DB pool")

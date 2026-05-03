@@ -1,6 +1,6 @@
 import { Player, type PlayerRef } from "@remotion/player";
 import { Sequence, AbsoluteFill, Img, Video, Audio } from "remotion";
-import { linearTiming, springTiming, TransitionSeries } from "@remotion/transitions";
+import { linearTiming, springTiming, TransitionSeries, type TransitionPresentation } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { iris } from "@remotion/transitions/iris";
 import { wipe } from "@remotion/transitions/wipe";
@@ -182,21 +182,26 @@ export function TimelineComposition({
     return content;
   };
 
-  // Helper function to get transition presentation
-  const getTransitionPresentation = (transition: Transition) => {
+  // Helper function to get transition presentation.
+  // Each per-effect helper returns its own TransitionPresentation<P> generic; the union of those
+  // is not assignable to any single TransitionPresentation<P>, so we erase the prop generic to a
+  // permissive `Record<string, unknown>` (Remotion accepts any presentation factory at runtime).
+  type AnyPresentation = TransitionPresentation<Record<string, unknown>>;
+  const getTransitionPresentation = (transition: Transition): AnyPresentation => {
+    const cast = (p: unknown) => p as AnyPresentation;
     switch (transition.presentation) {
       case "fade":
-        return fade();
+        return cast(fade());
       case "wipe":
-        return wipe();
+        return cast(wipe());
       case "slide":
-        return slide();
+        return cast(slide());
       case "flip":
-        return flip();
+        return cast(flip());
       case "iris":
-        return iris({ width: 1920, height: 1080 });
+        return cast(iris({ width: 1920, height: 1080 }));
       default:
-        return fade();
+        return cast(fade());
     }
   };
 
@@ -273,7 +278,7 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-left-transition`}
-                    presentation={getTransitionPresentation(transition)}
+                presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
             );
@@ -328,7 +333,7 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-right-transition`}
-                    presentation={getTransitionPresentation(transition)}
+                presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
             );

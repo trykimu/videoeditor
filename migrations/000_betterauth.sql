@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- BetterAuth: user table
-CREATE TABLE "user" (
+CREATE TABLE IF NOT EXISTS "user" (
   id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name             TEXT NOT NULL,
   email            TEXT NOT NULL UNIQUE,
@@ -12,7 +12,7 @@ CREATE TABLE "user" (
 );
 
 -- BetterAuth: session table
-CREATE TABLE session (
+CREATE TABLE IF NOT EXISTS session (
   id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   "expiresAt"  TIMESTAMPTZ NOT NULL,
   token        TEXT NOT NULL UNIQUE,
@@ -24,7 +24,7 @@ CREATE TABLE session (
 );
 
 -- BetterAuth: account table
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
   id                      TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   "accountId"             TEXT NOT NULL,
   "providerId"            TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE account (
 );
 
 -- BetterAuth: verification table
-CREATE TABLE verification (
+CREATE TABLE IF NOT EXISTS verification (
   id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   identifier   TEXT NOT NULL,
   value        TEXT NOT NULL,
@@ -77,37 +77,44 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_user_updated_at ON "user";
 CREATE TRIGGER trg_user_updated_at
   BEFORE UPDATE ON "user"
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at_camel();
 
+DROP TRIGGER IF EXISTS trg_session_updated_at ON session;
 CREATE TRIGGER trg_session_updated_at
   BEFORE UPDATE ON session
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at_camel();
 
+DROP TRIGGER IF EXISTS trg_account_updated_at ON account;
 CREATE TRIGGER trg_account_updated_at
   BEFORE UPDATE ON account
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at_camel();
 
+DROP TRIGGER IF EXISTS trg_verification_updated_at ON verification;
 CREATE TRIGGER trg_verification_updated_at
   BEFORE UPDATE ON verification
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at_camel();
 
+DROP TRIGGER IF EXISTS trg_user_set_id ON "user";
 CREATE TRIGGER trg_user_set_id
   BEFORE INSERT ON "user"
   FOR EACH ROW
   EXECUTE FUNCTION set_user_id();
 
+DROP TRIGGER IF EXISTS trg_verification_set_id ON verification;
 CREATE TRIGGER trg_verification_set_id
   BEFORE INSERT ON verification
   FOR EACH ROW
   EXECUTE FUNCTION set_verification_id();
 
-CREATE INDEX idx_session_user_id ON session("userId");
-CREATE INDEX idx_account_user_id ON account("userId");
-CREATE INDEX idx_account_provider ON account("providerId", "accountId");
-CREATE INDEX idx_verification_identifier ON verification(identifier);
+CREATE INDEX IF NOT EXISTS idx_session_user_id ON session("userId");
+CREATE INDEX IF NOT EXISTS idx_session_token ON session(token);
+CREATE INDEX IF NOT EXISTS idx_account_user_id ON account("userId");
+CREATE INDEX IF NOT EXISTS idx_account_provider ON account("providerId", "accountId");
+CREATE INDEX IF NOT EXISTS idx_verification_identifier ON verification(identifier);

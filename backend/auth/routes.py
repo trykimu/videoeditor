@@ -24,6 +24,7 @@ def _extract_session_token_from_cookies(request: Request) -> str | None:
     token = decoded_cookie.split(".", 1)[0]
     return token or None
 
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -36,7 +37,9 @@ async def get_current_user(
     """
     session_token = _extract_session_token_from_cookies(request)
     if not session_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
 
     pool = await get_db_pool()
     async with pool.acquire() as conn:
@@ -52,7 +55,10 @@ async def get_current_user(
 
     if row is None:
         logger.warning("Invalid or expired session token attempted")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        )
 
     return SessionUser(
         user_id=str(row["id"]),

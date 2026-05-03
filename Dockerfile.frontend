@@ -1,8 +1,11 @@
-FROM node:20-bookworm-slim
+# Multi-stage frontend build. Builder installs full deps and produces the React Router SSR bundle;
+# runtime ships only production deps + the built artifact.
+
+# ─── Build stage ─────────────────────────────────────────────────────────────
+FROM node:20.18-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Use corepack-managed pnpm to match lockfile semantics.
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
@@ -11,5 +14,24 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run build
 
+# Drop dev deps so the next stage can copy a lean node_modules.
+RUN pnpm prune --prod
+
+# ─── Runtime stage ───────────────────────────────────────────────────────────
+FROM node:20.18-bookworm-slim AS runtime
+
+WORKDIR /app
+
+RUN corepack enable
+
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/public ./public
+
+# Run as the unprivileged "node" user shipped in the base image.
+USER node
+
 EXPOSE 3000
+
 CMD ["pnpm", "run", "start"]

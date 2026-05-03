@@ -15,14 +15,12 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
-import pkg from "pg";
-import type { PoolClient } from "pg";
+import pkg, { type PoolClient } from "pg";
 const { Pool } = pkg;
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(scriptDir, "../../.env");
 dotenv.config({ path: envPath });
-
 
 // ─── R2 client (S3-compatible) ───────────────────────────────────────────────
 
@@ -276,7 +274,7 @@ app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise
     fileSize: number;
     mimeType: string;
     mediaType: string;
-    contentHash: string;      // SHA-256 hex from browser
+    contentHash: string; // SHA-256 hex from browser
     projectId?: string | null;
   };
 
@@ -311,8 +309,17 @@ app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise
             mime_type, media_type, status)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ready')
          ON CONFLICT (id) DO NOTHING`,
-        [assetId, userId, projectId ?? null, contentHash, r2Key,
-         filename, fileSize || null, mimeType, mediaType || null],
+        [
+          assetId,
+          userId,
+          projectId ?? null,
+          contentHash,
+          r2Key,
+          filename,
+          fileSize || null,
+          mimeType,
+          mediaType || null,
+        ],
       );
 
       console.log(`⚡ Dedup hit: ${filename} (${contentHash.slice(0, 8)}…)`);
@@ -329,8 +336,7 @@ app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise
        ON CONFLICT (id) DO UPDATE
          SET content_hash=$4, r2_key=$5, filename=$6, file_size=$7,
              mime_type=$8, media_type=$9, status='uploading'`,
-      [assetId, userId, projectId ?? null, contentHash, r2Key,
-       filename, fileSize || null, mimeType, mediaType || null],
+      [assetId, userId, projectId ?? null, contentHash, r2Key, filename, fileSize || null, mimeType, mediaType || null],
     );
 
     console.log(`📤 Upload initiated: ${filename} → ${r2Key}`);
@@ -455,10 +461,7 @@ app.post("/assets/complete-upload", async (req: Request, res: Response): Promise
     const contentHash: string = lookup[0].content_hash;
 
     // Mark the shared R2 object as confirmed (idempotent — no-op if already ready)
-    await db.query(
-      "UPDATE r2_objects SET status='ready' WHERE content_hash=$1 AND status='pending'",
-      [contentHash],
-    );
+    await db.query("UPDATE r2_objects SET status='ready' WHERE content_hash=$1 AND status='pending'", [contentHash]);
 
     const { rows } = await db.query(
       `UPDATE assets
@@ -558,10 +561,10 @@ app.delete("/projects/:projectId", async (req: Request, res: Response): Promise<
   try {
     await client.query("BEGIN");
 
-    const { rows: projectRows } = await client.query(
-      "SELECT id FROM projects WHERE id=$1 AND user_id=$2 FOR UPDATE",
-      [projectId, userId],
-    );
+    const { rows: projectRows } = await client.query("SELECT id FROM projects WHERE id=$1 AND user_id=$2 FOR UPDATE", [
+      projectId,
+      userId,
+    ]);
     if (projectRows.length === 0) {
       await client.query("ROLLBACK");
       res.status(404).json({ error: "Project not found" });
@@ -709,10 +712,10 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
   const { suffix } = req.body as { suffix?: string };
 
   try {
-    const { rows } = await db.query(
-      "SELECT * FROM assets WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL",
-      [assetId, userId],
-    );
+    const { rows } = await db.query("SELECT * FROM assets WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL", [
+      assetId,
+      userId,
+    ]);
 
     if (rows.length === 0) {
       res.status(404).json({ error: "Source asset not found" });
@@ -733,9 +736,7 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
       }),
     );
 
-    const newFilename = suffix
-      ? `${path.basename(source.filename, ext)} ${suffix}${ext}`
-      : source.filename;
+    const newFilename = suffix ? `${path.basename(source.filename, ext)} ${suffix}${ext}` : source.filename;
 
     const { rows: newRows } = await db.query(
       `INSERT INTO assets
@@ -744,9 +745,17 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready')
        RETURNING *`,
       [
-        newAssetId, userId, source.project_id, newR2Key, newFilename,
-        source.file_size, source.mime_type, source.media_type,
-        source.duration_seconds, source.width, source.height,
+        newAssetId,
+        userId,
+        source.project_id,
+        newR2Key,
+        newFilename,
+        source.file_size,
+        source.mime_type,
+        source.media_type,
+        source.duration_seconds,
+        source.width,
+        source.height,
       ],
     );
     // Note: cloned assets intentionally have no content_hash since they represent
@@ -798,15 +807,24 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
       logLevel: "info",
       ffmpegOverride: ({ args }) => [
         ...args,
-        "-preset", "fast",
-        "-crf", "28",
-        "-threads", "3",
-        "-tune", "film",
-        "-x264-params", "ref=3:me=hex:subme=6:trellis=1",
-        "-g", "30",
-        "-bf", "2",
-        "-maxrate", "5M",
-        "-bufsize", "10M",
+        "-preset",
+        "fast",
+        "-crf",
+        "28",
+        "-threads",
+        "3",
+        "-tune",
+        "film",
+        "-x264-params",
+        "ref=3:me=hex:subme=6:trellis=1",
+        "-g",
+        "30",
+        "-bf",
+        "2",
+        "-maxrate",
+        "5M",
+        "-bufsize",
+        "10M",
       ],
       timeoutInMilliseconds: 900000,
     });

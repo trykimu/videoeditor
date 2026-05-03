@@ -243,119 +243,122 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
     };
   }, [projectId]);
 
-  const handleAddMediaToBin = useCallback(async (file: File) => {
-    const id = generateUUID();
-    const name = file.name;
-    let mediaType: "video" | "image" | "audio";
-    if (file.type.startsWith("video/")) mediaType = "video";
-    else if (file.type.startsWith("image/")) mediaType = "image";
-    else if (file.type.startsWith("audio/")) mediaType = "audio";
-    else {
-      toast.error("Unsupported file type. Please select a video, image, or audio file.");
-      return;
-    }
+  const handleAddMediaToBin = useCallback(
+    async (file: File) => {
+      const id = generateUUID();
+      const name = file.name;
+      let mediaType: "video" | "image" | "audio";
+      if (file.type.startsWith("video/")) mediaType = "video";
+      else if (file.type.startsWith("image/")) mediaType = "image";
+      else if (file.type.startsWith("audio/")) mediaType = "audio";
+      else {
+        toast.error("Unsupported file type. Please select a video, image, or audio file.");
+        return;
+      }
 
-    try {
-      const mediaUrlLocal = URL.createObjectURL(file);
-      const metadata = await getMediaMetadata(file, mediaType);
+      try {
+        const mediaUrlLocal = URL.createObjectURL(file);
+        const metadata = await getMediaMetadata(file, mediaType);
 
-      // Add item to media bin immediately with upload progress tracking
-      const newItem: MediaBinItem = {
-        id,
-        name,
-        mediaType,
-        mediaUrlLocal,
-        mediaUrlRemote: null, // Will be set after successful upload
-        durationInSeconds: metadata.durationInSeconds ?? 0,
-        media_width: metadata.width,
-        media_height: metadata.height,
-        text: null,
-        isUploading: true,
-        uploadProgress: 0,
-        left_transition_id: null,
-        right_transition_id: null,
-        groupped_scrubbers: null,
-      };
-      setMediaBinItems((prev) => [...prev, newItem]);
-
-      // Step 1: Hash file content for deduplication (WebCrypto SHA-256)
-      const contentHash = await hashFile(file);
-
-      // Step 2: Initiate upload — server checks dedup and returns either
-      //   { alreadyExists: true, assetUrl }  ← file already in R2, skip upload
-      //   { assetUrl }                        ← new file, proceed with upload
-      const initiateRes = await fetch("/renderer/assets/initiate-upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          assetId: id,
-          filename: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
+        // Add item to media bin immediately with upload progress tracking
+        const newItem: MediaBinItem = {
+          id,
+          name,
           mediaType,
-          contentHash,
-          projectId,
-        }),
-      });
-      if (!initiateRes.ok) throw new Error("Failed to initiate upload");
-      const initiateResult = await initiateRes.json() as {
-        alreadyExists?: boolean;
-        assetUrl: string;
-      };
+          mediaUrlLocal,
+          mediaUrlRemote: null, // Will be set after successful upload
+          durationInSeconds: metadata.durationInSeconds ?? 0,
+          media_width: metadata.width,
+          media_height: metadata.height,
+          text: null,
+          isUploading: true,
+          uploadProgress: 0,
+          left_transition_id: null,
+          right_transition_id: null,
+          groupped_scrubbers: null,
+        };
+        setMediaBinItems((prev) => [...prev, newItem]);
 
-      if (!initiateResult.alreadyExists) {
-        // Step 3: Upload raw bytes to renderer (same-origin) to avoid browser↔R2 CORS
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("PUT", `/renderer/assets/upload/${id}`);
-          xhr.setRequestHeader("Content-Type", file.type);
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const pct = Math.round((e.loaded / e.total) * 100);
-              setMediaBinItems((prev) =>
-                prev.map((item) => (item.id === id ? { ...item, uploadProgress: pct } : item)),
-              );
-            }
-          };
-          xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)));
-          xhr.onerror = () => reject(new Error("Network error during R2 upload"));
-          xhr.send(file);
-        });
+        // Step 1: Hash file content for deduplication (WebCrypto SHA-256)
+        const contentHash = await hashFile(file);
 
-        // Step 4: Confirm upload — persist media dimensions/duration to DB
-        const completeRes = await fetch("/renderer/assets/complete-upload", {
+        // Step 2: Initiate upload — server checks dedup and returns either
+        //   { alreadyExists: true, assetUrl }  ← file already in R2, skip upload
+        //   { assetUrl }                        ← new file, proceed with upload
+        const initiateRes = await fetch("/renderer/assets/initiate-upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
             assetId: id,
-            width: metadata.width,
-            height: metadata.height,
-            durationInSeconds: metadata.durationInSeconds,
+            filename: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            mediaType,
+            contentHash,
+            projectId,
           }),
         });
-        if (!completeRes.ok) throw new Error("Failed to complete upload");
+        if (!initiateRes.ok) throw new Error("Failed to initiate upload");
+        const initiateResult = (await initiateRes.json()) as {
+          alreadyExists?: boolean;
+          assetUrl: string;
+        };
+
+        if (!initiateResult.alreadyExists) {
+          // Step 3: Upload raw bytes to renderer (same-origin) to avoid browser↔R2 CORS
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", `/renderer/assets/upload/${id}`);
+            xhr.setRequestHeader("Content-Type", file.type);
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                setMediaBinItems((prev) =>
+                  prev.map((item) => (item.id === id ? { ...item, uploadProgress: pct } : item)),
+                );
+              }
+            };
+            xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)));
+            xhr.onerror = () => reject(new Error("Network error during R2 upload"));
+            xhr.send(file);
+          });
+
+          // Step 4: Confirm upload — persist media dimensions/duration to DB
+          const completeRes = await fetch("/renderer/assets/complete-upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              assetId: id,
+              width: metadata.width,
+              height: metadata.height,
+              durationInSeconds: metadata.durationInSeconds,
+            }),
+          });
+          if (!completeRes.ok) throw new Error("Failed to complete upload");
+        }
+
+        // Step 5: Store authenticated asset URL and mark upload done
+        setMediaBinItems((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, mediaUrlRemote: initiateResult.assetUrl, isUploading: false, uploadProgress: null }
+              : item,
+          ),
+        );
+      } catch (error) {
+        console.error("Error adding media to bin:", error);
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        // Remove the failed item from media bin
+        setMediaBinItems((prev) => prev.filter((item) => item.id !== id));
+
+        throw new Error(`Failed to add media: ${errorMessage}`);
       }
-
-      // Step 5: Store authenticated asset URL and mark upload done
-      setMediaBinItems((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? { ...item, mediaUrlRemote: initiateResult.assetUrl, isUploading: false, uploadProgress: null }
-            : item,
-        ),
-      );
-    } catch (error) {
-      console.error("Error adding media to bin:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-      // Remove the failed item from media bin
-      setMediaBinItems((prev) => prev.filter((item) => item.id !== id));
-
-      throw new Error(`Failed to add media: ${errorMessage}`);
-    }
-  }, [projectId]);
+    },
+    [projectId],
+  );
 
   const handleAddTextToBin = useCallback(
     (

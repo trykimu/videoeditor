@@ -342,15 +342,36 @@ export default function MediaBin() {
     return name.endsWith(".gif") || url.includes(".gif");
   };
 
-  const counts = useMemo(() => {
-    const videos = mediaBinItems.filter((i) => i.mediaType === "video").length;
-    const gifs = mediaBinItems.filter(isGif).length;
-    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i)).length;
-    const audio = mediaBinItems.filter((i) => i.mediaType === "audio").length;
-    const text = mediaBinItems.filter((i) => i.mediaType === "text").length;
-    const all = mediaBinItems.length;
-    return { all, videos, images, gifs, audio, text };
+  // Single-pass partition by category. Counts and grouped lists are derived from one walk.
+  const partitioned = useMemo(() => {
+    const videos: MediaBinItem[] = [];
+    const gifs: MediaBinItem[] = [];
+    const images: MediaBinItem[] = [];
+    const audio: MediaBinItem[] = [];
+    const text: MediaBinItem[] = [];
+    for (const item of mediaBinItems) {
+      if (item.mediaType === "video") videos.push(item);
+      else if (item.mediaType === "audio") audio.push(item);
+      else if (item.mediaType === "text") text.push(item);
+      else if (item.mediaType === "image") {
+        if (isGif(item)) gifs.push(item);
+        else images.push(item);
+      }
+    }
+    return { videos, gifs, images, audio, text };
   }, [mediaBinItems]);
+
+  const counts = useMemo(
+    () => ({
+      all: mediaBinItems.length,
+      videos: partitioned.videos.length,
+      gifs: partitioned.gifs.length,
+      images: partitioned.images.length,
+      audio: partitioned.audio.length,
+      text: partitioned.text.length,
+    }),
+    [mediaBinItems.length, partitioned],
+  );
 
   const defaultArrangedItems = useMemo(() => {
     if (sortBy === "name_asc") return [...mediaBinItems].sort((a, b) => a.name.localeCompare(b.name));
@@ -359,26 +380,19 @@ export default function MediaBin() {
   }, [mediaBinItems, sortBy]);
 
   const groupedItems = useMemo(() => {
-    const videos = mediaBinItems.filter((i) => i.mediaType === "video");
-    const gifs = mediaBinItems.filter(isGif);
-    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i));
-    const audio = mediaBinItems.filter((i) => i.mediaType === "audio");
-    const text = mediaBinItems.filter((i) => i.mediaType === "text");
-
     const maybeSort = (arr: MediaBinItem[]) => {
       if (sortBy === "name_asc") return [...arr].sort((a, b) => a.name.localeCompare(b.name));
       if (sortBy === "name_desc") return [...arr].sort((a, b) => b.name.localeCompare(a.name));
       return arr;
     };
-
     return {
-      videos: maybeSort(videos),
-      gifs: maybeSort(gifs),
-      images: maybeSort(images),
-      audio: maybeSort(audio),
-      text: maybeSort(text),
+      videos: maybeSort(partitioned.videos),
+      gifs: maybeSort(partitioned.gifs),
+      images: maybeSort(partitioned.images),
+      audio: maybeSort(partitioned.audio),
+      text: maybeSort(partitioned.text),
     };
-  }, [mediaBinItems, sortBy]);
+  }, [partitioned, sortBy]);
   const renderThumbnail = (item: MediaBinItem) => {
     const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
 

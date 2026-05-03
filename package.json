@@ -8,9 +8,11 @@
     "dev": "react-router dev --host 0.0.0.0",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint \"**/*.{ts,tsx,js,mjs,cjs}\"",
+    "lint:fix": "eslint \"**/*.{ts,tsx,js,mjs,cjs}\" --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

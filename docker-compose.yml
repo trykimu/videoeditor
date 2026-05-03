@@ -9,8 +9,13 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro # Mount certs read-only
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
+    restart: unless-stopped
 
   frontend:
     build:
@@ -28,6 +33,17 @@ services:
     #   - "3000:3000"
     depends_on:
       - backend
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://127.0.0.1:3000/'', res => process.exit(res.statusCode < 500 ? 0 : 1)).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   backend:
     build:
@@ -45,6 +61,13 @@ services:
     mem_limit: 2g
     memswap_limit: 2g
     shm_size: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   fastapi:
     build:
@@ -57,3 +80,10 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/beep"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped

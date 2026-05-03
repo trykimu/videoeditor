@@ -41,6 +41,7 @@ import { Separator } from "~/components/ui/separator";
 import { type MediaBinItem, type TimelineState, type ScrubberState } from "../timeline/types";
 import { cn } from "~/lib/utils";
 import axios from "axios";
+import { z } from "zod";
 import {
   AiResponseSchema,
   MoveScrubberArgsSchema,
@@ -202,28 +203,27 @@ export function ChatBox({
   };
 
   const loadTabs = (): ChatTab[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.map((t: any) => ({
-          id: String(t.id ?? Date.now().toString()),
-          name: String(t.name ?? "Chat"),
-          messages: Array.isArray(t.messages)
-            ? t.messages.map((m: any) => ({
-                id: String(m.id ?? Date.now().toString()),
-                content: String(m.content ?? ""),
-                isUser: Boolean(m.isUser),
-                timestamp: m && m.timestamp ? new Date(m.timestamp) : new Date(),
-              }))
-            : [],
-          timelineSnapshot: t.timelineSnapshot ?? null,
-          createdAt: Number(t.createdAt ?? Date.now()),
-        }));
-      }
-    } catch {}
-    return [];
+      const parsed = ChatTabsStorageSchema.safeParse(JSON.parse(raw));
+      if (!parsed.success) return [];
+      return parsed.data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        messages: t.messages.map((m) => ({
+          id: m.id,
+          content: m.content,
+          isUser: m.isUser,
+          timestamp: m.timestamp,
+        })),
+        timelineSnapshot: (t.timelineSnapshot as TimelineState | null) ?? null,
+        createdAt: t.createdAt,
+      }));
+    } catch {
+      return [];
+    }
   };
 
   const [tabs, setTabs] = useState<ChatTab[]>(() => {
@@ -232,10 +232,14 @@ export function ChatBox({
     return [{ id: Date.now().toString(), name: "Chat 1", messages: [], timelineSnapshot: null, createdAt: Date.now() }];
   });
   const [activeTabId, setActiveTabId] = useState<string>(() => {
-    try {
-      const stored = localStorage.getItem(ACTIVE_TAB_KEY);
-      if (stored) return stored;
-    } catch {}
+    if (typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem(ACTIVE_TAB_KEY);
+        if (stored) return stored;
+      } catch {
+        // localStorage may throw on quota or privacy-mode browsers; fall through.
+      }
+    }
     return tabs[0]?.id || "";
   });
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
@@ -262,6 +266,10 @@ export function ChatBox({
     if (remaining.length !== pendingResizeRequests.length) {
       setPendingResizeRequests(remaining);
     }
+    // pendingResizeRequests is read+written here; including it would loop. handleUpdateScrubber is
+    // a stable parent callback. Only re-run when the timeline updates (the trigger we actually care
+    // about — new scrubbers appear after timeline state propagates).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timelineState]);
 
   useEffect(() => {
@@ -271,15 +279,21 @@ export function ChatBox({
   }, [activeTabId]);
 
   const persistTabs = (next: ChatTab[]) => {
+    if (typeof window === "undefined") return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
-    } catch {}
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
+    } catch {
+      // ignore quota/privacy errors
+    }
   };
 
   useEffect(() => {
     persistTabs(tabs);
-  }, [tabs]);
+    // persistTabs is a closure that reads activeTabId; we deliberately re-run on tabs OR
+    // activeTabId so the persisted active-tab pointer stays in sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs, activeTabId]);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -304,7 +318,7 @@ export function ChatBox({
   useEffect(() => {
     if (!activeTab) return;
     onMessagesChange(activeTab.messages);
-  }, [activeTabId]);
+  }, [activeTab, onMessagesChange]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -471,22 +485,15 @@ export function ChatBox({
         chat_history: chatHistoryPayload,
       });
 
-      let functionCallResponse: any;
-      try {
-        // Be resilient to provider response shapes; avoid hard Zod failure on client
-        if (response && typeof response.data === "object" && response.data !== null) {
-          const data = response.data as any;
-          if (data.function_call || data.assistant_message) {
-            functionCallResponse = data;
-          } else {
-            functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
-          }
-        } else {
-          functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
-        }
-      } catch {
-        functionCallResponse = { assistant_message: "I received an invalid response format from AI." } as any;
-      }
+      // Be resilient to provider response shapes; avoid hard Zod failure on client
+      const fallbackResponse = {
+        assistant_message: "I received an invalid response format from AI.",
+      } satisfies z.infer<typeof AiResponseSchema>;
+      const aiParsed = AiResponseSchema.safeParse(response?.data);
+      const functionCallResponse: z.infer<typeof AiResponseSchema> =
+        aiParsed.success && (aiParsed.data.function_call || aiParsed.data.assistant_message)
+          ? aiParsed.data
+          : fallbackResponse;
       let aiResponseContent = "";
 
       // Handle the function call (universal v2: {function_name, arguments})
@@ -649,28 +656,29 @@ export function ChatBox({
           } else if (fn === "LLMResizeScrubber" || fn === "ResizeScrubber") {
             const parsed = ResizeScrubberArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for ResizeScrubber");
-            const a = parsed.data as any;
-            const startSecForDiff = (a.start_seconds ?? a.position_seconds) as number | undefined;
-            const candidateDur = (a.new_duration_seconds ??
+            const a = parsed.data;
+            const startSecForDiff = a.start_seconds ?? a.position_seconds;
+            const candidateDur =
+              a.new_duration_seconds ??
               a.duration_seconds ??
               a.seconds ??
               a.duration ??
               a.newDurationSeconds ??
-              a.durationInSeconds) as number | undefined;
-            const endSecVal = a.end_seconds as number | undefined;
+              a.durationInSeconds;
+            const endSecVal = a.end_seconds;
             const dur =
               candidateDur ??
               (startSecForDiff !== undefined && endSecVal !== undefined
                 ? Math.max(0, endSecVal - startSecForDiff)
                 : undefined);
-            const ppsVal = (a.pixels_per_second as number | undefined) ?? pixelsPerSecond;
-            const trackNum = (a.track_number as number | undefined) ?? (a.new_track_number as number | undefined);
-            let targetId = typeof a.scrubber_id === "string" ? (a.scrubber_id as string) : undefined;
+            const ppsVal = a.pixels_per_second ?? pixelsPerSecond;
+            const trackNum = a.track_number ?? a.new_track_number;
+            let targetId = typeof a.scrubber_id === "string" ? a.scrubber_id : undefined;
             if (!targetId && trackNum !== undefined) {
               const trackIndex = Math.max(0, Math.floor(trackNum) - 1);
               const track = timelineState.tracks?.[trackIndex];
               if (track && track.scrubbers.length > 0) {
-                const nameRaw = a.scrubber_name as string | undefined;
+                const nameRaw = a.scrubber_name;
                 const nameSub = typeof nameRaw === "string" ? nameRaw.toLowerCase() : undefined;
                 if (nameSub) {
                   const found = track.scrubbers.find((s) => s.name.toLowerCase().includes(nameSub));
@@ -706,7 +714,7 @@ export function ChatBox({
           } else if (fn === "LLMUpdateTextStyle" || fn === "UpdateTextStyle") {
             const parsed = UpdateTextStyleArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for UpdateTextStyle");
-            const { scrubber_id, ...style } = parsed.data as any;
+            const { scrubber_id, ...style } = parsed.data;
             llmUpdateTextStyle(scrubber_id, style, timelineState, handleUpdateScrubber);
             aiResponseContent = `✅ Updated text style.`;
           } else if (fn === "LLMMoveScrubbersByOffset" || fn === "MoveScrubbersByOffset") {
@@ -728,7 +736,7 @@ export function ChatBox({
               aiResponseContent = "❌ Cannot create track: handler unavailable.";
             }
           } else if (fn === "CreateTracks") {
-            const count = toNumber((args as any).count) ?? 1;
+            const count = toNumber(args.count) ?? 1;
             if (handleAddTrack) {
               const n = Math.max(1, Math.floor(count));
               for (let i = 0; i < n; i++) handleAddTrack();
@@ -738,8 +746,8 @@ export function ChatBox({
             }
           } else if (fn === "PlaceAllAssetsParallel") {
             // Place each media bin item on a separate (new if needed) track at the same start time
-            const startSec = toSeconds((args as any).start_seconds) ?? 0;
-            const pps = toNumber((args as any).pixels_per_second) ?? pixelsPerSecond;
+            const startSec = toSeconds(args.start_seconds) ?? 0;
+            const pps = toNumber(args.pixels_per_second) ?? pixelsPerSecond;
             const startPx = startSec * pps;
             const requiredTracks = mediaBinItems.length;
             // Ensure enough tracks
@@ -882,8 +890,13 @@ export function ChatBox({
 
   const formatTime = (dateLike: unknown) => {
     try {
-      const d = dateLike instanceof Date ? dateLike : new Date(dateLike as any);
-      if (!(d instanceof Date) || isNaN(d.getTime())) return "";
+      const d =
+        dateLike instanceof Date
+          ? dateLike
+          : typeof dateLike === "string" || typeof dateLike === "number"
+            ? new Date(dateLike)
+            : null;
+      if (!d || isNaN(d.getTime())) return "";
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch {
       return "";
@@ -1048,17 +1061,18 @@ export function ChatBox({
             <div className="max-h-72 overflow-y-auto p-1">
               {(() => {
                 const filtered = tabs
-                  .map((t) => ({
-                    ...t,
-                    lastActivity: (t.messages?.[t.messages.length - 1]?.timestamp as any)?.getTime?.() || t.createdAt,
-                  }))
+                  .map((t) => {
+                    const last = t.messages?.[t.messages.length - 1]?.timestamp;
+                    const lastMs = last instanceof Date ? last.getTime() : t.createdAt;
+                    return { ...t, lastActivity: lastMs };
+                  })
                   .filter((t) => t.name.toLowerCase().includes(historyQuery.toLowerCase()))
                   .sort((a, b) => b.lastActivity - a.lastActivity);
 
-                const groups: Record<string, typeof filtered> = {} as any;
+                const groups: Record<string, typeof filtered> = {};
                 filtered.forEach((t) => {
                   const g = getRecencyGroup(t.lastActivity);
-                  if (!groups[g]) groups[g] = [] as any;
+                  if (!groups[g]) groups[g] = [];
                   groups[g].push(t);
                 });
 

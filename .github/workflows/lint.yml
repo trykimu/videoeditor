@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend ESLint and TS
+    name: Frontend ESLint, TS, Format, Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,14 +32,17 @@ jobs:
       - name: Generate router types & TS typecheck (tsc)
         run: pnpm run typecheck
 
-      - name: ESLint
-        run: pnpm eslint . --ext .ts,.tsx --fix
+      - name: ESLint (read-only)
+        run: pnpm eslint . --max-warnings 0
 
-      - name: Prettier format (auto-fix)
-        run: pnpm format
+      - name: Prettier format check
+        run: pnpm format:check
+
+      - name: Build (production SSR bundle)
+        run: pnpm run build
 
   backend:
-    name: Backend Ruff and mypy
+    name: Backend Ruff, format, mypy
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,8 +63,8 @@ jobs:
       - name: Ruff check
         run: uv run python -m ruff check .
 
-      - name: Ruff format (auto-fix)
-        run: uv run python -m ruff format .
+      - name: Ruff format check
+        run: uv run python -m ruff format --check .
 
       - name: mypy
         run: uv run mypy .

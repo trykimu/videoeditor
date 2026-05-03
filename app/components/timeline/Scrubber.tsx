@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
 import { Trash2, Group, Ungroup, Archive } from "lucide-react";
 
@@ -64,45 +64,39 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
   const MINIMUM_WIDTH = 20;
 
-  // Get snap points (scrubber edges and grid marks)
-  const getSnapPoints = useCallback(
-    (excludeId?: string) => {
-      const snapPoints: number[] = [];
+  // Pre-compute the static grid snap points; only depend on timeline geometry.
+  const gridSnapPoints = useMemo(() => {
+    const points: number[] = [];
+    for (let pos = 0; pos <= timelineWidth; pos += pixelsPerSecond) {
+      points.push(pos);
+    }
+    return points;
+  }, [timelineWidth, pixelsPerSecond]);
 
-      // Add grid marks based on current zoom level
-      for (let pos = 0; pos <= timelineWidth; pos += pixelsPerSecond) {
-        snapPoints.push(pos);
-      }
-
-      // Add scrubber edges
-      otherScrubbers.forEach((other) => {
-        if (other.id !== excludeId) {
-          snapPoints.push(other.left);
-          snapPoints.push(other.left + other.width);
-        }
-      });
-
-      return snapPoints;
-    },
-    [otherScrubbers, timelineWidth, pixelsPerSecond],
+  // Pre-compute scrubber-edge snap points keyed by scrubber id, so during a drag we can cheaply
+  // exclude the dragging scrubber's own edges without re-walking the array each move.
+  const scrubberSnapPoints = useMemo(
+    () => otherScrubbers.map((other) => ({ id: other.id, left: other.left, right: other.left + other.width })),
+    [otherScrubbers],
   );
 
   // Find nearest snap point
   const findSnapPoint = useCallback(
     (position: number, excludeId?: string): number => {
       if (!snapConfig.enabled) return position;
+      const distance = snapConfig.distance;
 
-      const snapPoints = getSnapPoints(excludeId);
-
-      for (const snapPos of snapPoints) {
-        if (Math.abs(position - snapPos) < snapConfig.distance) {
-          return snapPos;
-        }
+      for (const snapPos of gridSnapPoints) {
+        if (Math.abs(position - snapPos) < distance) return snapPos;
       }
-
+      for (const s of scrubberSnapPoints) {
+        if (s.id === excludeId) continue;
+        if (Math.abs(position - s.left) < distance) return s.left;
+        if (Math.abs(position - s.right) < distance) return s.right;
+      }
       return position;
     },
-    [snapConfig, getSnapPoints],
+    [snapConfig, gridSnapPoints, scrubberSnapPoints],
   );
 
   const handleMouseDown = useCallback(

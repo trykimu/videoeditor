@@ -1,12 +1,16 @@
 import json
 import logging
+import time
+from collections import defaultdict, deque
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 
 from ai.schema import FunctionCallResponse
+from auth.routes import get_current_user
+from auth.schema import SessionUser
 from utils import require_env
 
 logger = logging.getLogger(__name__)
@@ -18,8 +22,32 @@ _GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_API_KEY: str = require_env("GEMINI_API_KEY")
 gemini_client: genai.Client = genai.Client(api_key=GEMINI_API_KEY)
 
-_MAX_MESSAGE_LENGTH = 5_000
-_MAX_HISTORY_ITEMS = 20
+_MAX_MESSAGE_LENGTH = 20_000
+_MAX_HISTORY_ITEMS = 50
+# Permissive caps — large enough for real projects (hundreds of scrubbers / media items) without
+# hitting Gemini 2.5 Flash's ~1M-token context window. Tune when we have load data.
+_MAX_TIMELINE_BYTES = 10 * 1024 * 1024  # 10 MB
+_MAX_MEDIABIN_BYTES = 4 * 1024 * 1024  # 4 MB
+
+# Per-user in-process rate limit. Sized for an interactive editor where a power user might
+# iterate at ~1 req/sec during a session. Revisit with Redis once we move to multi-worker.
+_RATE_LIMIT_WINDOW_SECONDS = 60
+_RATE_LIMIT_MAX_REQUESTS = 60
+_recent_requests: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _enforce_rate_limit(user_id: str) -> None:
+    now = time.monotonic()
+    window_start = now - _RATE_LIMIT_WINDOW_SECONDS
+    bucket = _recent_requests[user_id]
+    while bucket and bucket[0] < window_start:
+        bucket.popleft()
+    if len(bucket) >= _RATE_LIMIT_MAX_REQUESTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded: {_RATE_LIMIT_MAX_REQUESTS} requests per minute",
+        )
+    bucket.append(now)
 
 
 class Message(BaseModel):
@@ -33,7 +61,26 @@ class Message(BaseModel):
 
 
 @router.post("/ai")
-async def process_ai_message(request: Message) -> FunctionCallResponse:
+async def process_ai_message(
+    request: Message,
+    user: SessionUser = Depends(get_current_user),
+) -> FunctionCallResponse:
+    _enforce_rate_limit(user.user_id)
+
+    # Bound the serialized payload before forwarding to Gemini to cap token spend.
+    timeline_json = json.dumps(request.timeline_state or {}, ensure_ascii=False)
+    if len(timeline_json) > _MAX_TIMELINE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Timeline state too large",
+        )
+    mediabin_json = json.dumps(request.mediabin_items or [], ensure_ascii=False)
+    if len(mediabin_json) > _MAX_MEDIABIN_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Media bin too large",
+        )
+
     # Truncate history to last N items to limit prompt size
     history = (request.chat_history or [])[-_MAX_HISTORY_ITEMS:]
 
@@ -58,8 +105,8 @@ Conversation so far (oldest first): {json.dumps(history, ensure_ascii=False)}
 
 User message: {json.dumps(request.message, ensure_ascii=False)}
 Mentioned scrubber ids: {json.dumps(request.mentioned_scrubber_ids or [])}
-Timeline state: {json.dumps(request.timeline_state or {}, ensure_ascii=False)}
-Media bin items: {json.dumps(request.mediabin_items or [], ensure_ascii=False)}
+Timeline state: {timeline_json}
+Media bin items: {mediabin_json}
 """
 
     try:
@@ -73,8 +120,13 @@ Media bin items: {json.dumps(request.mediabin_items or [], ensure_ascii=False)}
         )
         return FunctionCallResponse.model_validate(response.parsed)
     except ValueError as exc:
-        logger.warning("AI response validation error: %s", exc)
-        raise HTTPException(status_code=422, detail="Invalid response from AI model") from exc
+        # Don't include user content (timeline / messages) in logs — log the type only.
+        logger.warning("AI response validation failed: %s", type(exc).__name__)
+        raise HTTPException(
+            status_code=422, detail="Invalid response from AI model"
+        ) from exc
     except Exception as exc:
-        logger.exception("Unexpected error in AI endpoint")
-        raise HTTPException(status_code=500, detail="AI service temporarily unavailable") from exc
+        logger.exception("Unexpected error in AI endpoint for user %s", user.user_id)
+        raise HTTPException(
+            status_code=500, detail="AI service temporarily unavailable"
+        ) from exc

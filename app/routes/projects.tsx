@@ -299,7 +299,13 @@ export default function Projects() {
             starCount={starCount}
             onSignOut={async () => {
               const { authClient } = await import("~/lib/auth-client");
-              await authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } });
+              await authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    window.location.href = "/login";
+                  },
+                },
+              });
             }}
           />
         </div>

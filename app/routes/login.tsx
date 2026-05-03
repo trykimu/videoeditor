@@ -93,8 +93,7 @@ export default function LoginPage() {
           <div className="mt-6 w-full max-w-sm flex flex-col items-center gap-3">
             <button
               onClick={handleGoogleLogin}
-              className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300"
-            >
+              className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
               <FaGoogle className="h-4 w-4" />
               Continue with Google
             </button>

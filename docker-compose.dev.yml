@@ -6,6 +6,19 @@ services:
     environment:
       POSTGRES_DB: videoeditor
       POSTGRES_USER: videoeditor
-      POSTGRES_PASSWORD: videoeditor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-videoeditor}
     ports:
       - "5432:5432"
+    volumes:
+      # Persist data across `docker compose down` so dev DBs survive restarts.
+      - postgres_data_dev:/var/lib/postgresql/data
+      # Auto-run migrations on first init only (postgres entrypoint convention).
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U videoeditor -d videoeditor"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data_dev:

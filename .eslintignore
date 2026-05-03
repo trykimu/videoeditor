@@ -1,0 +1,8 @@
+.react-router/
+build/
+dist/
+out/
+public/
+node_modules/
+coverage/
+*.min.js

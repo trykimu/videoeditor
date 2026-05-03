@@ -58,7 +58,7 @@ import {
 import { useNavigate, useParams, useLocation } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
-import { GitHubRepoStatsSchema, ProjectStateResponseSchema } from "~/schemas";
+import { GitHubRepoStatsSchema, ProjectStateResponseSchema, TimelineStateSchema } from "~/schemas";
 
 interface Message {
   id: string;
@@ -217,8 +217,12 @@ export default function TimelineEditor() {
         const parsed = ProjectStateResponseSchema.safeParse(data);
         if (!parsed.success || !isMounted) return;
         setProjectName(parsed.data.project.name);
-        if (parsed.data.timeline && typeof parsed.data.timeline === "object") {
-          setTimelineFromServer(parsed.data.timeline as TimelineState);
+        const timeline = parsed.data.timeline;
+        // Server may return a legacy/loose timeline object; only restore when it parses to the
+        // strict TimelineState shape. Otherwise leave the default empty timeline in place.
+        const strictTimeline = TimelineStateSchema.safeParse(timeline);
+        if (strictTimeline.success) {
+          setTimelineFromServer(strictTimeline.data as TimelineState);
         }
       } catch {
         if (isMounted) navigate("/projects");
@@ -687,7 +691,6 @@ export default function TimelineEditor() {
             <Download className="h-3 w-3 mr-1" />
             {isRendering ? "Rendering..." : "Export"}
           </Button>
-
         </div>
       </header>
 
@@ -781,247 +784,247 @@ export default function TimelineEditor() {
 
           {/* Center Area: Preview and Timeline */}
           <ResizablePanel defaultSize={isChatMinimized ? 80 : 55}>
-          <ResizablePanelGroup direction="vertical">
-            {/* Preview Area */}
-            <ResizablePanel defaultSize={65} minSize={40}>
-              <div className="h-full flex flex-col bg-background">
-                {/* Compact Top Bar */}
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Resolution:</span>
+            <ResizablePanelGroup direction="vertical">
+              {/* Preview Area */}
+              <ResizablePanel defaultSize={65} minSize={40}>
+                <div className="h-full flex flex-col bg-background">
+                  {/* Compact Top Bar */}
+                  <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span>Resolution:</span>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={widthInput}
+                          onChange={(e) => {
+                            setWidthInput(e.target.value);
+                            const n = Number(e.target.value);
+                            if (isFinite(n) && n > 0) setWidth(n);
+                          }}
+                          onBlur={commitWidth}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              commitWidth();
+                              (e.currentTarget as HTMLInputElement).blur();
+                            }
+                          }}
+                          disabled={isAutoSize}
+                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          ref={widthInputRef}
+                        />
+                        <span>×</span>
+                        <Input
+                          type="number"
+                          value={heightInput}
+                          onChange={(e) => {
+                            setHeightInput(e.target.value);
+                            const n = Number(e.target.value);
+                            if (isFinite(n) && n > 0) setHeight(n);
+                          }}
+                          onBlur={commitHeight}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              commitHeight();
+                              (e.currentTarget as HTMLInputElement).blur();
+                            }
+                          }}
+                          disabled={isAutoSize}
+                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          ref={heightInputRef}
+                        />
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={widthInput}
-                        onChange={(e) => {
-                          setWidthInput(e.target.value);
-                          const n = Number(e.target.value);
-                          if (isFinite(n) && n > 0) setWidth(n);
-                        }}
-                        onBlur={commitWidth}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            commitWidth();
-                            (e.currentTarget as HTMLInputElement).blur();
-                          }
-                        }}
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        ref={widthInputRef}
-                      />
-                      <span>×</span>
-                      <Input
-                        type="number"
-                        value={heightInput}
-                        onChange={(e) => {
-                          setHeightInput(e.target.value);
-                          const n = Number(e.target.value);
-                          if (isFinite(n) && n > 0) setHeight(n);
-                        }}
-                        onBlur={commitHeight}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            commitHeight();
-                            (e.currentTarget as HTMLInputElement).blur();
-                          }
-                        }}
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        ref={heightInputRef}
-                      />
+                      <div className="flex items-center gap-1">
+                        <Switch
+                          id="auto-size"
+                          checked={isAutoSize}
+                          onCheckedChange={handleAutoSizeChange}
+                          className="scale-75"
+                        />
+                        <Label htmlFor="auto-size" className="text-xs">
+                          Auto
+                        </Label>
+                      </div>
+
+                      {!isChatMinimized && null}
+                      {isChatMinimized && (
+                        <>
+                          <Separator orientation="vertical" className="h-4 mx-1" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsChatMinimized(false)}
+                            className="h-6 w-6 p-0 text-primary"
+                            title="Open Chat">
+                            <Bot className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      <Switch
-                        id="auto-size"
-                        checked={isAutoSize}
-                        onCheckedChange={handleAutoSizeChange}
-                        className="scale-75"
+                  {/* Video Preview */}
+                  <div
+                    className={
+                      "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
+                      "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
+                    }>
+                    <div className="flex-1 flex items-center justify-center w-full">
+                      <VideoPlayer
+                        timelineData={timelineData}
+                        durationInFrames={durationInFrames}
+                        ref={playerRef}
+                        compositionWidth={isAutoSize ? null : width}
+                        compositionHeight={isAutoSize ? null : height}
+                        timeline={timeline}
+                        handleUpdateScrubber={handleUpdateScrubber}
+                        selectedItem={selectedItem}
+                        setSelectedItem={setSelectedItem}
+                        getPixelsPerSecond={getPixelsPerSecond}
                       />
-                      <Label htmlFor="auto-size" className="text-xs">
-                        Auto
-                      </Label>
                     </div>
 
-                    {!isChatMinimized && null}
-                    {isChatMinimized && (
-                      <>
-                        <Separator orientation="vertical" className="h-4 mx-1" />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsChatMinimized(false)}
-                          className="h-6 w-6 p-0 text-primary"
-                          title="Open Chat">
-                          <Bot className="h-3 w-3" />
+                    {/* Custom Video Controls - Below Player */}
+                    <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
+                      {/* Left side controls */}
+                      <div className="flex items-center gap-1">
+                        <MuteButton playerRef={playerRef} />
+                      </div>
+
+                      {/* Center play/pause button */}
+                      <div className="flex items-center">
+                        <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
+                          {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                         </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                      </div>
 
-                {/* Video Preview */}
-                <div
-                  className={
-                    "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
-                    "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
-                  }>
-                  <div className="flex-1 flex items-center justify-center w-full">
-                    <VideoPlayer
-                      timelineData={timelineData}
-                      durationInFrames={durationInFrames}
-                      ref={playerRef}
-                      compositionWidth={isAutoSize ? null : width}
-                      compositionHeight={isAutoSize ? null : height}
-                      timeline={timeline}
-                      handleUpdateScrubber={handleUpdateScrubber}
-                      selectedItem={selectedItem}
-                      setSelectedItem={setSelectedItem}
-                      getPixelsPerSecond={getPixelsPerSecond}
-                    />
-                  </div>
-
-                  {/* Custom Video Controls - Below Player */}
-                  <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                    {/* Left side controls */}
-                    <div className="flex items-center gap-1">
-                      <MuteButton playerRef={playerRef} />
-                    </div>
-
-                    {/* Center play/pause button */}
-                    <div className="flex items-center">
-                      <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
-                        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                      </Button>
-                    </div>
-
-                    {/* Right side controls */}
-                    <div className="flex items-center gap-1">
-                      <FullscreenButton playerRef={playerRef} />
+                      {/* Right side controls */}
+                      <div className="flex items-center gap-1">
+                        <FullscreenButton playerRef={playerRef} />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </ResizablePanel>
+              </ResizablePanel>
 
-            <ResizableHandle withHandle />
+              <ResizableHandle withHandle />
 
-            {/* Timeline Area */}
-            <ResizablePanel defaultSize={35} minSize={25}>
-              <div className="h-full flex flex-col bg-muted/20">
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Timeline</span>
-                    <Badge variant="outline" className="text-xs h-4 px-1.5 font-mono">
-                      {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={undo}
-                      disabled={!canUndo}
-                      className="h-6 w-6 p-0"
-                      title="Undo (Ctrl/Cmd+Z)">
-                      <CornerUpLeft className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={redo}
-                      disabled={!canRedo}
-                      className="h-6 w-6 p-0"
-                      title="Redo (Ctrl/Cmd+Shift+Z)">
-                      <CornerUpRight className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleZoomOut}
-                        className="h-6 w-6 p-0 text-xs"
-                        title="Zoom Out">
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
-                        onClick={handleZoomReset}
-                        title="Click to reset zoom to 100%">
-                        {Math.round(zoomLevel * 100)}%
+              {/* Timeline Area */}
+              <ResizablePanel defaultSize={35} minSize={25}>
+                <div className="h-full flex flex-col bg-muted/20">
+                  <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium">Timeline</span>
+                      <Badge variant="outline" className="text-xs h-4 px-1.5 font-mono">
+                        {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleZoomIn}
-                        className="h-6 w-6 p-0 text-xs"
-                        title="Zoom In">
-                        <Plus className="h-3 w-3" />
+                        onClick={undo}
+                        disabled={!canUndo}
+                        className="h-6 w-6 p-0"
+                        title="Undo (Ctrl/Cmd+Z)">
+                        <CornerUpLeft className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={redo}
+                        disabled={!canRedo}
+                        className="h-6 w-6 p-0"
+                        title="Redo (Ctrl/Cmd+Shift+Z)">
+                        <CornerUpRight className="h-3 w-3" />
                       </Button>
                     </div>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Track
-                    </Button>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSplitClick}
-                      className="h-6 px-2 text-xs"
-                      title="Split selected scrubber at ruler position">
-                      <Scissors className="h-3 w-3 mr-1" />
-                      Split
-                    </Button>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button variant="ghost" size="sm" onClick={handleLogTimelineData} className="h-6 px-2 text-xs">
-                      <Settings className="h-3 w-3 mr-1" />
-                      Debug
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <div className="flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleZoomOut}
+                          className="h-6 w-6 p-0 text-xs"
+                          title="Zoom Out">
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
+                          onClick={handleZoomReset}
+                          title="Click to reset zoom to 100%">
+                          {Math.round(zoomLevel * 100)}%
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleZoomIn}
+                          className="h-6 w-6 p-0 text-xs"
+                          title="Zoom In">
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Track
+                      </Button>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSplitClick}
+                        className="h-6 px-2 text-xs"
+                        title="Split selected scrubber at ruler position">
+                        <Scissors className="h-3 w-3 mr-1" />
+                        Split
+                      </Button>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button variant="ghost" size="sm" onClick={handleLogTimelineData} className="h-6 px-2 text-xs">
+                        <Settings className="h-3 w-3 mr-1" />
+                        Debug
+                      </Button>
+                    </div>
                   </div>
+
+                  <TimelineRuler
+                    timelineWidth={timelineWidth}
+                    rulerPositionPx={rulerPositionPx}
+                    containerRef={containerRef}
+                    onRulerDrag={handleRulerDrag}
+                    onRulerMouseDown={handleRulerMouseDown}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    scrollLeft={containerRef.current?.scrollLeft || 0}
+                  />
+
+                  <TimelineTracks
+                    timeline={timeline}
+                    timelineWidth={timelineWidth}
+                    rulerPositionPx={rulerPositionPx}
+                    containerRef={containerRef}
+                    onScroll={handleScrollCallback}
+                    onDeleteTrack={handleDeleteTrack}
+                    onUpdateScrubber={handleUpdateScrubberWithLocking}
+                    onDeleteScrubber={handleDeleteScrubber}
+                    onDropOnTrack={handleDropOnTrack}
+                    onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
+                    onDeleteTransition={handleDeleteTransition}
+                    getAllScrubbers={getAllScrubbers}
+                    expandTimeline={expandTimelineCallback}
+                    onRulerMouseDown={handleRulerMouseDown}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    selectedScrubberIds={selectedScrubberIds}
+                    onSelectScrubber={handleSelectScrubber}
+                    onGroupScrubbers={handleGroupSelected}
+                    onUngroupScrubber={handleUngroupSelected}
+                    onMoveToMediaBin={handleMoveToMediaBinSelected}
+                    onBeginScrubberTransform={snapshotTimeline}
+                  />
                 </div>
-
-                <TimelineRuler
-                  timelineWidth={timelineWidth}
-                  rulerPositionPx={rulerPositionPx}
-                  containerRef={containerRef}
-                  onRulerDrag={handleRulerDrag}
-                  onRulerMouseDown={handleRulerMouseDown}
-                  pixelsPerSecond={getPixelsPerSecond()}
-                  scrollLeft={containerRef.current?.scrollLeft || 0}
-                />
-
-                <TimelineTracks
-                  timeline={timeline}
-                  timelineWidth={timelineWidth}
-                  rulerPositionPx={rulerPositionPx}
-                  containerRef={containerRef}
-                  onScroll={handleScrollCallback}
-                  onDeleteTrack={handleDeleteTrack}
-                  onUpdateScrubber={handleUpdateScrubberWithLocking}
-                  onDeleteScrubber={handleDeleteScrubber}
-                  onDropOnTrack={handleDropOnTrack}
-                  onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
-                  onDeleteTransition={handleDeleteTransition}
-                  getAllScrubbers={getAllScrubbers}
-                  expandTimeline={expandTimelineCallback}
-                  onRulerMouseDown={handleRulerMouseDown}
-                  pixelsPerSecond={getPixelsPerSecond()}
-                  selectedScrubberIds={selectedScrubberIds}
-                  onSelectScrubber={handleSelectScrubber}
-                  onGroupScrubbers={handleGroupSelected}
-                  onUngroupScrubber={handleUngroupSelected}
-                  onMoveToMediaBin={handleMoveToMediaBinSelected}
-                  onBeginScrubberTransform={snapshotTimeline}
-                />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
 
           {/* Right Panel - Chat (toggleable) */}
           {!isChatMinimized && (

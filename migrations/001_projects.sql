@@ -1,5 +1,5 @@
 -- Projects table with timeline persistence.
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   name           TEXT NOT NULL,
@@ -16,13 +16,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_projects_updated_at ON projects;
 CREATE TRIGGER trg_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at_snake();
 
-CREATE INDEX idx_projects_user_created_at
+CREATE INDEX IF NOT EXISTS idx_projects_user_created_at
   ON projects(user_id, created_at DESC);
 
-CREATE INDEX idx_projects_user_updated_at
+CREATE INDEX IF NOT EXISTS idx_projects_user_updated_at
   ON projects(user_id, updated_at DESC);

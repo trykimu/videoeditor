@@ -28,17 +28,17 @@ export const useRenderer = () => {
         const timelineData = getTimelineData();
 
         if (compositionWidth === null) {
-          compositionWidth = timelineData.flatMap((d) => d.scrubbers).reduce(
-            (max, s) => (s.media_width && s.media_width > max ? s.media_width : max),
-            0,
-          ) || 1920;
+          compositionWidth =
+            timelineData
+              .flatMap((d) => d.scrubbers)
+              .reduce((max, s) => (s.media_width && s.media_width > max ? s.media_width : max), 0) || 1920;
         }
 
         if (compositionHeight === null) {
-          compositionHeight = timelineData.flatMap((d) => d.scrubbers).reduce(
-            (max, s) => (s.media_height && s.media_height > max ? s.media_height : max),
-            0,
-          ) || 1080;
+          compositionHeight =
+            timelineData
+              .flatMap((d) => d.scrubbers)
+              .reduce((max, s) => (s.media_height && s.media_height > max ? s.media_height : max), 0) || 1080;
         }
 
         if (timeline.tracks.length === 0 || timeline.tracks.every((t) => t.scrubbers.length === 0)) {

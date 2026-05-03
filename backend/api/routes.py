@@ -1,9 +1,21 @@
 import json
 import logging
+from typing import Any
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 
-from api.schema import CreateProjectRequest, RenameProjectRequest, TimelinePayload
+from api.schema import (
+    CreateProjectRequest,
+    ProjectCreateResponse,
+    ProjectListResponse,
+    ProjectMeta,
+    ProjectMutationResponse,
+    ProjectStateResponse,
+    RenameProjectRequest,
+    StorageResponse,
+    TimelinePayload,
+)
 from auth.routes import get_current_user
 from auth.schema import SessionUser
 from db import get_db_pool
@@ -12,13 +24,26 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["api"])
 
+# 2 GB per user (per-tier limits live in user_plans table once introduced).
+_DEFAULT_STORAGE_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
 
-@router.get("/projects")
+
+def _row_to_meta(row: Any) -> ProjectMeta:
+    return ProjectMeta(
+        id=str(row["id"]),
+        user_id=str(row["user_id"]),
+        name=row["name"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+@router.get("/projects", response_model=ProjectListResponse)
 async def list_projects(
     user: SessionUser = Depends(get_current_user),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-) -> dict:
+) -> ProjectListResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -38,25 +63,23 @@ async def list_projects(
             user.user_id,
         )
 
-    projects = [
-        {
-            "id": str(row["id"]),
-            "user_id": str(row["user_id"]),
-            "name": row["name"],
-            "created_at": row["created_at"].isoformat(),
-            "updated_at": row["updated_at"].isoformat(),
-        }
-        for row in rows
-    ]
-
-    return {"projects": projects, "total": total, "limit": limit, "offset": offset}
+    return ProjectListResponse(
+        projects=[_row_to_meta(row) for row in rows],
+        total=int(total or 0),
+        limit=limit,
+        offset=offset,
+    )
 
 
-@router.post("/projects", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/projects",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ProjectCreateResponse,
+)
 async def create_project(
     body: CreateProjectRequest,
     user: SessionUser = Depends(get_current_user),
-) -> dict:
+) -> ProjectCreateResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -77,21 +100,15 @@ async def create_project(
         )
 
     logger.info("Project created: %s by user %s", str(row["id"]), user.user_id)
-    return {
-        "project": {
-            "id": str(row["id"]),
-            "user_id": str(row["user_id"]),
-            "name": row["name"],
-            "created_at": row["created_at"].isoformat(),
-            "updated_at": row["updated_at"].isoformat(),
-        }
-    }
+    return ProjectCreateResponse(project=_row_to_meta(row))
 
 
-@router.put("/projects/{project_id}")
+@router.put("/projects/{project_id}", response_model=ProjectMutationResponse)
 async def save_project(
-    project_id: str, timeline: TimelinePayload, user: SessionUser = Depends(get_current_user)
-) -> dict:
+    timeline: TimelinePayload,
+    project_id: UUID = Path(...),
+    user: SessionUser = Depends(get_current_user),
+) -> ProjectMutationResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -103,7 +120,7 @@ async def save_project(
             RETURNING id
             """,
             json.dumps(timeline.model_dump(mode="json")),
-            project_id,
+            str(project_id),
             user.user_id,
         )
 
@@ -113,13 +130,14 @@ async def save_project(
             detail="Project not found",
         )
 
-    return {"ok": True, "project_id": str(row["id"])}
+    return ProjectMutationResponse(ok=True, project_id=str(row["id"]))
 
 
-@router.get("/projects/{project_id}")
+@router.get("/projects/{project_id}", response_model=ProjectStateResponse)
 async def get_project(
-    project_id: str, user: SessionUser = Depends(get_current_user)
-) -> dict:
+    project_id: UUID = Path(...),
+    user: SessionUser = Depends(get_current_user),
+) -> ProjectStateResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -128,7 +146,7 @@ async def get_project(
             FROM projects
             WHERE id = $1 AND user_id = $2
             """,
-            project_id,
+            str(project_id),
             user.user_id,
         )
 
@@ -138,23 +156,26 @@ async def get_project(
             detail="Project not found",
         )
 
-    return {
-        "project": {
-            "id": str(row["id"]),
-            "user_id": str(row["user_id"]),
-            "name": row["name"],
-            "created_at": row["created_at"].isoformat(),
-            "updated_at": row["updated_at"].isoformat(),
-        },
-        "timeline": row["timeline_state"] if row["timeline_state"] is not None else {"tracks": []},
-        "textBinItems": [],
-    }
+    timeline_raw = row["timeline_state"]
+    if isinstance(timeline_raw, str):
+        try:
+            timeline_raw = json.loads(timeline_raw)
+        except json.JSONDecodeError:
+            timeline_raw = None
+
+    return ProjectStateResponse(
+        project=_row_to_meta(row),
+        timeline=timeline_raw if isinstance(timeline_raw, dict) else {"tracks": []},
+        textBinItems=[],
+    )
 
 
-@router.patch("/projects/{project_id}")
+@router.patch("/projects/{project_id}", response_model=ProjectMutationResponse)
 async def rename_project(
-    project_id: str, body: RenameProjectRequest, user: SessionUser = Depends(get_current_user)
-) -> dict:
+    body: RenameProjectRequest,
+    project_id: UUID = Path(...),
+    user: SessionUser = Depends(get_current_user),
+) -> ProjectMutationResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -165,7 +186,7 @@ async def rename_project(
             RETURNING id
             """,
             body.name,
-            project_id,
+            str(project_id),
             user.user_id,
         )
 
@@ -175,11 +196,11 @@ async def rename_project(
             detail="Project not found",
         )
 
-    return {"ok": True, "project_id": str(row["id"])}
+    return ProjectMutationResponse(ok=True, project_id=str(row["id"]))
 
 
-@router.get("/storage")
-async def get_storage(user: SessionUser = Depends(get_current_user)) -> dict:
+@router.get("/storage", response_model=StorageResponse)
+async def get_storage(user: SessionUser = Depends(get_current_user)) -> StorageResponse:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         used_bytes = await conn.fetchval(
@@ -192,21 +213,22 @@ async def get_storage(user: SessionUser = Depends(get_current_user)) -> dict:
             """,
             user.user_id,
         )
-    return {
-        "usedBytes": int(used_bytes or 0),
-        "limitBytes": 2 * 1024 * 1024 * 1024,  # 2 GB per user (adjust per plan later)
-    }
+    return StorageResponse(
+        usedBytes=int(used_bytes or 0),
+        limitBytes=_DEFAULT_STORAGE_LIMIT_BYTES,
+    )
 
 
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
-    project_id: str, user: SessionUser = Depends(get_current_user)
+    project_id: UUID = Path(...),
+    user: SessionUser = Depends(get_current_user),
 ) -> None:
     pool = await get_db_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
             "DELETE FROM projects WHERE id = $1 AND user_id = $2",
-            project_id,
+            str(project_id),
             user.user_id,
         )
 
