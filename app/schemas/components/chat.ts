@@ -10,6 +10,11 @@ export {
   UpdateTextContentArgsSchema,
   UpdateTextStyleArgsSchema,
   MoveScrubbersByOffsetArgsSchema,
+  DeleteScrubberArgsSchema,
+  SetVolumeArgsSchema,
+  SetPlaybackSpeedArgsSchema,
+  SplitScrubberArgsSchema,
+  CreateTrackArgsSchema,
 } from "../llm";
 
 export const ChatMessageSchema = z.object({

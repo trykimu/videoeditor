@@ -1172,6 +1172,7 @@ export default function TimelineEditor() {
                     timelineState={timeline}
                     handleUpdateScrubber={handleUpdateScrubberWithLocking}
                     handleDeleteScrubber={handleDeleteScrubber}
+                    handleSplitScrubberAtRuler={handleSplitScrubberAtRuler}
                     pixelsPerSecond={getPixelsPerSecond()}
                     handleAddTrack={handleAddTrack}
                     restoreTimeline={setTimelineFromServer}

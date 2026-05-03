@@ -52,6 +52,11 @@ import {
   UpdateTextContentArgsSchema,
   UpdateTextStyleArgsSchema,
   MoveScrubbersByOffsetArgsSchema,
+  DeleteScrubberArgsSchema,
+  SetVolumeArgsSchema,
+  SetPlaybackSpeedArgsSchema,
+  SplitScrubberArgsSchema,
+  CreateTrackArgsSchema,
   ChatTabsStorageSchema,
 } from "~/schemas/components/chat";
 
@@ -65,7 +70,6 @@ import {
   llmUpdateTextContent,
   llmUpdateTextStyle,
   llmMoveScrubbersByOffset,
-  llmSetResolution,
 } from "~/utils/llm-handler";
 
 interface Message {
@@ -87,6 +91,7 @@ interface ChatBoxProps {
   timelineState: TimelineState;
   handleUpdateScrubber: (updatedScrubber: ScrubberState) => void;
   handleDeleteScrubber?: (scrubberId: string) => void;
+  handleSplitScrubberAtRuler?: (rulerPositionPx: number, scrubberId: string | null) => number;
   pixelsPerSecond: number;
   handleAddTrack?: () => void;
   restoreTimeline?: (state: TimelineState) => void;
@@ -103,6 +108,7 @@ export function ChatBox({
   timelineState,
   handleUpdateScrubber,
   handleDeleteScrubber,
+  handleSplitScrubberAtRuler,
   pixelsPerSecond,
   handleAddTrack,
   restoreTimeline,
@@ -785,10 +791,75 @@ export function ChatBox({
               handleDropOnTrack(item, trackId, startPx);
             });
             aiResponseContent = `✅ Placed ${mediaBinItems.length} asset(s) in parallel across tracks at ${startSec}s.`;
+          } else if (fn === "LLMDeleteScrubber") {
+            if (!handleDeleteScrubber) throw new Error("Delete handler unavailable");
+            const parsed = DeleteScrubberArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for LLMDeleteScrubber");
+            const { scrubber_id, scrubber_name } = parsed.data;
+            const allScrubbers = timelineState.tracks.flatMap((t) => t.scrubbers);
+            let target = scrubber_id ? allScrubbers.find((s) => s.id === scrubber_id) : undefined;
+            if (!target && scrubber_name) {
+              target = allScrubbers.find((s) => s.name.toLowerCase().includes(scrubber_name.toLowerCase()));
+            }
+            if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
+            handleDeleteScrubber(target.id);
+            aiResponseContent = `✅ Deleted "${target.name}".`;
+
+          } else if (fn === "LLMSetVolume") {
+            const parsed = SetVolumeArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for LLMSetVolume");
+            const { scrubber_id, scrubber_name, volume, muted } = parsed.data;
+            const allScrubbers = timelineState.tracks.flatMap((t) => t.scrubbers);
+            let target = scrubber_id ? allScrubbers.find((s) => s.id === scrubber_id) : undefined;
+            if (!target && scrubber_name) {
+              target = allScrubbers.find((s) => s.name.toLowerCase().includes(scrubber_name.toLowerCase()));
+            }
+            if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
+            handleUpdateScrubber({ ...target, volume: volume as number, muted: muted ?? false });
+            aiResponseContent = muted ? `✅ Muted "${target.name}".` : `✅ Set "${target.name}" volume to ${Math.round((volume as number) * 100)}%.`;
+
+          } else if (fn === "LLMSetPlaybackSpeed") {
+            const parsed = SetPlaybackSpeedArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for LLMSetPlaybackSpeed");
+            const { scrubber_id, scrubber_name, playback_rate } = parsed.data;
+            const allScrubbers = timelineState.tracks.flatMap((t) => t.scrubbers);
+            let target = scrubber_id ? allScrubbers.find((s) => s.id === scrubber_id) : undefined;
+            if (!target && scrubber_name) {
+              target = allScrubbers.find((s) => s.name.toLowerCase().includes(scrubber_name.toLowerCase()));
+            }
+            if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
+            handleUpdateScrubber({ ...target, playbackRate: playback_rate as number });
+            aiResponseContent = `✅ Set "${target.name}" speed to ${playback_rate}×.`;
+
+          } else if (fn === "LLMSplitScrubber") {
+            if (!handleSplitScrubberAtRuler) throw new Error("Split handler unavailable");
+            const parsed = SplitScrubberArgsSchema.safeParse(args);
+            if (!parsed.success) throw new Error("Invalid arguments for LLMSplitScrubber");
+            const { scrubber_id, scrubber_name, time_seconds } = parsed.data;
+            const allScrubbers = timelineState.tracks.flatMap((t) => t.scrubbers);
+            let target = scrubber_id ? allScrubbers.find((s) => s.id === scrubber_id) : undefined;
+            if (!target && scrubber_name) {
+              target = allScrubbers.find((s) => s.name.toLowerCase().includes(scrubber_name.toLowerCase()));
+            }
+            if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
+            const rulerPx = (time_seconds as number) * pixelsPerSecond;
+            const count = handleSplitScrubberAtRuler(rulerPx, target.id);
+            aiResponseContent = count > 0
+              ? `✅ Split "${target.name}" at ${time_seconds}s.`
+              : `❌ Could not split "${target.name}" — make sure ${time_seconds}s is within the clip.`;
+
+          } else if (fn === "LLMCreateTrack") {
+            const parsed = CreateTrackArgsSchema.safeParse(args);
+            const n = parsed.success ? (parsed.data.count ?? 1) : 1;
+            if (handleAddTrack) {
+              for (let i = 0; i < Math.max(1, n); i++) handleAddTrack();
+              aiResponseContent = `✅ Created ${n} track(s).`;
+            } else {
+              aiResponseContent = "❌ Cannot create track: handler unavailable.";
+            }
+
           } else if (fn === "LLMSetResolution" || fn === "SetResolution") {
-            // This requires handlers from parent; ChatBox doesn't own them, so we ignore here or bubble up later.
-            // Leaving placeholder for future wiring if exposed via props.
-            aiResponseContent = `ℹ️ Resolution change acknowledged.`;
+            aiResponseContent = `ℹ️ Resolution change is not yet supported via chat.`;
           } else {
             aiResponseContent = `❌ Unknown function: ${fn}`;
           }

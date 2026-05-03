@@ -109,3 +109,31 @@ export const MoveScrubbersByOffsetArgsSchema = z.object({
   offset_seconds: seconds,
   pixels_per_second: optNumberish,
 });
+
+export const DeleteScrubberArgsSchema = z.object({
+  scrubber_id: optString,
+  scrubber_name: optString,
+});
+
+export const SetVolumeArgsSchema = z.object({
+  scrubber_id: optString,
+  scrubber_name: optString,
+  volume: numberish.refine((n) => n >= 0 && n <= 1, "Volume must be 0–1"),
+  muted: z.boolean().optional().default(false),
+});
+
+export const SetPlaybackSpeedArgsSchema = z.object({
+  scrubber_id: optString,
+  scrubber_name: optString,
+  playback_rate: numberish,
+});
+
+export const SplitScrubberArgsSchema = z.object({
+  scrubber_id: optString,
+  scrubber_name: optString,
+  time_seconds: seconds,
+});
+
+export const CreateTrackArgsSchema = z.object({
+  count: z.coerce.number().int().min(1).optional().default(1),
+});
