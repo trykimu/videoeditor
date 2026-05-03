@@ -214,13 +214,22 @@ export default function TimelineEditor() {
         const { data } = await axios.get(`/backend/projects/${encodeURIComponent(projectId)}`, {
           withCredentials: true,
         });
+        if (!isMounted) return;
+        // Set the project name from the raw response without gating on the strict schema —
+        // older saves predate the timeline shape and we don't want a parse failure to leave
+        // the topbar showing "Project". The schema is still applied to the timeline below.
+        const rawName: unknown = data?.project?.name;
+        if (typeof rawName === "string" && rawName.length > 0) {
+          setProjectName(rawName);
+        }
         const parsed = ProjectStateResponseSchema.safeParse(data);
-        if (!parsed.success || !isMounted) return;
-        setProjectName(parsed.data.project.name);
-        const timeline = parsed.data.timeline;
-        // Server may return a legacy/loose timeline object; only restore when it parses to the
-        // strict TimelineState shape. Otherwise leave the default empty timeline in place.
-        const strictTimeline = TimelineStateSchema.safeParse(timeline);
+        if (!parsed.success) {
+          if (import.meta.env?.DEV) {
+            console.warn("Project response failed schema validation:", parsed.error.format());
+          }
+          return;
+        }
+        const strictTimeline = TimelineStateSchema.safeParse(parsed.data.timeline);
         if (strictTimeline.success) {
           setTimelineFromServer(strictTimeline.data as TimelineState);
         }

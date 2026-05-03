@@ -226,22 +226,41 @@ export function ChatBox({
     }
   };
 
-  const [tabs, setTabs] = useState<ChatTab[]>(() => {
+  // Tabs init must NOT touch localStorage or Date.now() during render — those values diverge
+  // between server SSR (no window, no real time) and the first client render, causing hydration
+  // mismatches. Start with a deterministic empty list and hydrate inside useEffect below.
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+  const [isTabsHydrated, setIsTabsHydrated] = useState<boolean>(false);
+
+  useEffect(() => {
     const existing = loadTabs();
-    if (existing.length) return existing;
-    return [{ id: Date.now().toString(), name: "Chat 1", messages: [], timelineSnapshot: null, createdAt: Date.now() }];
-  });
-  const [activeTabId, setActiveTabId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem(ACTIVE_TAB_KEY);
-        if (stored) return stored;
-      } catch {
-        // localStorage may throw on quota or privacy-mode browsers; fall through.
-      }
+    let storedActive = "";
+    try {
+      storedActive = window.localStorage.getItem(ACTIVE_TAB_KEY) ?? "";
+    } catch {
+      // ignore
     }
-    return tabs[0]?.id || "";
-  });
+    if (existing.length) {
+      setTabs(existing);
+      setActiveTabId(storedActive && existing.some((t) => t.id === storedActive) ? storedActive : existing[0].id);
+    } else {
+      const fresh: ChatTab = {
+        id: `${Date.now()}`,
+        name: "Chat 1",
+        messages: [],
+        timelineSnapshot: null,
+        createdAt: Date.now(),
+      };
+      setTabs([fresh]);
+      setActiveTabId(fresh.id);
+    }
+    setIsTabsHydrated(true);
+    // One-shot hydration: read localStorage exactly once on mount. ACTIVE_TAB_KEY and loadTabs
+    // are stable closures over PROJECT_ID and don't need to be re-run on change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
 
   useEffect(() => {
@@ -289,11 +308,14 @@ export function ChatBox({
   };
 
   useEffect(() => {
+    // Don't write before the hydration effect has populated tabs — otherwise the empty initial
+    // state would overwrite real saved tabs in localStorage.
+    if (!isTabsHydrated) return;
     persistTabs(tabs);
     // persistTabs is a closure that reads activeTabId; we deliberately re-run on tabs OR
     // activeTabId so the persisted active-tab pointer stays in sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, activeTabId]);
+  }, [tabs, activeTabId, isTabsHydrated]);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -490,17 +512,20 @@ export function ChatBox({
         assistant_message: "I received an invalid response format from AI.",
       } satisfies z.infer<typeof AiResponseSchema>;
       const aiParsed = AiResponseSchema.safeParse(response?.data);
+      if (!aiParsed.success && import.meta.env?.DEV) {
+        console.warn("AI response failed schema validation:", aiParsed.error.format(), response?.data);
+      }
+      const hasContent = aiParsed.success && (aiParsed.data.function_call || aiParsed.data.assistant_message);
       const functionCallResponse: z.infer<typeof AiResponseSchema> =
-        aiParsed.success && (aiParsed.data.function_call || aiParsed.data.assistant_message)
-          ? aiParsed.data
-          : fallbackResponse;
+        aiParsed.success && hasContent ? aiParsed.data : fallbackResponse;
       let aiResponseContent = "";
 
-      // Handle the function call (universal v2: {function_name, arguments})
+      // Backend's function_call is flat: { function_name, ...arg fields }. Read fn name, treat the
+      // rest of the object as the args bag — per-tool zod schemas tolerate the extra function_name.
       if (functionCallResponse.function_call) {
         const { function_call } = functionCallResponse;
         const fn = function_call.function_name;
-        const args = function_call.arguments || {};
+        const args: Record<string, unknown> = function_call;
 
         const toNumber = (val: unknown): number | undefined => {
           if (typeof val === "number") return Number.isFinite(val) ? val : undefined;

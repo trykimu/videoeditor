@@ -16,14 +16,21 @@ export const optNumberish = opt(numberish);
 export const optSeconds = opt(seconds);
 export const optString = opt(z.string());
 
-export const FunctionCallSchema = z.object({
-  function_name: z.string(),
-  arguments: z.record(z.string(), z.unknown()).default({}),
-});
+// Backend (FunctionCallResponse in backend/ai/schema.py) emits the function call as a flat object:
+//   { function_name: "LLMMoveScrubber", scrubber_id: "...", new_position_seconds: 5, ... }
+// We accept any extra keys via passthrough and treat the whole object (minus function_name) as the
+// args bag — per-tool argument schemas (MoveScrubberArgsSchema, etc.) can safeParse it directly.
+export const FunctionCallSchema = z
+  .object({
+    function_name: z.string(),
+  })
+  .catchall(z.unknown());
 
+// `function_call` and `assistant_message` use `nullish()` because the backend serializes the
+// "no result for this field" case as JSON `null`, not an absent key.
 export const AiResponseSchema = z.object({
-  function_call: FunctionCallSchema.optional(),
-  assistant_message: z.string().optional(),
+  function_call: FunctionCallSchema.nullish(),
+  assistant_message: z.string().nullish(),
 });
 
 export const MoveScrubberArgsSchema = z.object({
