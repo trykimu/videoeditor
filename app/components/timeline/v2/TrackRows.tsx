@@ -251,6 +251,7 @@ export function TrackRows({
                   <KeyframeLaneRow
                     scrubber={scrubber}
                     pixelsPerSecond={pixelsPerSecond}
+                    rulerPositionPx={rulerPositionPx}
                     onAddKeyframe={onAddKeyframe}
                     onUpdateKeyframe={onUpdateKeyframe}
                     onDeleteKeyframe={onDeleteKeyframe}

@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   RULER_HEIGHT,
   TRACK_LABEL_WIDTH,
-  DEFAULT_TRACK_HEIGHT,
   type ScrubberState,
   type MediaBinItem,
   type TimelineState,
@@ -25,9 +24,6 @@ interface TimelineShellProps {
   // Playhead / ruler
   rulerPositionPx: number;
   isDraggingRuler: boolean;
-  scrollLeft: number;
-  scrollTop: number;
-  viewportWidth: number;
 
   // Refs
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -59,7 +55,7 @@ interface TimelineShellProps {
   onRulerMouseDown: (e: React.MouseEvent) => void;
   onRulerClick: (e: React.MouseEvent) => void;
 
-  // Scroll
+  // Scroll (called after scroll — for external state sync like ruler, etc.)
   onScroll: () => void;
 
   // Snap
@@ -87,9 +83,6 @@ export function TimelineShell({
   pixelsPerSecond,
   rulerPositionPx,
   isDraggingRuler,
-  scrollLeft,
-  scrollTop,
-  viewportWidth,
   containerRef,
   selectedScrubberIds,
   getAllScrubbers,
@@ -127,6 +120,17 @@ export function TimelineShell({
     0,
   );
 
+  // Ref to the TrackLabelColumn's inner scrolling div — we sync it imperatively
+  // on scroll so there is zero React-render lag on the label column.
+  const labelScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    if (containerRef.current && labelScrollRef.current) {
+      labelScrollRef.current.style.transform = `translateY(-${containerRef.current.scrollTop}px)`;
+    }
+    onScroll();
+  }, [containerRef, onScroll]);
+
   // Global deselect on click outside
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -145,10 +149,10 @@ export function TimelineShell({
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Track label sidebar */}
+      {/* Track label sidebar — stays fixed horizontally, syncs vertically via imperative ref */}
       <TrackLabelColumn
         tracks={timeline.tracks}
-        scrollTop={scrollTop}
+        scrollRef={labelScrollRef}
         expandedIds={expandedIds}
         getTrackVisualHeight={getTrackVisualHeight}
         onDeleteTrack={onDeleteTrack}
@@ -157,45 +161,49 @@ export function TimelineShell({
         onSetTrackName={onSetTrackName}
       />
 
-      {/* Scrollable timeline area */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Virtual ruler — sticky at top */}
-        <VirtualRuler
-          pixelsPerSecond={pixelsPerSecond}
-          scrollLeft={scrollLeft}
-          viewportWidth={viewportWidth}
-          rulerPositionPx={rulerPositionPx}
-          isDraggingRuler={isDraggingRuler}
-          onRulerMouseDown={onRulerMouseDown}
-          onRulerClick={onRulerClick}
-        />
+      {/* Main scroll container — single overflow:auto that owns both horizontal AND
+          vertical scroll. The ruler div inside it uses position:sticky so it
+          sticks to the top when scrolling vertically while scrolling horizontally
+          together with the track content. This eliminates ALL JavaScript-driven
+          ruler sync and the associated scroll lag. */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-auto timeline-scrollbar"
+        onScroll={handleScroll}>
 
-        {/* Track content scroll container */}
-        <div
-          ref={containerRef}
-          className={`relative flex-1 timeline-scrollbar ${
-            timeline.tracks.length === 0 ? "overflow-hidden" : "overflow-auto"
-          }`}
-          onScroll={onScroll}>
+        <div style={{ width: timelineWidth, minHeight: "100%" }}>
+          {/* Sticky ruler — sticks to viewport top on vertical scroll,
+              moves with content on horizontal scroll */}
+          <div
+            className="sticky top-0 z-10 bg-background"
+            style={{ height: RULER_HEIGHT }}>
+            <VirtualRuler
+              pixelsPerSecond={pixelsPerSecond}
+              timelineWidth={timelineWidth}
+              rulerPositionPx={rulerPositionPx}
+              isDraggingRuler={isDraggingRuler}
+              onRulerMouseDown={onRulerMouseDown}
+              onRulerClick={onRulerClick}
+            />
+          </div>
+
+          {/* Track content area */}
           {timeline.tracks.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
               <p className="text-sm">No tracks. Click "Track" to add one.</p>
             </div>
           ) : (
-            <div className="relative" style={{ minHeight: "100%" }}>
-              {/* Playhead vertical line across track area */}
+            <div className="relative" style={{ minHeight: totalTracksHeight }}>
               <PlayheadLine
                 rulerPositionPx={rulerPositionPx}
-                scrollLeft={scrollLeft}
                 totalHeight={Math.max(totalTracksHeight, 200)}
               />
-
               <TrackRows
                 timeline={timeline}
                 timelineWidth={timelineWidth}
                 rulerPositionPx={rulerPositionPx}
                 containerRef={containerRef}
-                scrollLeft={scrollLeft}
+                scrollLeft={0}
                 pixelsPerSecond={pixelsPerSecond}
                 selectedScrubberIds={selectedScrubberIds}
                 expandedIds={expandedIds}

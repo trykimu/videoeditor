@@ -9,7 +9,7 @@ import {
 
 interface TrackLabelColumnProps {
   tracks: TrackState[];
-  scrollTop: number;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   expandedIds: Set<string>;
   getTrackVisualHeight: (track: TrackState) => number;
   onDeleteTrack: (trackId: string) => void;
@@ -20,7 +20,7 @@ interface TrackLabelColumnProps {
 
 export function TrackLabelColumn({
   tracks,
-  scrollTop,
+  scrollRef,
   expandedIds,
   getTrackVisualHeight,
   onDeleteTrack,
@@ -32,19 +32,18 @@ export function TrackLabelColumn({
     <div
       className="flex-shrink-0 flex flex-col border-r border-border bg-background z-10"
       style={{ width: TRACK_LABEL_WIDTH }}>
-      {/* Ruler-height header */}
+      {/* Header aligns with the sticky ruler */}
       <div
         className="flex-shrink-0 border-b border-border flex items-center px-3"
         style={{ height: RULER_HEIGHT }}>
         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tracks</span>
       </div>
 
-      {/* Track rows — translateY-synced to scroll */}
+      {/* Track rows — translateY updated imperatively via scrollRef (zero lag) */}
       <div className="flex-1 overflow-hidden relative">
-        <div style={{ transform: `translateY(-${scrollTop}px)` }}>
+        <div ref={scrollRef}>
           {tracks.map((track, trackIndex) => {
             const rowHeight = getTrackVisualHeight(track);
-            const hasExpandedScrubbers = track.scrubbers.some((s) => expandedIds.has(s.id));
 
             return (
               <div
@@ -55,13 +54,11 @@ export function TrackLabelColumn({
                 <div
                   className="flex items-center gap-1 px-2"
                   style={{ height: DEFAULT_TRACK_HEIGHT }}>
-                  {/* Track name */}
                   <TrackNameEditor
                     name={track.name ?? `Track ${trackIndex + 1}`}
                     onChange={(name) => onSetTrackName(track.id, name)}
                   />
 
-                  {/* Mute button */}
                   <button
                     className={`flex-shrink-0 p-1 rounded transition-colors ${
                       track.muted
@@ -73,7 +70,6 @@ export function TrackLabelColumn({
                     {track.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                   </button>
 
-                  {/* Delete track */}
                   <button
                     className="flex-shrink-0 p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
                     onClick={() => onDeleteTrack(track.id)}
@@ -85,24 +81,25 @@ export function TrackLabelColumn({
                 {/* Keyframe lane sub-rows */}
                 {track.scrubbers
                   .filter((s) => expandedIds.has(s.id))
-                  .map((s) => {
-                    const laneCount = Math.max(1, s.keyframes?.tracks.length ?? 0);
-                    return s.keyframes?.tracks.map((kt, ki) => (
-                      <div
-                        key={`${s.id}-${kt.property}`}
-                        className="flex items-center px-3 border-t border-border/30 text-[10px] text-muted-foreground"
-                        style={{ height: 24 }}>
-                        <span className="capitalize opacity-70">{kt.property}</span>
-                      </div>
-                    )) ?? (
-                      <div
-                        key={`${s.id}-empty`}
-                        className="flex items-center px-3 border-t border-border/30 text-[10px] text-muted-foreground"
-                        style={{ height: 24 }}>
-                        <span className="opacity-50">No keyframes</span>
-                      </div>
-                    );
-                  })}
+                  .map((s) =>
+                    s.keyframes?.tracks.length
+                      ? s.keyframes.tracks.map((kt) => (
+                          <div
+                            key={`${s.id}-${kt.property}`}
+                            className="flex items-center px-3 border-t border-border/30 text-[10px] text-muted-foreground"
+                            style={{ height: 24 }}>
+                            <span className="capitalize opacity-70">{kt.property}</span>
+                          </div>
+                        ))
+                      : (
+                        <div
+                          key={`${s.id}-empty`}
+                          className="flex items-center px-3 border-t border-border/30 text-[10px] text-muted-foreground"
+                          style={{ height: 24 }}>
+                          <span className="opacity-50">keyframes</span>
+                        </div>
+                      )
+                  )}
               </div>
             );
           })}
@@ -143,10 +140,7 @@ function TrackNameEditor({
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit();
-          if (e.key === "Escape") {
-            setDraft(name);
-            setEditing(false);
-          }
+          if (e.key === "Escape") { setDraft(name); setEditing(false); }
         }}
       />
     );
@@ -155,10 +149,7 @@ function TrackNameEditor({
   return (
     <span
       className="flex-1 min-w-0 text-xs text-foreground truncate cursor-default"
-      onDoubleClick={() => {
-        setDraft(name);
-        setEditing(true);
-      }}
+      onDoubleClick={() => { setDraft(name); setEditing(true); }}
       title="Double-click to rename">
       {name}
     </span>

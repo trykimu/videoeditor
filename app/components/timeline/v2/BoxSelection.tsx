@@ -93,7 +93,7 @@ export function BoxSelection({
             rect,
             allScrubbers,
             bounds,
-            scrollLeft,
+            containerRef.current?.scrollLeft ?? 0,
             scrollTopRef.current,
           );
           onBoxSelect(ids);
@@ -109,7 +109,7 @@ export function BoxSelection({
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
     };
-  }, [rect, allScrubbers, containerRef, scrollLeft, onBoxSelect]);
+  }, [rect, allScrubbers, containerRef, onBoxSelect]);
 
   return (
     <div className="relative w-full h-full" onPointerDown={handlePointerDown}>

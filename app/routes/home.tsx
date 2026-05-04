@@ -1146,9 +1146,6 @@ export default function TimelineEditor() {
                     zoomLevel={zoomLevel}
                     rulerPositionPx={rulerPositionPx}
                     isDraggingRuler={isDraggingRuler}
-                    scrollLeft={timelineScrollLeft}
-                    scrollTop={timelineScrollTop}
-                    viewportWidth={timelineViewportWidth}
                     containerRef={containerRef}
                     selectedScrubberIds={selectedScrubberIds}
                     getAllScrubbers={getAllScrubbers}
@@ -1171,7 +1168,8 @@ export default function TimelineEditor() {
                     onRulerClick={(e) => {
                       if (!containerRef.current) return;
                       const rect = containerRef.current.getBoundingClientRect();
-                      const x = e.clientX - rect.left + timelineScrollLeft;
+                      // Read scrollLeft directly from DOM — no React state lag
+                      const x = e.clientX - rect.left + (containerRef.current.scrollLeft || 0);
                       handleRulerDrag(x);
                     }}
                     onScroll={handleScrollCallback}
