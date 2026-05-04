@@ -1,5 +1,20 @@
 import { z } from "zod";
 
+export const KeyframeSchema = z.object({
+  timeInSeconds: z.number(),
+  value: z.union([z.number(), z.string()]),
+  easing: z.enum(["linear", "ease-in", "ease-out", "ease-in-out"]).optional(),
+});
+
+export const KeyframeTrackSchema = z.object({
+  property: z.enum(["opacity", "scale", "x", "y", "rotation", "volume"]),
+  keyframes: z.array(KeyframeSchema),
+});
+
+export const KeyframeDataSchema = z.object({
+  tracks: z.array(KeyframeTrackSchema),
+});
+
 export const TextPropertiesSchema = z.object({
   textContent: z.string(),
   fontSize: z.number(),
@@ -54,12 +69,16 @@ export const ScrubberStateSchema = MediaBinItemSchema.extend({
   playbackRate: z.number().positive().optional(),
   volume: z.number().min(0).max(1).optional(),
   muted: z.boolean().optional(),
+  keyframeLanesExpanded: z.boolean().optional(),
+  keyframes: KeyframeDataSchema.optional(),
 });
 
 export const TrackStateSchema = z.object({
   id: z.string(),
   scrubbers: z.array(ScrubberStateSchema),
   transitions: z.array(TransitionSchema),
+  muted: z.boolean().optional(),
+  name: z.string().optional(),
 });
 
 export const TimelineStateSchema = z.object({

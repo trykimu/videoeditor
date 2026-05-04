@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_TRACK_HEIGHT, type ScrubberState, type Transition } from "./types";
-import { Trash2, Group, Ungroup, Archive, Volume2, VolumeX } from "lucide-react";
+import { Trash2, Group, Ungroup, Archive, Volume2, VolumeX, ChevronDown, ChevronRight } from "lucide-react";
 import { useWaveform } from "~/hooks/useWaveform";
 import { WaveformCanvas } from "./WaveformCanvas";
 
@@ -29,6 +29,7 @@ export interface ScrubberProps {
   onBeginTransform?: () => void;
   rulerPositionPx?: number;
   onRippleEdit?: (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => void;
+  onToggleKeyframeLanes?: (scrubberId: string) => void;
 }
 
 export const Scrubber: React.FC<ScrubberProps> = ({
@@ -51,6 +52,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   onBeginTransform,
   rulerPositionPx,
   onRippleEdit,
+  onToggleKeyframeLanes,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -466,13 +468,15 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   return (
     <>
       <div
-        className={`group absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-all ${getScrubberColor()} select-none`}
+        className={`group absolute rounded-sm cursor-grab active:cursor-grabbing border shadow-sm hover:shadow-md transition-shadow ${getScrubberColor()} select-none`}
         style={{
-          left: `${scrubber.left}px`,
+          top: 0,
+          left: 0,
           width: `${scrubber.width}px`,
-          top: `${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px`,
           height: `${DEFAULT_TRACK_HEIGHT - 4}px`,
           minWidth: "20px",
+          transform: `translate3d(${scrubber.left}px, ${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px, 0)`,
+          willChange: isDragging || isResizing ? "transform" : "auto",
           zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
@@ -510,7 +514,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         </div>
 
         {/* Speed / mute badges */}
-        <div className="absolute bottom-0.5 right-1 flex items-center gap-0.5 pointer-events-none">
+        <div className="absolute bottom-0.5 right-6 flex items-center gap-0.5 pointer-events-none">
           {scrubber.muted && (
             <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">M</div>
           )}
@@ -520,6 +524,24 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             </div>
           )}
         </div>
+
+        {/* Keyframe lane toggle */}
+        {onToggleKeyframeLanes && (
+          <button
+            className="absolute bottom-0.5 right-0.5 p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity z-20"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleKeyframeLanes(scrubber.id);
+            }}
+            title="Toggle keyframe lanes">
+            {scrubber.keyframeLanesExpanded ? (
+              <ChevronDown className="h-2.5 w-2.5" />
+            ) : (
+              <ChevronRight className="h-2.5 w-2.5" />
+            )}
+          </button>
+        )}
 
         {/* Left resize handle - more visible */}
         {scrubber.mediaType !== "video" &&

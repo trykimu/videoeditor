@@ -7,7 +7,6 @@ import {
   Upload,
   Settings,
   Plus,
-  Minus,
   Scissors,
   CornerUpLeft,
   CornerUpRight,
@@ -17,6 +16,7 @@ import {
   Bot,
   SlidersHorizontal,
   Clapperboard,
+  Waves,
 } from "lucide-react";
 
 // Custom video controls
@@ -27,8 +27,8 @@ import LeftPanel from "~/components/editor/LeftPanel";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
 import { InspectorPanel } from "~/components/editor/InspectorPanel";
 import { ExportPanel } from "~/components/editor/ExportPanel";
-import { TimelineRuler } from "~/components/timeline/TimelineRuler";
-import { TimelineTracks } from "~/components/timeline/TimelineTracks";
+import { TimelineShell } from "~/components/timeline/v2/TimelineShell";
+import { ZoomSlider } from "~/components/timeline/v2/ZoomSlider";
 import { Button } from "~/components/ui/button";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Badge } from "~/components/ui/badge";
@@ -46,6 +46,8 @@ import { useMediaBin } from "~/hooks/useMediaBin";
 import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
 import { useAuth } from "~/hooks/useAuth";
+import { useTimelineViewport } from "~/hooks/useTimelineViewport";
+import { useKeyframeLanes } from "~/hooks/useKeyframeLanes";
 
 // Types and constants
 import {
@@ -139,6 +141,18 @@ export default function TimelineEditor() {
     handleUngroupScrubber,
     handleMoveGroupToMediaBin,
     handleRippleEdit,
+    // Ripple mode
+    rippleEnabled,
+    toggleRippleEnabled,
+    // Zoom (direct set for slider)
+    handleSetZoom,
+    // Track controls
+    handleToggleTrackMute,
+    handleSetTrackName,
+    // Keyframes
+    handleAddKeyframe,
+    handleUpdateKeyframe,
+    handleDeleteKeyframe,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -178,9 +192,41 @@ export default function TimelineEditor() {
     handleRulerMouseDown,
     handleRulerMouseMove,
     handleRulerMouseUp,
-    handleScroll,
+    handleScroll: handleRulerScroll,
     updateRulerFromPlayer,
+    handleArrowKey,
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
+
+  const expandTimelineCallback = useCallback(() => {
+    return expandTimeline(containerRef);
+  }, [expandTimeline]);
+
+  const {
+    scrollLeft: timelineScrollLeft,
+    scrollTop: timelineScrollTop,
+    viewportWidth: timelineViewportWidth,
+    handleScroll: handleViewportScroll,
+    scheduleEdgeScroll,
+    stopEdgeScroll,
+  } = useTimelineViewport({
+    containerRef,
+    onZoomIn: handleZoomIn,
+    onZoomOut: handleZoomOut,
+    expandTimeline: expandTimelineCallback,
+  });
+
+  const handleScrollCallback = useCallback(() => {
+    handleViewportScroll();
+    handleRulerScroll(containerRef, expandTimelineCallback);
+  }, [handleViewportScroll, handleRulerScroll, expandTimelineCallback]);
+
+  const {
+    expandedIds,
+    toggleKeyframeLanes,
+    isExpanded,
+    getTrackVisualHeight,
+    getTrackIndexFromY,
+  } = useKeyframeLanes();
 
   const { isRendering, renderProgress, handleRenderVideo } = useRenderer();
   const [sidebarMode, setSidebarMode] = useState<"default" | "inspector" | "export">("default");
@@ -590,14 +636,6 @@ export default function TimelineEditor() {
     [handleMoveGroupToMediaBin, handleAddGroupToMediaBin],
   );
 
-  const expandTimelineCallback = useCallback(() => {
-    return expandTimeline(containerRef);
-  }, [expandTimeline]);
-
-  const handleScrollCallback = useCallback(() => {
-    handleScroll(containerRef, expandTimelineCallback);
-  }, [handleScroll, expandTimelineCallback]);
-
   // Play/pause controls with Player sync
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -707,32 +745,23 @@ export default function TimelineEditor() {
     }
   }, [isDraggingRuler, handleRulerMouseMove, handleRulerMouseUp]);
 
-  // Timeline wheel zoom functionality
+  // Arrow key playhead movement (handled by useTimelineViewport's RAF zoom + useRuler's arrow key)
   useEffect(() => {
-    const timelineContainer = containerRef.current;
-    if (!timelineContainer) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Only zoom if Ctrl or Cmd is held
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const scrollDirection = e.deltaY > 0 ? -1 : 1;
-
-        if (scrollDirection > 0) {
-          handleZoomIn();
-        } else {
-          handleZoomOut();
-        }
-      }
+    const handleArrowKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.contentEditable === "true" ||
+        target.isContentEditable;
+      if (isInput) return;
+      e.preventDefault();
+      handleArrowKey(e.key === "ArrowLeft" ? "left" : "right", e.shiftKey);
     };
-
-    timelineContainer.addEventListener("wheel", handleWheel, {
-      passive: false,
-    });
-    return () => {
-      timelineContainer.removeEventListener("wheel", handleWheel);
-    };
-  }, [handleZoomIn, handleZoomOut]);
+    document.addEventListener("keydown", handleArrowKeyDown);
+    return () => document.removeEventListener("keydown", handleArrowKeyDown);
+  }, [handleArrowKey]);
 
   return (
     <div
@@ -1069,31 +1098,24 @@ export default function TimelineEditor() {
                       </Button>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="flex items-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleZoomOut}
-                          className="h-6 w-6 p-0 text-xs"
-                          title="Zoom Out">
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Badge
-                          variant="secondary"
-                          className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
-                          onClick={handleZoomReset}
-                          title="Click to reset zoom to 100%">
-                          {Math.round(zoomLevel * 100)}%
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleZoomIn}
-                          className="h-6 w-6 p-0 text-xs"
-                          title="Zoom In">
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <ZoomSlider
+                        zoomLevel={zoomLevel}
+                        onSetZoom={handleSetZoom}
+                        onZoomIn={handleZoomIn}
+                        onZoomOut={handleZoomOut}
+                        onZoomReset={handleZoomReset}
+                      />
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      {/* Ripple edit toggle */}
+                      <Button
+                        variant={rippleEnabled ? "default" : "ghost"}
+                        size="sm"
+                        onClick={toggleRippleEnabled}
+                        className="h-6 px-2 text-xs"
+                        title={rippleEnabled ? "Ripple edit: ON — disable" : "Ripple edit: OFF — enable"}>
+                        <Waves className="h-3 w-3 mr-1" />
+                        Ripple
+                      </Button>
                       <Separator orientation="vertical" className="h-4 mx-1" />
                       <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
                         <Plus className="h-3 w-3 mr-1" />
@@ -1117,39 +1139,52 @@ export default function TimelineEditor() {
                     </div>
                   </div>
 
-                  <TimelineRuler
-                    timelineWidth={timelineWidth}
-                    rulerPositionPx={rulerPositionPx}
-                    containerRef={containerRef}
-                    onRulerDrag={handleRulerDrag}
-                    onRulerMouseDown={handleRulerMouseDown}
-                    pixelsPerSecond={getPixelsPerSecond()}
-                    scrollLeft={containerRef.current?.scrollLeft || 0}
-                  />
-
-                  <TimelineTracks
+                  <TimelineShell
                     timeline={timeline}
                     timelineWidth={timelineWidth}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    zoomLevel={zoomLevel}
                     rulerPositionPx={rulerPositionPx}
+                    isDraggingRuler={isDraggingRuler}
+                    scrollLeft={timelineScrollLeft}
+                    scrollTop={timelineScrollTop}
+                    viewportWidth={timelineViewportWidth}
                     containerRef={containerRef}
-                    onScroll={handleScrollCallback}
-                    onDeleteTrack={handleDeleteTrack}
+                    selectedScrubberIds={selectedScrubberIds}
+                    getAllScrubbers={getAllScrubbers}
                     onUpdateScrubber={handleUpdateScrubberWithLocking}
                     onDeleteScrubber={handleDeleteScrubber}
-                    onDropOnTrack={handleDropOnTrack}
-                    onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
-                    onDeleteTransition={handleDeleteTransition}
-                    getAllScrubbers={getAllScrubbers}
-                    expandTimeline={expandTimelineCallback}
-                    onRulerMouseDown={handleRulerMouseDown}
-                    pixelsPerSecond={getPixelsPerSecond()}
-                    selectedScrubberIds={selectedScrubberIds}
+                    onBeginScrubberTransform={snapshotTimeline}
                     onSelectScrubber={handleSelectScrubber}
                     onGroupScrubbers={handleGroupSelected}
                     onUngroupScrubber={handleUngroupSelected}
                     onMoveToMediaBin={handleMoveToMediaBinSelected}
-                    onBeginScrubberTransform={snapshotTimeline}
                     onRippleEdit={handleRippleEdit}
+                    onDeleteTrack={handleDeleteTrack}
+                    onToggleMute={handleToggleTrackMute}
+                    onSetTrackName={handleSetTrackName}
+                    onDropOnTrack={handleDropOnTrack}
+                    onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
+                    onDeleteTransition={handleDeleteTransition}
+                    expandTimeline={expandTimelineCallback}
+                    onRulerMouseDown={handleRulerMouseDown}
+                    onRulerClick={(e) => {
+                      if (!containerRef.current) return;
+                      const rect = containerRef.current.getBoundingClientRect();
+                      const x = e.clientX - rect.left + timelineScrollLeft;
+                      handleRulerDrag(x);
+                    }}
+                    onScroll={handleScrollCallback}
+                    snapEnabled={true}
+                    expandedIds={expandedIds}
+                    getTrackVisualHeight={getTrackVisualHeight}
+                    onToggleKeyframeLanes={toggleKeyframeLanes}
+                    onAddKeyframe={handleAddKeyframe}
+                    onUpdateKeyframe={handleUpdateKeyframe}
+                    onDeleteKeyframe={handleDeleteKeyframe}
+                    onBoxSelect={(ids) => setSelectedScrubberIds(ids)}
+                    scheduleEdgeScroll={scheduleEdgeScroll}
+                    stopEdgeScroll={stopEdgeScroll}
                   />
                 </div>
               </ResizablePanel>

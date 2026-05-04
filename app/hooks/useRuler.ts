@@ -125,6 +125,19 @@ export const useRuler = (
     }
   }, [isDraggingRuler, rulerPositionPx, playerRef, pixelsPerSecond]);
 
+  // Arrow key navigation: move playhead by 1 frame (or 10 frames with Shift)
+  const handleArrowKey = useCallback(
+    (direction: "left" | "right", shiftKey: boolean) => {
+      const frameDelta = shiftKey ? 10 : 1;
+      const pixelDelta = (frameDelta / FPS) * pixelsPerSecond;
+      const newPx = direction === "left"
+        ? Math.max(0, rulerPositionPx - pixelDelta)
+        : Math.min(timelineWidth, rulerPositionPx + pixelDelta);
+      handleRulerDrag(newPx);
+    },
+    [rulerPositionPx, pixelsPerSecond, timelineWidth, handleRulerDrag],
+  );
+
   return {
     rulerPositionPx,
     scrollLeft,
@@ -135,5 +148,6 @@ export const useRuler = (
     handleRulerMouseUp,
     handleScroll,
     updateRulerFromPlayer,
+    handleArrowKey,
   };
 };

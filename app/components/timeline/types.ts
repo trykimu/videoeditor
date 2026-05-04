@@ -70,6 +70,10 @@ export interface ScrubberState extends MediaBinItem {
   // audio mixing
   volume?: number; // 0–1, undefined defaults to 1
   muted?: boolean; // undefined defaults to false
+
+  // keyframe animation (optional — existing data without these fields is valid)
+  keyframeLanesExpanded?: boolean;
+  keyframes?: KeyframeData;
 }
 
 // state of the track in the timeline
@@ -77,6 +81,8 @@ export interface TrackState {
   id: string;
   scrubbers: ScrubberState[];
   transitions: Transition[]; // Transitions between scrubbers on this track
+  muted?: boolean; // track-level mute (optional — existing data without this is valid)
+  name?: string; // track label shown in sidebar
 }
 
 // state of the timeline
@@ -113,9 +119,27 @@ export interface TimelineDataItem {
 export const PIXELS_PER_SECOND = 100;
 export const DEFAULT_TRACK_HEIGHT = 52;
 export const FPS = 30;
-export const RULER_HEIGHT = 24;
+export const RULER_HEIGHT = 40;
+export const TRACK_LABEL_WIDTH = 200;
+export const KEYFRAME_LANE_HEIGHT = 24;
 
 // Zoom constants
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 4;
 export const DEFAULT_ZOOM = 1;
+
+// Keyframe types
+export interface Keyframe {
+  timeInSeconds: number;
+  value: number | string;
+  easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+}
+
+export interface KeyframeTrack {
+  property: "opacity" | "scale" | "x" | "y" | "rotation" | "volume";
+  keyframes: Keyframe[];
+}
+
+export interface KeyframeData {
+  tracks: KeyframeTrack[];
+}
