@@ -211,6 +211,36 @@ async function signRenderAssetUrls(
   return { downloadUrl, previewUrl, thumbnailUrl };
 }
 
+function isUserOwnedRenderKey(key: string, userId: string): boolean {
+  const prefix = `${userId}/`;
+  return key.startsWith(prefix) && !key.includes("..") && key.length > prefix.length;
+}
+
+async function deleteRenderR2Objects(
+  userId: string,
+  videoKey: string,
+  thumbKey: string | null,
+): Promise<void> {
+  if (!RENDERS_BUCKET) {
+    throw new Error("Renders bucket not configured");
+  }
+  if (!isUserOwnedRenderKey(videoKey, userId)) {
+    throw new Error("Invalid render video key");
+  }
+  await r2.send(new DeleteObjectCommand({ Bucket: RENDERS_BUCKET, Key: videoKey }));
+  if (thumbKey) {
+    if (!isUserOwnedRenderKey(thumbKey, userId)) {
+      console.warn(`Skipping invalid thumb key on render delete: ${thumbKey}`);
+    } else {
+      try {
+        await r2.send(new DeleteObjectCommand({ Bucket: RENDERS_BUCKET, Key: thumbKey }));
+      } catch (err) {
+        console.warn(`Failed to delete render thumbnail ${thumbKey}:`, err);
+      }
+    }
+  }
+}
+
 async function extractThumbnail(videoPath: string, thumbPath: string): Promise<boolean> {
   try {
     await execFileAsync(
@@ -1261,6 +1291,7 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const compositionWidth = Number(req.body.compositionWidth) || 1920;
   const compositionHeight = Number(req.body.compositionHeight) || 1080;
   const durationInFrames = Number(req.body.durationInFrames) || 30;
+  const getPixelsPerSecond = Number(req.body.getPixelsPerSecond) || 100;
 
   const cappedForFingerprint = capExportDimensions(
     compositionWidth,
@@ -1305,8 +1336,8 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const inputProps = {
     timelineData: req.body.timelineData,
     durationInFrames,
-    compositionWidth,
-    compositionHeight,
+    compositionWidth: cappedForFingerprint.width,
+    compositionHeight: cappedForFingerprint.height,
     getPixelsPerSecond,
     isRendering: true,
   };
@@ -1392,6 +1423,63 @@ app.get("/projects/:projectId/renders", async (req: Request, res: Response): Pro
     res.status(500).json({ error: "Failed to load export history" });
   }
 });
+
+// ─── DELETE /projects/:projectId/renders/:renderId ───────────────────────────
+
+app.delete(
+  "/projects/:projectId/renders/:renderId",
+  async (req: Request, res: Response): Promise<void> => {
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { projectId, renderId } = req.params;
+    if (!UUID_PATTERN.test(projectId) || !UUID_PATTERN.test(renderId)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    if (!(await assertProjectOwned(userId, projectId))) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    try {
+      const { rows } = await db.query(
+        `SELECT r2_video_key, r2_thumb_key
+         FROM project_renders
+         WHERE id = $1::uuid AND project_id = $2::uuid AND user_id = $3`,
+        [renderId, projectId, userId],
+      );
+      if (rows.length === 0) {
+        res.status(404).json({ error: "Export not found" });
+        return;
+      }
+
+      const videoKey = rows[0].r2_video_key as string;
+      const thumbKey = (rows[0].r2_thumb_key as string | null) ?? null;
+
+      await db.query(
+        `DELETE FROM project_renders
+         WHERE id = $1::uuid AND project_id = $2::uuid AND user_id = $3`,
+        [renderId, projectId, userId],
+      );
+
+      try {
+        await deleteRenderR2Objects(userId, videoKey, thumbKey);
+        console.log(`🗑️ Export deleted: ${renderId} (${videoKey})`);
+      } catch (r2Err) {
+        console.warn(`⚠️ Export removed from DB but R2 delete failed for ${renderId}:`, r2Err);
+      }
+
+      res.status(204).send();
+    } catch (err) {
+      console.error("delete export error:", err);
+      res.status(500).json({ error: "Failed to delete export" });
+    }
+  },
+);
 
 // ─── GET /render/:jobId/events ─────────────────────────────────────────────────
 // SSE stream of render progress. Server pushes events — no client polling.

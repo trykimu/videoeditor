@@ -125,6 +125,7 @@ export const useRenderer = () => {
             compositionWidth: capped.width,
             compositionHeight: capped.height,
             durationInFrames,
+            getPixelsPerSecond: getPixelsPerSecond(),
             codec,
             crf,
             resolutionPreset,

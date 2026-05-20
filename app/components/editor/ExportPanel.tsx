@@ -111,8 +111,13 @@ export function ExportPanel({
   const [fileNameBase, setFileNameBase] = useState("");
   const [justFinished, setJustFinished] = useState(false);
 
-  const { items: historyItems, loading: historyLoading, refetch: refetchHistory } =
-    useExportHistory(projectId);
+  const {
+    items: historyItems,
+    loading: historyLoading,
+    deletingId: historyDeletingId,
+    refetch: refetchHistory,
+    deleteExport,
+  } = useExportHistory(projectId);
 
   const outputExt = codec === "vp9" ? ".webm" : ".mp4";
 
@@ -435,7 +440,12 @@ export function ExportPanel({
 
         <Separator />
 
-        <ExportHistory items={historyItems} loading={historyLoading} />
+        <ExportHistory
+          items={historyItems}
+          loading={historyLoading}
+          deletingId={historyDeletingId}
+          onDelete={deleteExport}
+        />
       </div>
 
       <div className="px-3 py-3 border-t border-border/50 shrink-0 space-y-1.5">
