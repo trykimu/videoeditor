@@ -8,7 +8,11 @@ from db import get_db_pool
 
 logger = logging.getLogger(__name__)
 
-_BETTER_AUTH_COOKIE = "better-auth.session_token"
+# HTTPS production uses the __Secure- prefix; dev may use the plain name.
+_BETTER_AUTH_COOKIE_NAMES = (
+    "__Secure-better-auth.session_token",
+    "better-auth.session_token",
+)
 
 
 def _extract_session_token_from_cookies(request: Request) -> str | None:
@@ -16,7 +20,11 @@ def _extract_session_token_from_cookies(request: Request) -> str | None:
     Better Auth stores a signed cookie value as "<token>.<signature>".
     Extract the raw token used in the session table.
     """
-    raw_cookie_value = request.cookies.get(_BETTER_AUTH_COOKIE)
+    raw_cookie_value: str | None = None
+    for cookie_name in _BETTER_AUTH_COOKIE_NAMES:
+        raw_cookie_value = request.cookies.get(cookie_name)
+        if raw_cookie_value:
+            break
     if not raw_cookie_value:
         return None
 

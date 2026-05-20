@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { FPS, RULER_HEIGHT } from "../types";
+import { snapPlayheadPx } from "./playhead-utils";
 
 interface VirtualRulerProps {
   pixelsPerSecond: number;
@@ -34,7 +35,7 @@ function getRulerConfig(pixelsPerSecond: number, fps: number): RulerConfig {
     }
   }
 
-  const secondMultipliers = [1, 2, 3, 5, 10, 15, 30, 60, 120, 300, 600];
+  const secondMultipliers = [0.5, 1, 2, 3, 5, 10, 15, 30, 60, 120, 300, 600];
   for (const mult of secondMultipliers) {
     const px = mult * pixelsPerSecond;
     if (px >= MIN_TICK_SPACING_PX) {
@@ -50,30 +51,15 @@ function getRulerConfig(pixelsPerSecond: number, fps: number): RulerConfig {
   return { labelIntervalSeconds: 60, tickIntervalSeconds: 10 };
 }
 
-function formatTime(seconds: number, fps: number, labelInterval: number): string {
-  if (labelInterval < 1) {
-    const totalFrames = Math.round(seconds * fps);
+/** Seconds as 0.5, 1, 1.5, 2 … or mm:ss when ≥ 1 minute. */
+function formatTime(seconds: number): string {
+  if (seconds >= 60) {
     const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const frames = totalFrames % fps;
-    if (mins > 0) return `${mins}:${String(secs).padStart(2, "0")}.${String(frames).padStart(2, "0")}f`;
-    if (secs > 0) return `${secs}.${String(frames).padStart(2, "0")}f`;
-    return `${frames}f`;
+    const secs = Math.round(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, "0")}`;
   }
-  if (labelInterval < 60) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    if (mins > 0) return `${mins}:${String(secs).padStart(2, "0")}`;
-    return `${secs}s`;
-  }
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${String(secs).padStart(2, "0")}`;
-}
-
-function snapToDevicePixel(value: number): number {
-  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-  return Math.round(value * dpr) / dpr;
+  const rounded = Math.round(seconds * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
 export function VirtualRuler({
@@ -84,6 +70,7 @@ export function VirtualRuler({
   onRulerMouseDown,
   onRulerClick,
 }: VirtualRulerProps) {
+  const playheadLeft = snapPlayheadPx(rulerPositionPx);
   const config = useMemo(() => getRulerConfig(pixelsPerSecond, FPS), [pixelsPerSecond]);
 
   // Render ticks at ABSOLUTE timeline positions (no scrollLeft subtraction).
@@ -101,13 +88,13 @@ export function VirtualRuler({
     const result: Array<{ x: number; isLabel: boolean; label: string; key: number }> = [];
     for (let i = 0; i <= Math.min(endTick, MAX_TICKS); i++) {
       const time = i * tickIntervalSeconds;
-      const x = snapToDevicePixel(time * pixelsPerSecond);
+      const x = snapPlayheadPx(time * pixelsPerSecond);
       const isLabel =
         Math.abs(time % labelIntervalSeconds) < tickIntervalSeconds * 0.01 || time === 0;
       result.push({
         x,
         isLabel,
-        label: isLabel ? formatTime(time, FPS, labelIntervalSeconds) : "",
+        label: isLabel ? formatTime(time) : "",
         key: i,
       });
     }
@@ -141,41 +128,20 @@ export function VirtualRuler({
         </div>
       ))}
 
-      {/* Playhead handle — absolute position in timeline space (no scrollLeft) */}
+      {/* Square head — sticky with ruler so it does not overlap ticks when tracks scroll */}
       <div
-        className="absolute top-0 z-10 pointer-events-auto"
-        style={{ left: rulerPositionPx, transform: "translateX(-50%)" }}>
+        className="absolute top-0 z-20 pointer-events-none"
+        style={{ left: playheadLeft, height: RULER_HEIGHT, width: 0 }}>
         <div
-          className="absolute"
-          style={{
-            left: "50%",
-            transform: "translateX(-50%)",
-            top: 16,
-            width: 0,
-            height: 0,
-            borderLeft: "5px solid transparent",
-            borderRight: "5px solid transparent",
-            borderTop: "6px solid hsl(var(--primary))",
-          }}
-        />
-        <div
-          className={`flex items-center justify-center rounded-full cursor-col-resize ${
-            isDraggingRuler ? "ring-2 ring-primary/50" : ""
+          role="presentation"
+          onMouseDown={onRulerMouseDown}
+          className={`pointer-events-auto absolute top-0.5 left-0 size-2.5 -translate-x-1/2 cursor-col-resize border-2 border-primary/50 bg-primary shadow-xs ${
+            isDraggingRuler ? "ring-2 ring-primary/40" : ""
           }`}
-          style={{ width: 14, height: 14, backgroundColor: "hsl(var(--primary))", marginTop: 2 }}
+          style={{ borderRadius: 1 }}
         />
+        <div className="absolute top-3 bottom-0 left-0 w-0.5 -translate-x-1/2 bg-primary" />
       </div>
-
-      {/* Thin playhead line across ruler */}
-      <div
-        className="absolute top-0 bottom-0 pointer-events-none"
-        style={{
-          left: rulerPositionPx,
-          width: 1,
-          backgroundColor: "hsl(var(--primary))",
-          opacity: 0.6,
-        }}
-      />
     </div>
   );
 }

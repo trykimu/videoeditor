@@ -6,7 +6,8 @@ FROM node:20.18-bookworm-slim AS builder
 
 WORKDIR /app
 
-RUN corepack enable
+# Install pnpm directly; Node 20's bundled corepack can fail signature verification in Docker.
+RUN npm install -g pnpm@9.15.9
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -22,7 +23,7 @@ FROM node:20.18-bookworm-slim AS runtime
 
 WORKDIR /app
 
-RUN corepack enable
+RUN npm install -g pnpm@9.15.9
 
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules

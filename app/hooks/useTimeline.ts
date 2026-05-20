@@ -148,6 +148,7 @@ export const useTimeline = () => {
 
     const scrubbers = [];
     for (const track of timeline.tracks) {
+      if (track.hidden) continue;
       for (const scrubber of track.scrubbers) {
         scrubbers.push({
           id: scrubber.id,
@@ -186,6 +187,7 @@ export const useTimeline = () => {
 
     const transitions: { [id: string]: Transition } = {};
     for (const track of timeline.tracks) {
+      if (track.hidden) continue;
       for (const transition of track.transitions) {
         transitions[transition.id] = {
           id: transition.id,
@@ -1539,6 +1541,16 @@ export const useTimeline = () => {
   );
 
   // Track mute toggle
+  const handleToggleTrackHidden = useCallback((trackId: string) => {
+    snapshotTimeline();
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) =>
+        track.id === trackId ? { ...track, hidden: !track.hidden } : track,
+      ),
+    }));
+  }, [snapshotTimeline]);
+
   const handleToggleTrackMute = useCallback((trackId: string) => {
     setTimeline((prev) => ({
       ...prev,
@@ -1644,6 +1656,24 @@ export const useTimeline = () => {
     [snapshotTimeline],
   );
 
+  const handleRemoveKeyframeProperty = useCallback(
+    (scrubberId: string, property: string) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((s) => {
+            if (s.id !== scrubberId) return s;
+            const newKeyframeTracks = (s.keyframes?.tracks ?? []).filter((kt) => kt.property !== property);
+            return { ...s, keyframes: { tracks: newKeyframeTracks } };
+          }),
+        })),
+      }));
+    },
+    [snapshotTimeline],
+  );
+
   // Move a grouped scrubber to media bin and remove from timeline
   const handleMoveGroupToMediaBin = useCallback(
     (groupedScrubberId: string, addToMediaBin: (scrubber: ScrubberState, pixelsPerSecond: number) => void) => {
@@ -1704,11 +1734,13 @@ export const useTimeline = () => {
     handleSetZoom,
     // Track controls
     handleToggleTrackMute,
+    handleToggleTrackHidden,
     handleSetTrackName,
     // Keyframes
     handleAddKeyframe,
     handleUpdateKeyframe,
     handleDeleteKeyframe,
+    handleRemoveKeyframeProperty,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,

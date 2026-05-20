@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { redirect, useLoaderData, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { requireUser } from "~/utils/auth.server";
+import { getBackendBaseUrl } from "~/utils/backend.server";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import {
   Plus,
@@ -55,11 +56,11 @@ type Project = {
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   if (!user) throw redirect("/login");
-  const { origin } = new URL(request.url);
+  const backendBase = getBackendBaseUrl(request);
 
   let projectsRes;
   try {
-    projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/backend/projects`, {
+    projectsRes = await axios.get<{ projects: Project[] }>(`${backendBase}/projects`, {
       headers: { Cookie: request.headers.get("Cookie") ?? "" },
     });
   } catch (error) {

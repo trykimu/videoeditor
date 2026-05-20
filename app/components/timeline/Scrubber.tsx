@@ -30,6 +30,9 @@ export interface ScrubberProps {
   rulerPositionPx?: number;
   onRippleEdit?: (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => void;
   onToggleKeyframeLanes?: (scrubberId: string) => void;
+  keyframesExpanded?: boolean;
+  /** Absolute top within the timeline content (includes expanded lane offsets). */
+  trackTopPx?: number;
 }
 
 const MINIMUM_WIDTH = 20;
@@ -55,6 +58,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   rulerPositionPx,
   onRippleEdit,
   onToggleKeyframeLanes,
+  keyframesExpanded = false,
+  trackTopPx,
 }) => {
   const elRef = useRef<HTMLDivElement>(null);
 
@@ -385,7 +390,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           width: scrubber.width,
           height: DEFAULT_TRACK_HEIGHT - 4,
           minWidth: MINIMUM_WIDTH,
-          transform: `translate3d(${scrubber.left}px, ${(scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px, 0)`,
+          transform: `translate3d(${scrubber.left}px, ${trackTopPx ?? (scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + 2}px, 0)`,
           zIndex: isDragging || isResizing ? 1000 : isSelected ? 20 : 15,
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
@@ -429,7 +434,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onToggleKeyframeLanes(scrubber.id); }}
             title="Toggle keyframe lanes">
-            {scrubber.keyframeLanesExpanded ? (
+            {keyframesExpanded ? (
               <ChevronDown className="h-2.5 w-2.5" />
             ) : (
               <ChevronRight className="h-2.5 w-2.5" />

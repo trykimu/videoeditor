@@ -10,7 +10,7 @@ import {
   type Keyframe,
 } from "../types";
 import { VirtualRuler } from "./VirtualRuler";
-import { PlayheadLine } from "./PlayheadLine";
+import { TrackPlayheadLine } from "./PlayheadIndicator";
 import { TrackLabelColumn } from "./TrackLabelColumn";
 import { TrackRows } from "./TrackRows";
 
@@ -43,6 +43,7 @@ interface TimelineShellProps {
   // Track ops
   onDeleteTrack: (trackId: string) => void;
   onToggleMute: (trackId: string) => void;
+  onToggleTrackHidden: (trackId: string) => void;
   onSetTrackName: (trackId: string, name: string) => void;
 
   // Drop
@@ -68,6 +69,7 @@ interface TimelineShellProps {
   onAddKeyframe: (scrubberId: string, property: string, keyframe: Keyframe) => void;
   onUpdateKeyframe: (scrubberId: string, property: string, oldTime: number, newKeyframe: Keyframe) => void;
   onDeleteKeyframe: (scrubberId: string, property: string, timeInSeconds: number) => void;
+  onRemoveKeyframeProperty?: (scrubberId: string, property: string) => void;
 
   // Box select
   onBoxSelect: (ids: string[]) => void;
@@ -96,6 +98,7 @@ export function TimelineShell({
   onRippleEdit,
   onDeleteTrack,
   onToggleMute,
+  onToggleTrackHidden,
   onSetTrackName,
   onDropOnTrack,
   onDropTransitionOnTrack,
@@ -111,6 +114,7 @@ export function TimelineShell({
   onAddKeyframe,
   onUpdateKeyframe,
   onDeleteKeyframe,
+  onRemoveKeyframeProperty,
   onBoxSelect,
   scheduleEdgeScroll,
   stopEdgeScroll,
@@ -157,8 +161,12 @@ export function TimelineShell({
         getTrackVisualHeight={getTrackVisualHeight}
         onDeleteTrack={onDeleteTrack}
         onToggleMute={onToggleMute}
+        onToggleHidden={onToggleTrackHidden}
         onToggleKeyframeLanes={onToggleKeyframeLanes}
         onSetTrackName={onSetTrackName}
+        onAddKeyframe={onAddKeyframe}
+        rulerPositionPx={rulerPositionPx}
+        pixelsPerSecond={pixelsPerSecond}
       />
 
       {/* Main scroll container — single overflow:auto that owns both horizontal AND
@@ -172,8 +180,7 @@ export function TimelineShell({
         onScroll={handleScroll}>
 
         <div style={{ width: timelineWidth, minHeight: "100%" }}>
-          {/* Sticky ruler — sticks to viewport top on vertical scroll,
-              moves with content on horizontal scroll */}
+          {/* Sticky ruler — sticks on vertical scroll; playhead head stays here */}
           <div
             className="sticky top-0 z-10 bg-background"
             style={{ height: RULER_HEIGHT }}>
@@ -194,10 +201,7 @@ export function TimelineShell({
             </div>
           ) : (
             <div className="relative" style={{ minHeight: totalTracksHeight }}>
-              <PlayheadLine
-                rulerPositionPx={rulerPositionPx}
-                totalHeight={Math.max(totalTracksHeight, 200)}
-              />
+              <TrackPlayheadLine rulerPositionPx={rulerPositionPx} totalTracksHeight={totalTracksHeight} />
               <TrackRows
                 timeline={timeline}
                 timelineWidth={timelineWidth}
@@ -227,6 +231,7 @@ export function TimelineShell({
                 onAddKeyframe={onAddKeyframe}
                 onUpdateKeyframe={onUpdateKeyframe}
                 onDeleteKeyframe={onDeleteKeyframe}
+                onRemoveKeyframeProperty={onRemoveKeyframeProperty}
                 scheduleEdgeScroll={scheduleEdgeScroll}
                 stopEdgeScroll={stopEdgeScroll}
               />

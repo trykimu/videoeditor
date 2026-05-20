@@ -10,9 +10,15 @@ import {
 } from "../types";
 import { Scrubber } from "../Scrubber";
 import { TransitionOverlay } from "../TransitionOverlay";
-import { KeyframeLaneRow } from "./KeyframeLaneRow";
+import { KeyframeLanes } from "./KeyframeLanes";
 import { BoxSelection } from "./BoxSelection";
 import { MediaBinItemSchema } from "~/schemas/components/timeline";
+import {
+  findTrackForScrubber,
+  getKeyframeBlockTopWithinTrack,
+  getScrubberClipBounds,
+  sortScrubbersOnTrack,
+} from "./keyframe-layout";
 
 interface SnapIndicatorProps {
   x: number;
@@ -64,6 +70,7 @@ interface TrackRowsProps {
   onAddKeyframe: (scrubberId: string, property: string, keyframe: Keyframe) => void;
   onUpdateKeyframe: (scrubberId: string, property: string, oldTime: number, newKeyframe: Keyframe) => void;
   onDeleteKeyframe: (scrubberId: string, property: string, timeInSeconds: number) => void;
+  onRemoveKeyframeProperty?: (scrubberId: string, property: string) => void;
   scheduleEdgeScroll: (mouseX: number) => void;
   stopEdgeScroll: () => void;
 }
@@ -73,7 +80,6 @@ export function TrackRows({
   timelineWidth,
   rulerPositionPx,
   containerRef,
-  scrollLeft,
   pixelsPerSecond,
   selectedScrubberIds,
   expandedIds,
@@ -97,14 +103,33 @@ export function TrackRows({
   onAddKeyframe,
   onUpdateKeyframe,
   onDeleteKeyframe,
-  scheduleEdgeScroll,
-  stopEdgeScroll,
+  onRemoveKeyframeProperty,
 }: TrackRowsProps) {
   const allScrubbers = useMemo(() => getAllScrubbers(), [getAllScrubbers, timeline]);
 
   const totalHeight = useMemo(
     () => timeline.tracks.reduce((sum, t) => sum + getTrackVisualHeight(t), 0),
     [timeline.tracks, getTrackVisualHeight],
+  );
+
+  const trackOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let cumulative = 0;
+    for (const track of timeline.tracks) {
+      offsets.push(cumulative);
+      cumulative += getTrackVisualHeight(track);
+    }
+    return offsets;
+  }, [timeline.tracks, getTrackVisualHeight]);
+
+  const getScrubberBounds = useCallback(
+    (scrubber: ScrubberState) => {
+      const found = findTrackForScrubber(timeline.tracks, scrubber.id);
+      if (!found) return null;
+      const trackTop = trackOffsets[found.trackIndex] ?? 0;
+      return getScrubberClipBounds(scrubber, trackTop);
+    },
+    [timeline.tracks, trackOffsets],
   );
 
   const handleDrop = useCallback(
@@ -130,7 +155,6 @@ export function TrackRows({
       const dropX = e.clientX - containerBounds.left + sl;
       const dropY = e.clientY - containerBounds.top + st;
 
-      // Find track index accounting for variable row heights
       let trackIndex = 0;
       let cumY = 0;
       for (let i = 0; i < timeline.tracks.length; i++) {
@@ -162,22 +186,48 @@ export function TrackRows({
     [containerRef, timeline.tracks, getTrackVisualHeight, onDropOnTrack, onDropTransitionOnTrack],
   );
 
-  // Track Y-offset cumulation for positioning scrubbers with expanded lanes
-  const trackOffsets = useMemo(() => {
-    const offsets: number[] = [];
-    let cumulative = 0;
+  const keyframeBlocks = useMemo(() => {
+    const blocks: React.ReactNode[] = [];
     for (const track of timeline.tracks) {
-      offsets.push(cumulative);
-      cumulative += getTrackVisualHeight(track);
+      const trackIndex = timeline.tracks.indexOf(track);
+      const trackTop = trackOffsets[trackIndex] ?? 0;
+      for (const scrubber of sortScrubbersOnTrack(track)) {
+        if (!expandedIds.has(scrubber.id)) continue;
+        const top = trackTop + getKeyframeBlockTopWithinTrack(scrubber, track, expandedIds);
+        blocks.push(
+          <div key={`kf-${scrubber.id}`} className="absolute left-0" style={{ top }}>
+            <KeyframeLanes
+              scrubber={scrubber}
+              timelineWidth={timelineWidth}
+              pixelsPerSecond={pixelsPerSecond}
+              rulerPositionPx={rulerPositionPx}
+              onAddKeyframe={onAddKeyframe}
+              onUpdateKeyframe={onUpdateKeyframe}
+              onDeleteKeyframe={onDeleteKeyframe}
+              onRemoveProperty={onRemoveKeyframeProperty}
+            />
+          </div>
+        );
+      }
     }
-    return offsets;
-  }, [timeline.tracks, getTrackVisualHeight]);
+    return blocks;
+  }, [
+    timeline.tracks,
+    trackOffsets,
+    expandedIds,
+    timelineWidth,
+    pixelsPerSecond,
+    rulerPositionPx,
+    onAddKeyframe,
+    onUpdateKeyframe,
+    onDeleteKeyframe,
+    onRemoveKeyframeProperty,
+  ]);
 
   return (
     <BoxSelection
-      containerRef={containerRef}
+      getScrubberBounds={getScrubberBounds}
       allScrubbers={allScrubbers}
-      scrollLeft={scrollLeft}
       onBoxSelect={onBoxSelect}>
       <div
         className="relative bg-timeline-background"
@@ -188,7 +238,6 @@ export function TrackRows({
           if (e.target === e.currentTarget) onSelectScrubber(null, false);
         }}>
 
-        {/* Track background stripes */}
         {timeline.tracks.map((track, trackIndex) => {
           const rowHeight = getTrackVisualHeight(track);
           const yOffset = trackOffsets[trackIndex] ?? 0;
@@ -213,56 +262,41 @@ export function TrackRows({
           );
         })}
 
-        {/* Scrubbers + keyframe lanes */}
+        {keyframeBlocks}
+
         {allScrubbers.map((scrubber) => {
-          const isExpanded = expandedIds.has(scrubber.id);
+          const found = findTrackForScrubber(timeline.tracks, scrubber.id);
+          if (!found) return null;
+          const trackTopPx = trackOffsets[found.trackIndex] + 2;
           return (
-            <React.Fragment key={scrubber.id}>
-              <Scrubber
-                scrubber={scrubber}
-                timelineWidth={timelineWidth}
-                otherScrubbers={allScrubbers.filter((s) => s.id !== scrubber.id)}
-                onUpdate={onUpdateScrubber}
-                onDelete={onDeleteScrubber}
-                isSelected={selectedScrubberIds.includes(scrubber.id)}
-                onSelect={onSelectScrubber}
-                onGroupScrubbers={onGroupScrubbers}
-                onUngroupScrubber={onUngroupScrubber}
-                onMoveToMediaBin={onMoveToMediaBin}
-                selectedScrubberIds={selectedScrubberIds}
-                containerRef={containerRef}
-                expandTimeline={expandTimeline}
-                snapConfig={{ enabled: snapEnabled, distance: 10 }}
-                trackCount={timeline.tracks.length}
-                pixelsPerSecond={pixelsPerSecond}
-                rulerPositionPx={rulerPositionPx}
-                onBeginTransform={onBeginScrubberTransform}
-                onRippleEdit={onRippleEdit}
-                onToggleKeyframeLanes={onToggleKeyframeLanes}
-              />
-              {isExpanded && (
-                <div
-                  className="absolute"
-                  style={{
-                    left: scrubber.left,
-                    top: (scrubber.y || 0) * DEFAULT_TRACK_HEIGHT + DEFAULT_TRACK_HEIGHT,
-                    width: scrubber.width,
-                  }}>
-                  <KeyframeLaneRow
-                    scrubber={scrubber}
-                    pixelsPerSecond={pixelsPerSecond}
-                    rulerPositionPx={rulerPositionPx}
-                    onAddKeyframe={onAddKeyframe}
-                    onUpdateKeyframe={onUpdateKeyframe}
-                    onDeleteKeyframe={onDeleteKeyframe}
-                  />
-                </div>
-              )}
-            </React.Fragment>
+          <Scrubber
+            key={scrubber.id}
+            scrubber={scrubber}
+            trackTopPx={trackTopPx}
+            timelineWidth={timelineWidth}
+            otherScrubbers={allScrubbers.filter((s) => s.id !== scrubber.id)}
+            onUpdate={onUpdateScrubber}
+            onDelete={onDeleteScrubber}
+            isSelected={selectedScrubberIds.includes(scrubber.id)}
+            onSelect={onSelectScrubber}
+            onGroupScrubbers={onGroupScrubbers}
+            onUngroupScrubber={onUngroupScrubber}
+            onMoveToMediaBin={onMoveToMediaBin}
+            selectedScrubberIds={selectedScrubberIds}
+            containerRef={containerRef}
+            expandTimeline={expandTimeline}
+            snapConfig={{ enabled: snapEnabled, distance: 10 }}
+            trackCount={timeline.tracks.length}
+            pixelsPerSecond={pixelsPerSecond}
+            rulerPositionPx={rulerPositionPx}
+            onBeginTransform={onBeginScrubberTransform}
+            onRippleEdit={onRippleEdit}
+            onToggleKeyframeLanes={onToggleKeyframeLanes}
+            keyframesExpanded={expandedIds.has(scrubber.id)}
+          />
           );
         })}
 
-        {/* Transitions */}
         {(() => {
           const components = [];
           for (const track of timeline.tracks) {
@@ -288,6 +322,28 @@ export function TrackRows({
           }
           return components;
         })()}
+
+        {/* Hidden-track veil: grayed / tinted, clips stay visible */}
+        {timeline.tracks.map((track, trackIndex) => {
+          if (!track.hidden) return null;
+          const yOffset = trackOffsets[trackIndex] ?? 0;
+          const rowHeight = getTrackVisualHeight(track);
+          return (
+            <div
+              key={`hidden-veil-${track.id}`}
+              className="absolute left-0 z-[26] pointer-events-none"
+              style={{
+                top: yOffset,
+                height: rowHeight,
+                width: timelineWidth,
+                backgroundColor: "hsl(var(--background) / 0.42)",
+                backdropFilter: "grayscale(0.85) saturate(0.5)",
+                WebkitBackdropFilter: "grayscale(0.85) saturate(0.5)",
+              }}
+              aria-hidden
+            />
+          );
+        })}
       </div>
     </BoxSelection>
   );

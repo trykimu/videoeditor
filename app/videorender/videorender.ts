@@ -2,6 +2,8 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import fs from "fs";
@@ -18,6 +20,20 @@ import { Upload } from "@aws-sdk/lib-storage";
 import pkg, { type PoolClient } from "pg";
 import { Queue, Worker, QueueEvents, Job } from "bullmq";
 import IORedis from "ioredis";
+import { auth } from "~/lib/auth.server";
+import {
+  capExportDimensions,
+  clampExportCrf,
+  getRemotionRenderTuning,
+  parseRenderJobReturn,
+  sanitizeExportFileName,
+  X264_PRESETS,
+  type ExportResolutionPreset,
+  type X264Preset,
+} from "~/lib/render-settings";
+import { computeExportFingerprint } from "~/lib/render-fingerprint";
+
+const execFileAsync = promisify(execFile);
 const { Pool } = pkg;
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -76,9 +92,17 @@ function createRedisConnection() {
 
 interface RenderJobData {
   userId: string;
+  projectId: string;
   renderJobId: string;
+  contentFingerprint: string;
   codec: "h264" | "h265" | "vp9";
   crf: number;
+  resolutionPreset: ExportResolutionPreset;
+  outputFileName: string;
+  advancedMode: boolean;
+  jpegQuality?: number;
+  x264Preset?: X264Preset;
+  muted?: boolean;
   inputProps: {
     timelineData: unknown;
     durationInFrames: number;
@@ -96,15 +120,185 @@ function mimeForCodec(codec: string) {
   return codec === "vp9" ? "video/webm" : "video/mp4";
 }
 
+interface CachedRenderRow {
+  id: string;
+  file_name: string;
+  r2_video_key: string;
+  r2_thumb_key: string | null;
+  codec: string;
+}
+
+async function ensureProjectRendersTable(): Promise<void> {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS project_renders (
+      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id          UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      user_id             TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+      render_job_id       UUID NOT NULL,
+      content_fingerprint TEXT NOT NULL,
+      file_name           TEXT NOT NULL,
+      codec               TEXT NOT NULL,
+      width               INT NOT NULL,
+      height              INT NOT NULL,
+      duration_frames     INT,
+      crf                 INT,
+      resolution_preset   TEXT,
+      r2_video_key        TEXT NOT NULL,
+      r2_thumb_key        TEXT,
+      created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_project_renders_project_created
+      ON project_renders(project_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_project_renders_fingerprint
+      ON project_renders(project_id, user_id, content_fingerprint, created_at DESC);
+  `);
+}
+
+async function assertProjectOwned(userId: string, projectId: string): Promise<boolean> {
+  const { rows } = await db.query(
+    `SELECT id FROM projects WHERE id = $1::uuid AND user_id = $2`,
+    [projectId, userId],
+  );
+  return rows.length > 0;
+}
+
+async function findCachedRender(
+  projectId: string,
+  userId: string,
+  fingerprint: string,
+): Promise<CachedRenderRow | null> {
+  const { rows } = await db.query(
+    `SELECT id, file_name, r2_video_key, r2_thumb_key, codec
+     FROM project_renders
+     WHERE project_id = $1::uuid AND user_id = $2 AND content_fingerprint = $3
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [projectId, userId, fingerprint],
+  );
+  return (rows[0] as CachedRenderRow | undefined) ?? null;
+}
+
+async function signRenderAssetUrls(
+  row: Pick<CachedRenderRow, "file_name" | "r2_video_key" | "r2_thumb_key" | "codec">,
+): Promise<{ downloadUrl: string; previewUrl: string; thumbnailUrl: string | null }> {
+  const safeName = row.file_name.replace(/"/g, "");
+  const downloadUrl = await getSignedUrl(
+    r2,
+    new GetObjectCommand({
+      Bucket: RENDERS_BUCKET,
+      Key: row.r2_video_key,
+      ResponseContentDisposition: `attachment; filename="${safeName}"`,
+    }),
+    { expiresIn: 3600 },
+  );
+  const previewUrl = await getSignedUrl(
+    r2,
+    new GetObjectCommand({
+      Bucket: RENDERS_BUCKET,
+      Key: row.r2_video_key,
+      ResponseContentDisposition: `inline; filename="${safeName}"`,
+    }),
+    { expiresIn: 3600 },
+  );
+  let thumbnailUrl: string | null = null;
+  if (row.r2_thumb_key) {
+    thumbnailUrl = await getSignedUrl(
+      r2,
+      new GetObjectCommand({ Bucket: RENDERS_BUCKET, Key: row.r2_thumb_key }),
+      { expiresIn: 3600 },
+    );
+  }
+  return { downloadUrl, previewUrl, thumbnailUrl };
+}
+
+async function extractThumbnail(videoPath: string, thumbPath: string): Promise<boolean> {
+  try {
+    await execFileAsync(
+      "npx",
+      [
+        "remotion",
+        "ffmpeg",
+        "-y",
+        "-ss",
+        "0",
+        "-i",
+        videoPath,
+        "-frames:v",
+        "1",
+        "-vf",
+        "scale=320:-2",
+        "-q:v",
+        "5",
+        thumbPath,
+      ],
+      { timeout: 120_000, cwd: process.cwd() },
+    );
+    return fs.existsSync(thumbPath);
+  } catch (err) {
+    console.warn("Thumbnail extraction failed:", err);
+    return false;
+  }
+}
+
 const renderQueue = new Queue<RenderJobData>("renders", { connection: createRedisConnection() });
 const renderQueueEvents = new QueueEvents("renders", { connection: createRedisConnection() });
 
-const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
+const renderWorker = new Worker<
+  RenderJobData,
+  { downloadUrl: string; fileName: string; renderId: string }
+>(
   "renders",
   async (job) => {
-    const { userId, renderJobId, inputProps, codec = "h264", crf = 28 } = job.data;
+    const {
+      userId,
+      projectId,
+      renderJobId,
+      contentFingerprint,
+      inputProps: rawInputProps,
+      codec = "h264",
+      crf = 28,
+      resolutionPreset = "1080p",
+      outputFileName,
+      advancedMode = false,
+      jpegQuality: jpegQualityOverride,
+      x264Preset: x264PresetOverride,
+      muted = false,
+    } = job.data;
     const ext = extForCodec(codec);
+    const downloadFileName = sanitizeExportFileName(outputFileName, ext);
     const localOutputPath = `out/${renderJobId}.${ext}`;
+    const effectiveCrf = clampExportCrf(crf, advancedMode);
+
+    const capped = capExportDimensions(
+      rawInputProps.compositionWidth,
+      rawInputProps.compositionHeight,
+      resolutionPreset,
+    );
+    if (capped.scaled) {
+      console.log(
+        `📐 Export resolution capped to ${capped.width}×${capped.height} (preset: ${resolutionPreset})`,
+      );
+    }
+    const inputProps = {
+      ...rawInputProps,
+      compositionWidth: capped.width,
+      compositionHeight: capped.height,
+    };
+    const tuning = getRemotionRenderTuning(capped.width, capped.height);
+    if (
+      typeof jpegQualityOverride === "number" &&
+      jpegQualityOverride >= 60 &&
+      jpegQualityOverride <= 100
+    ) {
+      tuning.jpegQuality = Math.round(jpegQualityOverride);
+    }
+    if (
+      codec === "h264" &&
+      x264PresetOverride &&
+      (X264_PRESETS as readonly string[]).includes(x264PresetOverride)
+    ) {
+      tuning.x264Preset = x264PresetOverride;
+    }
 
     // Headless Chrome launched by Remotion loads from Remotion's own bundle
     // server (e.g. port 3001), not from this Express app. Relative asset URLs
@@ -133,14 +327,23 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
     await job.updateProgress(10);
 
     let lastReportedProgress = 10;
+    const useCrf = effectiveCrf > 0 && effectiveCrf <= 51 ? effectiveCrf : undefined;
+
     await renderMedia({
       composition,
       serveUrl: bundleLocation,
       codec,
       outputLocation: localOutputPath,
       inputProps: absInputProps,
-      concurrency: 3,
-      verbose: true,
+      concurrency: tuning.concurrency,
+      disallowParallelEncoding: tuning.disallowParallelEncoding,
+      offthreadVideoCacheSizeInBytes: tuning.offthreadVideoCacheSizeInBytes,
+      jpegQuality: tuning.jpegQuality,
+      imageFormat: "jpeg",
+      crf: useCrf,
+      x264Preset: codec === "h264" ? tuning.x264Preset : undefined,
+      colorSpace: "bt709",
+      muted,
       logLevel: "info",
       onProgress: ({ progress }) => {
         const percent = Math.round(10 + progress * 80);
@@ -149,22 +352,10 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
           void job.updateProgress(percent);
         }
       },
-      ffmpegOverride: codec === "h264"
-        ? ({ args }) => [
-            ...args,
-            "-preset", "fast",
-            "-crf", String(crf),
-            "-threads", "3",
-            "-tune", "film",
-            "-x264-params", "ref=3:me=hex:subme=6:trellis=1",
-            "-g", "30",
-            "-bf", "2",
-            "-maxrate", "8M",
-            "-bufsize", "16M",
-          ]
-        : codec === "h265"
-          ? ({ args }) => [...args, "-preset", "fast", "-crf", String(crf), "-tag:v", "hvc1"]
-          : ({ args }) => [...args, "-b:v", "0", "-crf", String(crf)],
+      ffmpegOverride:
+        codec === "h265"
+          ? ({ args }) => [...args, "-tag:v", "hvc1"]
+          : undefined,
       timeoutInMilliseconds: 900000,
     });
 
@@ -186,22 +377,71 @@ const renderWorker = new Worker<RenderJobData, { downloadUrl: string }>(
     });
     await upload.done();
 
+    await job.updateProgress(94);
+
+    const thumbPath = `out/${renderJobId}-thumb.jpg`;
+    let r2ThumbKey: string | null = null;
+    if (await extractThumbnail(localOutputPath, thumbPath)) {
+      r2ThumbKey = `${userId}/thumbs/${renderJobId}.jpg`;
+      const thumbStream = fs.createReadStream(thumbPath);
+      const thumbUpload = new Upload({
+        client: r2,
+        params: {
+          Bucket: RENDERS_BUCKET,
+          Key: r2ThumbKey,
+          Body: thumbStream,
+          ContentType: "image/jpeg",
+        },
+      });
+      await thumbUpload.done();
+      try {
+        fs.unlinkSync(thumbPath);
+      } catch {
+        /* ignore */
+      }
+    }
+
     await job.updateProgress(97);
 
-    const downloadUrl = await getSignedUrl(
-      r2,
-      new GetObjectCommand({
-        Bucket: RENDERS_BUCKET,
-        Key: renderKey,
-        ResponseContentDisposition: `attachment; filename="rendered-video.${ext}"`,
-      }),
-      { expiresIn: 3600 },
+    const { rows: insertRows } = await db.query(
+      `INSERT INTO project_renders (
+         project_id, user_id, render_job_id, content_fingerprint, file_name, codec,
+         width, height, duration_frames, crf, resolution_preset, r2_video_key, r2_thumb_key
+       ) VALUES ($1::uuid, $2, $3::uuid, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING id`,
+      [
+        projectId,
+        userId,
+        renderJobId,
+        contentFingerprint,
+        downloadFileName,
+        codec,
+        capped.width,
+        capped.height,
+        rawInputProps.durationInFrames,
+        effectiveCrf,
+        resolutionPreset,
+        renderKey,
+        r2ThumbKey,
+      ],
     );
+    const renderId = String(insertRows[0].id);
 
-    try { fs.unlinkSync(localOutputPath); } catch {}
+    const { downloadUrl } = await signRenderAssetUrls({
+      file_name: downloadFileName,
+      r2_video_key: renderKey,
+      r2_thumb_key: r2ThumbKey,
+      codec,
+    });
+
+    try {
+      fs.unlinkSync(localOutputPath);
+    } catch {
+      /* ignore */
+    }
 
     console.log(`📦 Render uploaded: ${renderKey}`);
-    return { downloadUrl };
+    return { downloadUrl, fileName: downloadFileName, renderId };
   },
   {
     connection: createRedisConnection(),
@@ -220,42 +460,9 @@ renderWorker.on("failed", (job, err) => {
   }
 });
 
-// ─── Cookie parsing ───────────────────────────────────────────────────────────
-
-function parseCookieHeader(header: string): Record<string, string> {
-  return Object.fromEntries(
-    header.split(";").map((part) => {
-      const [k, ...v] = part.trim().split("=");
-      return [k.trim(), decodeURIComponent(v.join("="))];
-    }),
-  );
-}
-
-// ─── Session validation ───────────────────────────────────────────────────────
-// Mirrors the exact logic in backend/auth/routes.py: parse the BetterAuth
-// session cookie, look up the token in the session table, return userId.
-// No service-to-service call needed — the renderer shares the same DB.
-
 async function getAuthenticatedUserId(req: Request): Promise<string | null> {
-  const rawCookie = (req.cookies ?? {})["better-auth.session_token"];
-  if (!rawCookie) return null;
-
-  // BetterAuth stores the cookie as "<token>.<hmac-signature>" — only the
-  // token portion maps to the session table.
-  const token = decodeURIComponent(rawCookie).split(".")[0];
-  if (!token) return null;
-
-  try {
-    const { rows } = await db.query<{ userId: string }>(
-      `SELECT s."userId" FROM session s
-        WHERE s.token = $1 AND s."expiresAt" > now()
-        LIMIT 1`,
-      [token],
-    );
-    return rows[0]?.userId ?? null;
-  } catch {
-    return null;
-  }
+  const session = await auth.api.getSession({ headers: req.headers });
+  return session?.user?.id ?? null;
 }
 
 // ─── Express app ──────────────────────────────────────────────────────────────
@@ -263,12 +470,6 @@ async function getAuthenticatedUserId(req: Request): Promise<string | null> {
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-// Populate req.cookies from the Cookie header.
-app.use((req, _res, next) => {
-  req.cookies = parseCookieHeader(req.headers.cookie ?? "");
-  next();
-});
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
 
@@ -1008,31 +1209,187 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
 // Client opens GET /render/:jobId/events for SSE progress updates.
 
 app.post("/render", async (req: Request, res: Response): Promise<void> => {
-  const userId = (await getAuthenticatedUserId(req)) ?? "anonymous";
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const projectId = typeof req.body.projectId === "string" ? req.body.projectId : "";
+  if (!UUID_PATTERN.test(projectId)) {
+    res.status(400).json({ error: "Valid projectId is required" });
+    return;
+  }
+  if (!(await assertProjectOwned(userId, projectId))) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
   const renderJobId = generateUUID();
 
   const VALID_CODECS = new Set(["h264", "h265", "vp9"]);
   const codec = VALID_CODECS.has(req.body.codec) ? req.body.codec : "h264";
-  const crf = typeof req.body.crf === "number" && req.body.crf >= 0 && req.body.crf <= 51
-    ? Math.round(req.body.crf)
+  const advancedMode = req.body.advancedMode === true;
+  const crf = typeof req.body.crf === "number"
+    ? clampExportCrf(req.body.crf, advancedMode)
     : 28;
+  const VALID_PRESETS = new Set(["1080p", "720p", "source", "4k"]);
+  const resolutionPreset: ExportResolutionPreset = VALID_PRESETS.has(req.body.resolutionPreset)
+    ? req.body.resolutionPreset
+    : "1080p";
+  const codecExt = extForCodec(codec);
+  const outputFileName =
+    typeof req.body.outputFileName === "string" && req.body.outputFileName.trim()
+      ? sanitizeExportFileName(req.body.outputFileName, codecExt)
+      : sanitizeExportFileName("export", codecExt);
+
+  let jpegQuality: number | undefined;
+  if (typeof req.body.jpegQuality === "number") {
+    jpegQuality = Math.min(100, Math.max(60, Math.round(req.body.jpegQuality)));
+  }
+
+  let x264Preset: X264Preset | undefined;
+  if (
+    typeof req.body.x264Preset === "string" &&
+    (X264_PRESETS as readonly string[]).includes(req.body.x264Preset)
+  ) {
+    x264Preset = req.body.x264Preset as X264Preset;
+  }
+
+  const muted = req.body.muted === true;
+
+  const compositionWidth = Number(req.body.compositionWidth) || 1920;
+  const compositionHeight = Number(req.body.compositionHeight) || 1080;
+  const durationInFrames = Number(req.body.durationInFrames) || 30;
+
+  const cappedForFingerprint = capExportDimensions(
+    compositionWidth,
+    compositionHeight,
+    resolutionPreset,
+  );
+  const tuningDefaults = getRemotionRenderTuning(
+    cappedForFingerprint.width,
+    cappedForFingerprint.height,
+  );
+  const jpegForFingerprint =
+    typeof jpegQuality === "number" ? jpegQuality : tuningDefaults.jpegQuality;
+  const x264ForFingerprint =
+    codec === "h264" ? (x264Preset ?? tuningDefaults.x264Preset) : undefined;
+
+  const contentFingerprint = computeExportFingerprint({
+    timelineData: req.body.timelineData,
+    durationInFrames,
+    compositionWidth,
+    compositionHeight,
+    codec,
+    crf,
+    resolutionPreset,
+    muted,
+    jpegQuality: jpegForFingerprint,
+    x264Preset: x264ForFingerprint,
+  });
+
+  const cached = await findCachedRender(projectId, userId, contentFingerprint);
+  if (cached) {
+    const urls = await signRenderAssetUrls(cached);
+    console.log(`♻️  Serving cached render for project ${projectId}`);
+    res.json({
+      cached: true,
+      renderId: cached.id,
+      fileName: cached.file_name,
+      ...urls,
+    });
+    return;
+  }
 
   const inputProps = {
     timelineData: req.body.timelineData,
-    durationInFrames: req.body.durationInFrames,
-    compositionWidth: req.body.compositionWidth,
-    compositionHeight: req.body.compositionHeight,
-    getPixelsPerSecond: req.body.getPixelsPerSecond,
+    durationInFrames,
+    compositionWidth,
+    compositionHeight,
+    getPixelsPerSecond,
     isRendering: true,
   };
 
   try {
-    const job = await renderQueue.add("render", { userId, renderJobId, codec, crf, inputProps });
+    const job = await renderQueue.add("render", {
+      userId,
+      projectId,
+      renderJobId,
+      contentFingerprint,
+      codec,
+      crf,
+      resolutionPreset,
+      outputFileName,
+      advancedMode,
+      jpegQuality,
+      x264Preset,
+      muted,
+      inputProps,
+    });
     console.log(`📬 Render job queued: ${job.id}`);
-    res.json({ jobId: job.id });
+    res.json({ cached: false, jobId: job.id });
   } catch (err) {
     console.error("❌ Failed to enqueue render:", err);
     res.status(500).json({ error: "Failed to queue render job" });
+  }
+});
+
+// ─── GET /projects/:projectId/renders — export history ───────────────────────
+
+app.get("/projects/:projectId/renders", async (req: Request, res: Response): Promise<void> => {
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const { projectId } = req.params;
+  if (!UUID_PATTERN.test(projectId)) {
+    res.status(400).json({ error: "Invalid project id" });
+    return;
+  }
+  if (!(await assertProjectOwned(userId, projectId))) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT id, file_name, codec, width, height, r2_video_key, r2_thumb_key, created_at
+       FROM project_renders
+       WHERE project_id = $1::uuid AND user_id = $2
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [projectId, userId],
+    );
+
+    const renders = await Promise.all(
+      rows.map(async (row) => {
+        const urls = await signRenderAssetUrls({
+          file_name: row.file_name as string,
+          r2_video_key: row.r2_video_key as string,
+          r2_thumb_key: (row.r2_thumb_key as string | null) ?? null,
+          codec: row.codec as string,
+        });
+        return {
+          id: String(row.id),
+          fileName: row.file_name as string,
+          codec: row.codec as string,
+          width: row.width as number,
+          height: row.height as number,
+          createdAt: (row.created_at as Date).toISOString(),
+          thumbnailUrl: urls.thumbnailUrl,
+          previewUrl: urls.previewUrl,
+          downloadUrl: urls.downloadUrl,
+        };
+      }),
+    );
+
+    res.json({ renders });
+  } catch (err) {
+    console.error("export history error:", err);
+    res.status(500).json({ error: "Failed to load export history" });
   }
 });
 
@@ -1073,8 +1430,12 @@ app.get("/render/:jobId/events", async (req: Request, res: Response): Promise<vo
 
   const state = await job.getState();
   if (state === "completed") {
-    const rv = job.returnvalue as { downloadUrl: string } | undefined;
-    send({ type: "completed", downloadUrl: rv?.downloadUrl ?? "" });
+    const rv = parseRenderJobReturn(job.returnvalue);
+    if (rv?.downloadUrl) {
+      send({ type: "completed", downloadUrl: rv.downloadUrl, fileName: rv.fileName });
+    } else {
+      send({ type: "error", message: "Render finished but download URL is missing" });
+    }
     clearInterval(heartbeat);
     res.end();
     return;
@@ -1091,13 +1452,14 @@ app.get("/render/:jobId/events", async (req: Request, res: Response): Promise<vo
     send({ type: "progress", percent: typeof data === "number" ? data : 0 });
   };
 
-  const onCompleted = ({ jobId: jId, returnvalue }: { jobId: string; returnvalue: string }) => {
+  const onCompleted = ({ jobId: jId, returnvalue }: { jobId: string; returnvalue: unknown }) => {
     if (jId !== jobId) return;
-    try {
-      const rv = JSON.parse(returnvalue) as { downloadUrl: string };
-      send({ type: "completed", downloadUrl: rv.downloadUrl });
-    } catch {
-      send({ type: "error", message: "Failed to parse render result" });
+    const rv = parseRenderJobReturn(returnvalue);
+    if (rv?.downloadUrl) {
+      send({ type: "completed", downloadUrl: rv.downloadUrl, fileName: rv.fileName });
+    } else {
+      console.error("Render completed but return value was invalid:", returnvalue);
+      send({ type: "error", message: "Render finished but download URL is missing" });
     }
     cleanup();
     res.end();
@@ -1126,8 +1488,15 @@ app.get("/render/:jobId/events", async (req: Request, res: Response): Promise<vo
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const port = process.env.PORT || 8000;
-app.listen(port, () => {
-  console.log(`🚀 Render server listening on http://localhost:${port}`);
-  console.log(`☁️  Assets bucket: ${ASSETS_BUCKET || "(not set)"}`);
-  console.log(`☁️  Renders bucket: ${RENDERS_BUCKET || "(not set)"}`);
-});
+void ensureProjectRendersTable()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`🚀 Render server listening on http://localhost:${port}`);
+      console.log(`☁️  Assets bucket: ${ASSETS_BUCKET || "(not set)"}`);
+      console.log(`☁️  Renders bucket: ${RENDERS_BUCKET || "(not set)"}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize project_renders table:", err);
+    process.exit(1);
+  });

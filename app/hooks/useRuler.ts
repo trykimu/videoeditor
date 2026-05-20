@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { PlayerRef } from "@remotion/player";
 import { PIXELS_PER_SECOND, FPS } from "~/components/timeline/types";
+import { snapPlayheadPx } from "~/components/timeline/v2/playhead-utils";
 
 export const useRuler = (
   playerRef: React.RefObject<PlayerRef | null>,
@@ -16,7 +17,7 @@ export const useRuler = (
 
   const handleRulerDrag = useCallback(
     (newPositionPx: number) => {
-      const clampedPositionPx = Math.max(0, Math.min(newPositionPx, timelineWidth));
+      const clampedPositionPx = snapPlayheadPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
       setRulerPositionPx(clampedPositionPx);
 
       // Sync with player when not already updating from player
@@ -68,7 +69,7 @@ export const useRuler = (
         isUpdatingFromPlayerRef.current = true;
         const timeInSeconds = frame / FPS;
         const newPositionPx = timeInSeconds * pixelsPerSecond;
-        setRulerPositionPx(Math.max(0, Math.min(newPositionPx, timelineWidth)));
+        setRulerPositionPx(snapPlayheadPx(Math.max(0, Math.min(newPositionPx, timelineWidth))));
         // Reset flag after state update
         requestAnimationFrame(() => {
           isUpdatingFromPlayerRef.current = false;
@@ -100,7 +101,7 @@ export const useRuler = (
 
         const currentFrame = e.detail.frame;
         const currentTimeInSeconds = currentFrame / FPS;
-        const newPositionPx = currentTimeInSeconds * pixelsPerSecond;
+        const newPositionPx = snapPlayheadPx(currentTimeInSeconds * pixelsPerSecond);
         isUpdatingFromPlayerRef.current = true;
         setRulerPositionPx(newPositionPx);
         requestAnimationFrame(() => {

@@ -15,15 +15,23 @@ import {
   BetweenVerticalEnd,
   Bot,
   SlidersHorizontal,
-  Clapperboard,
+  Download,
   Waves,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 
 // Custom video controls
-import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
+import { MuteButton } from "~/components/ui/video-controls";
+import { useFullscreen } from "~/hooks/useFullscreen";
+import { PreviewFullscreenControls } from "~/components/editor/PreviewFullscreenControls";
+import { AspectRatioSelect } from "~/components/editor/AspectRatioSelect";
+import { ASPECT_RATIO_PRESETS } from "~/lib/aspect-ratios";
+import { cn } from "~/lib/utils";
 
 // Components
-import LeftPanel from "~/components/editor/LeftPanel";
+import LeftPanel, { type LeftPanelSection } from "~/components/editor/LeftPanel";
+import { timelineStateForPersistence } from "~/utils/timeline-persist";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
 import { InspectorPanel } from "~/components/editor/InspectorPanel";
 import { ExportPanel } from "~/components/editor/ExportPanel";
@@ -148,11 +156,13 @@ export default function TimelineEditor() {
     handleSetZoom,
     // Track controls
     handleToggleTrackMute,
+    handleToggleTrackHidden,
     handleSetTrackName,
     // Keyframes
     handleAddKeyframe,
     handleUpdateKeyframe,
     handleDeleteKeyframe,
+    handleRemoveKeyframeProperty,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
@@ -210,10 +220,23 @@ export default function TimelineEditor() {
     stopEdgeScroll,
   } = useTimelineViewport({
     containerRef,
-    onZoomIn: handleZoomIn,
-    onZoomOut: handleZoomOut,
+    zoomLevel,
+    onSetZoom: handleSetZoom,
     expandTimeline: expandTimelineCallback,
   });
+
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen } = useFullscreen(previewContainerRef);
+
+  const applyAspectPreset = useCallback((presetId: (typeof ASPECT_RATIO_PRESETS)[number]["id"]) => {
+    const preset = ASPECT_RATIO_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setIsAutoSize(false);
+    setWidth(preset.width);
+    setHeight(preset.height);
+    setWidthInput(String(preset.width));
+    setHeightInput(String(preset.height));
+  }, []);
 
   const handleScrollCallback = useCallback(() => {
     handleViewportScroll();
@@ -230,6 +253,7 @@ export default function TimelineEditor() {
 
   const { isRendering, renderProgress, handleRenderVideo } = useRenderer();
   const [sidebarMode, setSidebarMode] = useState<"default" | "inspector" | "export">("default");
+  const [leftPanelSection, setLeftPanelSection] = useState<LeftPanelSection>("media-bin");
 
   // Wrapper function for transition drop handler to match expected interface
   const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
@@ -252,6 +276,13 @@ export default function TimelineEditor() {
 
     return Math.ceil(maxEndTime * FPS);
   })();
+
+  const durationSec = Math.max(durationInFrames / FPS, 0.1);
+  const currentTimeSec = rulerPositionPx / getPixelsPerSecond();
+  const handlePreviewSeek = useCallback(
+    (timeSec: number) => handleRulerDrag(timeSec * getPixelsPerSecond()),
+    [handleRulerDrag, getPixelsPerSecond],
+  );
 
   // Event handlers with toast notifications
   const handleAddMediaClick = useCallback(() => {
@@ -285,8 +316,11 @@ export default function TimelineEditor() {
         const strictTimeline = TimelineStateSchema.safeParse(parsed.data.timeline);
         if (strictTimeline.success) {
           const tl = strictTimeline.data as TimelineState;
+          const tlWithoutHidden: TimelineState = {
+            tracks: tl.tracks.map(({ hidden: _h, ...track }) => track),
+          };
           skipNextAutoSave.current = true;
-          setTimelineFromServer(tl);
+          setTimelineFromServer(tlWithoutHidden);
           setSaveStatus("saved");
 
           // Restore text media bin items from the saved timeline scrubbers.
@@ -326,25 +360,24 @@ export default function TimelineEditor() {
     };
   }, [projectId, navigate, setTimelineFromServer]);
 
+  // Legacy child routes → single /project/:id with panel state
+  useEffect(() => {
+    const match = location.pathname.match(
+      /^\/project\/([^/]+)\/(media-bin|text-editor|transitions)\/?$/,
+    );
+    if (!match || !projectId) return;
+    setLeftPanelSection(match[2] as LeftPanelSection);
+    setSidebarMode("default");
+    navigate(`/project/${projectId}`, { replace: true });
+  }, [location.pathname, projectId, navigate]);
+
   const openSection = useCallback(
-    (section: "media-bin" | "text-editor" | "transitions") => {
-      // If we're in a non-default mode, just switch back to default and navigate
+    (section: LeftPanelSection) => {
       if (sidebarMode !== "default") {
         setSidebarMode("default");
-        if (isSidebarCollapsed) {
-          leftPanelRef.current?.expand?.();
-          setIsSidebarCollapsed(false);
-          setIsUserExpandingSidebar(true);
-          setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
-        }
-        navigate(section);
-        return;
       }
 
-      const isProjectRoot = /^\/project\/[^/]+\/?$/.test(location.pathname);
-      const isActive =
-        (section === "media-bin" && (location.pathname.includes("/media-bin") || isProjectRoot)) ||
-        (section !== "media-bin" && location.pathname.includes(`/${section}`));
+      const isActive = sidebarMode === "default" && leftPanelSection === section;
 
       if (isActive) {
         if (isSidebarCollapsed) {
@@ -359,15 +392,15 @@ export default function TimelineEditor() {
         return;
       }
 
+      setLeftPanelSection(section);
       if (isSidebarCollapsed) {
         leftPanelRef.current?.expand?.();
         setIsSidebarCollapsed(false);
         setIsUserExpandingSidebar(true);
         setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
       }
-      navigate(section);
     },
-    [sidebarMode, isSidebarCollapsed, navigate, location.pathname],
+    [sidebarMode, leftPanelSection, isSidebarCollapsed],
   );
 
   const openSidePanel = useCallback(
@@ -391,9 +424,13 @@ export default function TimelineEditor() {
     const id = projectId;
     if (!id) throw new Error("No project ID");
     setSaveStatus("saving");
-    await axios.put(`/backend/projects/${encodeURIComponent(id)}`, getTimelineState(), {
-      withCredentials: true,
-    });
+    await axios.put(
+      `/backend/projects/${encodeURIComponent(id)}`,
+      timelineStateForPersistence(getTimelineState()),
+      {
+        withCredentials: true,
+      },
+    );
     setSaveStatus("saved");
   }, [getTimelineState, projectId]);
 
@@ -550,8 +587,8 @@ export default function TimelineEditor() {
   }, []);
 
   const handleAddTextClick = useCallback(() => {
-    navigate("/editor/text-editor");
-  }, [navigate]);
+    openSection("text-editor");
+  }, [openSection]);
 
   const handleAddTrackClick = useCallback(() => {
     handleAddTrack();
@@ -787,16 +824,24 @@ export default function TimelineEditor() {
         {/* Right: save status + Import */}
         <div className="flex items-center gap-2">
           {saveStatus === "saved" && (
-            <span className="text-[10px] leading-none text-muted-foreground/50">saved</span>
+            <span className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" aria-hidden />
+              Saved
+            </span>
           )}
           {saveStatus === "saving" && (
-            <span className="text-[10px] leading-none text-muted-foreground">saving…</span>
+            <span className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-green-500/70 animate-pulse shrink-0" aria-hidden />
+              Saving…
+            </span>
           )}
           {saveStatus === "unsaved" && (
             <span
-              className="h-1.5 w-1.5 rounded-full bg-yellow-500 shrink-0"
-              title="Unsaved changes — Ctrl/Cmd+S to save"
-            />
+              className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground"
+              title="Unsaved changes — Ctrl/Cmd+S to save">
+              <span className="h-2 w-2 rounded-full bg-yellow-500 shrink-0" aria-hidden />
+              Unsaved
+            </span>
           )}
           <Button variant="ghost" size="sm" onClick={handleAddMediaClick} className="h-7 px-2 text-xs">
             <Upload className="h-3 w-3 mr-1" />
@@ -813,8 +858,7 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                sidebarMode === "default" &&
-                (location.pathname.includes("/media-bin") || /^\/project\/[^/]+\/?$/.test(location.pathname))
+                sidebarMode === "default" && leftPanelSection === "media-bin"
                   ? "bg-background text-primary"
                   : "text-muted-foreground"
               }`}
@@ -826,7 +870,7 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                sidebarMode === "default" && location.pathname.includes("/text-editor")
+                sidebarMode === "default" && leftPanelSection === "text-editor"
                   ? "bg-background text-primary"
                   : "text-muted-foreground"
               }`}
@@ -838,7 +882,7 @@ export default function TimelineEditor() {
               variant="ghost"
               size="sm"
               className={`h-9 w-9 p-0 ${
-                sidebarMode === "default" && location.pathname.includes("/transitions")
+                sidebarMode === "default" && leftPanelSection === "transitions"
                   ? "bg-background text-primary"
                   : "text-muted-foreground"
               }`}
@@ -867,7 +911,7 @@ export default function TimelineEditor() {
               }`}
               onClick={() => openSidePanel("export")}
               title="Export">
-              <Clapperboard className="h-5 w-5" />
+              <Download className="h-5 w-5" />
             </Button>
           </div>
           <div className="h-9 w-9 flex items-center justify-center">
@@ -909,6 +953,8 @@ export default function TimelineEditor() {
                 />
               ) : sidebarMode === "export" ? (
                 <ExportPanel
+                  projectId={projectId}
+                  projectName={projectName}
                   isRendering={isRendering}
                   renderProgress={renderProgress}
                   timeline={timeline}
@@ -919,6 +965,7 @@ export default function TimelineEditor() {
                 />
               ) : (
                 <LeftPanel
+                  section={leftPanelSection}
                   mediaBinItems={mediaBinItems}
                   isMediaLoading={isMediaLoading}
                   onAddMedia={handleAddMediaToBin}
@@ -933,6 +980,7 @@ export default function TimelineEditor() {
                   sortBy={mediaSortBy}
                   onArrangeModeChange={setMediaArrangeMode}
                   onSortByChange={setMediaSortBy}
+                  onAfterAddText={() => setLeftPanelSection("media-bin")}
                 />
               )}
             </div>
@@ -948,8 +996,13 @@ export default function TimelineEditor() {
                 <div className="h-full flex flex-col bg-background">
                   {/* Compact Top Bar */}
                   <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>Resolution:</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <AspectRatioSelect
+                        width={width}
+                        height={height}
+                        disabled={isAutoSize}
+                        onSelectPreset={applyAspectPreset}
+                      />
                       <div className="flex items-center gap-1">
                         <Input
                           type="number"
@@ -1001,7 +1054,10 @@ export default function TimelineEditor() {
                           onCheckedChange={handleAutoSizeChange}
                           className="scale-75"
                         />
-                        <Label htmlFor="auto-size" className="text-xs">
+                        <Label
+                          htmlFor="auto-size"
+                          className="text-xs cursor-pointer"
+                          title="Fit the preview to your media size in the timeline. Turn off to use the width × height values for preview and export.">
                           Auto
                         </Label>
                       </div>
@@ -1025,6 +1081,7 @@ export default function TimelineEditor() {
 
                   {/* Video Preview */}
                   <div
+                    ref={previewContainerRef}
                     className={
                       "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
                       "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
@@ -1044,25 +1101,32 @@ export default function TimelineEditor() {
                       />
                     </div>
 
-                    {/* Custom Video Controls - Below Player */}
-                    <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                      {/* Left side controls */}
-                      <div className="flex items-center gap-1">
-                        <MuteButton playerRef={playerRef} />
-                      </div>
-
-                      {/* Center play/pause button */}
-                      <div className="flex items-center">
-                        <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
-                          {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                        </Button>
-                      </div>
-
-                      {/* Right side controls */}
-                      <div className="flex items-center gap-1">
-                        <FullscreenButton playerRef={playerRef} />
-                      </div>
+                    {/* Single control cluster — reused in fullscreen (no duplicates in overlay) */}
+                    <div
+                      className={cn(
+                        "flex items-center justify-center gap-2 mt-3 px-4",
+                        isFullscreen && "absolute bottom-3 left-0 right-0 z-20 mt-0 text-white",
+                      )}>
+                      <MuteButton playerRef={playerRef} />
+                      <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-8 w-8 p-0">
+                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleFullscreen}
+                        className="h-8 w-8 p-0"
+                        title={isFullscreen ? "Exit fullscreen" : "Fullscreen preview"}>
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                      </Button>
                     </div>
+
+                    <PreviewFullscreenControls
+                      isFullscreen={isFullscreen}
+                      currentTimeSec={currentTimeSec}
+                      durationSec={durationSec}
+                      onSeek={handlePreviewSeek}
+                    />
                   </div>
                 </div>
               </ResizablePanel>
@@ -1100,7 +1164,6 @@ export default function TimelineEditor() {
                     <div className="flex items-center gap-1">
                       <ZoomSlider
                         zoomLevel={zoomLevel}
-                        onSetZoom={handleSetZoom}
                         onZoomIn={handleZoomIn}
                         onZoomOut={handleZoomOut}
                         onZoomReset={handleZoomReset}
@@ -1159,6 +1222,7 @@ export default function TimelineEditor() {
                     onRippleEdit={handleRippleEdit}
                     onDeleteTrack={handleDeleteTrack}
                     onToggleMute={handleToggleTrackMute}
+                    onToggleTrackHidden={handleToggleTrackHidden}
                     onSetTrackName={handleSetTrackName}
                     onDropOnTrack={handleDropOnTrack}
                     onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
@@ -1180,6 +1244,7 @@ export default function TimelineEditor() {
                     onAddKeyframe={handleAddKeyframe}
                     onUpdateKeyframe={handleUpdateKeyframe}
                     onDeleteKeyframe={handleDeleteKeyframe}
+                    onRemoveKeyframeProperty={handleRemoveKeyframeProperty}
                     onBoxSelect={(ids) => setSelectedScrubberIds(ids)}
                     scheduleEdgeScroll={scheduleEdgeScroll}
                     stopEdgeScroll={stopEdgeScroll}

@@ -78,6 +78,7 @@ export const TrackStateSchema = z.object({
   scrubbers: z.array(ScrubberStateSchema),
   transitions: z.array(TransitionSchema),
   muted: z.boolean().optional(),
+  hidden: z.boolean().optional(),
   name: z.string().optional(),
 });
 

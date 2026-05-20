@@ -215,7 +215,8 @@ export function loader() {
   return null;
 }
 
-export default function MediaBin() {
+export default function MediaBin(props: MediaBinProps) {
+  const outletCtx = useOutletContext<MediaBinProps | undefined>();
   const {
     mediaBinItems,
     isMediaLoading,
@@ -230,7 +231,7 @@ export default function MediaBin() {
     sortByExternal,
     onArrangeModeChange,
     onSortByChange,
-  } = useOutletContext<MediaBinProps>();
+  } = { ...outletCtx, ...props };
 
   // Drag & Drop state for external file imports
   const [isDragOver, setIsDragOver] = useState(false);

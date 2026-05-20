@@ -268,7 +268,9 @@ export const SortedOutlines: React.FC<{
   // console.log('timeline', timeline);
   const itemsToDisplay = React.useMemo(() => {
     return displaySelectedItemOnTop(
-      timeline.tracks.flatMap((track: TrackState) => track.scrubbers),
+      timeline.tracks
+        .filter((track: TrackState) => !track.hidden)
+        .flatMap((track: TrackState) => track.scrubbers),
       selectedItem,
     );
   }, [timeline, selectedItem]);
@@ -276,6 +278,7 @@ export const SortedOutlines: React.FC<{
   const isDragging = React.useMemo(
     () =>
       timeline.tracks
+        .filter((track: TrackState) => !track.hidden)
         .flatMap((track: TrackState) => track.scrubbers)
         .some((ScrubberState) => ScrubberState.is_dragging),
     [timeline],

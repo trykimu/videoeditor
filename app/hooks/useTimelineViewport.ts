@@ -1,16 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import { MIN_ZOOM, MAX_ZOOM } from "~/components/timeline/types";
 
 interface UseTimelineViewportOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
+  zoomLevel: number;
+  onSetZoom: (level: number) => void;
   expandTimeline: () => boolean;
 }
 
 export function useTimelineViewport({
   containerRef,
-  onZoomIn,
-  onZoomOut,
+  zoomLevel,
+  onSetZoom,
   expandTimeline,
 }: UseTimelineViewportOptions) {
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -72,17 +73,20 @@ export function useTimelineViewport({
     }
   }, []);
 
-  // Wire wheel handler with RAF batching for zoom
+  const zoomLevelRef = useRef(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
+
+  // Smooth exponential zoom (OpenCut zoom-controller pattern)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
-      const isZoom = e.ctrlKey || e.metaKey;
-      if (!isZoom) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       e.preventDefault();
 
-      pendingWheelDeltaRef.current += e.deltaY;
+      pendingWheelDeltaRef.current += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
 
       if (!rafScheduledRef.current) {
         rafScheduledRef.current = true;
@@ -90,18 +94,17 @@ export function useTimelineViewport({
           const delta = pendingWheelDeltaRef.current;
           pendingWheelDeltaRef.current = 0;
           rafScheduledRef.current = false;
-          if (delta > 0) {
-            onZoomOut();
-          } else {
-            onZoomIn();
-          }
+          const capped = Math.sign(delta) * Math.min(Math.abs(delta), 30);
+          const factor = Math.exp(-capped / 300);
+          const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevelRef.current * factor));
+          onSetZoom(next);
         });
       }
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [onZoomIn, onZoomOut]);
+  }, [containerRef, onSetZoom]);
 
   // Track viewport width for virtual ruler
   useEffect(() => {

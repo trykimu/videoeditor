@@ -1,6 +1,7 @@
 {
   "name": "videoeditor",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {

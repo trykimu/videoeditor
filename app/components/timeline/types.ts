@@ -82,6 +82,7 @@ export interface TrackState {
   scrubbers: ScrubberState[];
   transitions: Transition[]; // Transitions between scrubbers on this track
   muted?: boolean; // track-level mute (optional — existing data without this is valid)
+  hidden?: boolean; // session-only: gray timeline + omit preview; not persisted on save
   name?: string; // track label shown in sidebar
 }
 
@@ -121,7 +122,7 @@ export const DEFAULT_TRACK_HEIGHT = 52;
 export const FPS = 30;
 export const RULER_HEIGHT = 40;
 export const TRACK_LABEL_WIDTH = 200;
-export const KEYFRAME_LANE_HEIGHT = 24;
+export const KEYFRAME_LANE_HEIGHT = 28;
 
 // Zoom constants
 export const MIN_ZOOM = 0.25;

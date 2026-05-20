@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useOutletContext, useNavigate } from "react-router";
+import { useOutletContext } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
 
-interface TextEditorProps {
+export interface TextEditorProps {
   onAddText: (
     textContent: string,
     fontSize: number,
@@ -22,11 +22,12 @@ interface TextEditorProps {
     textAlign: "left" | "center" | "right",
     fontWeight: "normal" | "bold",
   ) => void;
+  onAfterAdd?: () => void;
 }
 
-export default function TextEditor() {
-  const { onAddText } = useOutletContext<TextEditorProps>();
-  const navigate = useNavigate();
+export default function TextEditor(props: TextEditorProps) {
+  const outletCtx = useOutletContext<TextEditorProps | undefined>();
+  const { onAddText, onAfterAdd } = { ...outletCtx, ...props };
 
   const [textContent, setTextContent] = useState("Hello World");
   const [fontSize, setFontSize] = useState(48);
@@ -47,7 +48,7 @@ export default function TextEditor() {
   const handleAddText = () => {
     if (textContent.trim()) {
       onAddText(textContent, fontSize, fontFamily, color, textAlign, fontWeight);
-      navigate("../media-bin");
+      onAfterAdd?.();
     }
   };
 

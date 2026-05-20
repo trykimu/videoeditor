@@ -1,11 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import type { ScrubberState } from "../types";
-import { DEFAULT_TRACK_HEIGHT } from "../types";
 
 interface BoxSelectionProps {
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  getScrubberBounds: (scrubber: ScrubberState) => { left: number; top: number; width: number; height: number } | null;
   allScrubbers: ScrubberState[];
-  scrollLeft: number;
   onBoxSelect: (ids: string[]) => void;
   children: React.ReactNode;
 }
@@ -17,65 +15,79 @@ interface Rect {
   height: number;
 }
 
+function rectsOverlap(a: Rect, b: { left: number; top: number; width: number; height: number }): boolean {
+  return (
+    a.x < b.left + b.width &&
+    a.x + a.width > b.left &&
+    a.y < b.top + b.height &&
+    a.y + a.height > b.top
+  );
+}
+
 function getScrubbersInRect(
-  rect: Rect,
+  selection: Rect,
   scrubbers: ScrubberState[],
-  containerBounds: DOMRect,
-  scrollLeft: number,
-  scrollTop: number,
+  getBounds: BoxSelectionProps["getScrubberBounds"],
 ): string[] {
   const ids: string[] = [];
   for (const s of scrubbers) {
-    const sLeft = s.left - scrollLeft + containerBounds.left;
-    const sRight = sLeft + s.width;
-    const sTop = (s.y || 0) * DEFAULT_TRACK_HEIGHT - scrollTop + containerBounds.top;
-    const sBottom = sTop + DEFAULT_TRACK_HEIGHT - 4;
-
-    const rectRight = rect.x + rect.width;
-    const rectBottom = rect.y + rect.height;
-
-    const overlaps =
-      sLeft < rectRight &&
-      sRight > rect.x &&
-      sTop < rectBottom &&
-      sBottom > rect.y;
-
-    if (overlaps) ids.push(s.id);
+    const b = getBounds(s);
+    if (!b) continue;
+    if (rectsOverlap(selection, b)) ids.push(s.id);
   }
   return ids;
 }
 
+/** Marquee select with right-click drag (does not conflict with left-click scrubber drag). */
 export function BoxSelection({
-  containerRef,
+  getScrubberBounds,
   allScrubbers,
-  scrollLeft,
   onBoxSelect,
   children,
 }: BoxSelectionProps) {
   const [rect, setRect] = useState<Rect | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
-  const scrollTopRef = useRef(0);
+  const rectRef = useRef<Rect | null>(null);
+  const selectingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      // Only start box select on background clicks (not on scrubbers)
-      if ((e.target as HTMLElement).closest("[data-scrubber]")) return;
-      if (e.button !== 0) return;
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("[data-scrubber]")) return;
+    if ((e.target as HTMLElement).closest("[data-keyframe-lanes]")) return;
+    if (e.button !== 2) return;
 
-      startRef.current = { x: e.clientX, y: e.clientY };
-      scrollTopRef.current = containerRef.current?.scrollTop ?? 0;
-    },
-    [containerRef],
-  );
+    e.preventDefault();
+    startRef.current = { x: e.clientX, y: e.clientY };
+    selectingRef.current = false;
+    rectRef.current = null;
+    setRect(null);
+  }, []);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
-      if (!startRef.current) return;
+      if (!startRef.current || !containerRef.current) return;
       const { x: sx, y: sy } = startRef.current;
       const dx = e.clientX - sx;
       const dy = e.clientY - sy;
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
 
-      if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      selectingRef.current = true;
+      const bounds = containerRef.current.getBoundingClientRect();
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+
+      const x1 = Math.min(sx, e.clientX) - bounds.left + scrollLeft;
+      const y1 = Math.min(sy, e.clientY) - bounds.top + scrollTop;
+      const x2 = Math.max(sx, e.clientX) - bounds.left + scrollLeft;
+      const y2 = Math.max(sy, e.clientY) - bounds.top + scrollTop;
+
+      const timelineRect: Rect = {
+        x: x1,
+        y: y1,
+        width: x2 - x1,
+        height: y2 - y1,
+      };
+      rectRef.current = timelineRect;
 
       setRect({
         x: Math.min(sx, e.clientX),
@@ -85,38 +97,43 @@ export function BoxSelection({
       });
     };
 
-    const onUp = (e: PointerEvent) => {
-      if (startRef.current && rect) {
-        const bounds = containerRef.current?.getBoundingClientRect();
-        if (bounds) {
-          const ids = getScrubbersInRect(
-            rect,
-            allScrubbers,
-            bounds,
-            containerRef.current?.scrollLeft ?? 0,
-            scrollTopRef.current,
-          );
-          onBoxSelect(ids);
-        }
+    const onUp = () => {
+      if (selectingRef.current && rectRef.current) {
+        const ids = getScrubbersInRect(rectRef.current, allScrubbers, getScrubberBounds);
+        onBoxSelect(ids);
       }
       startRef.current = null;
+      selectingRef.current = false;
+      rectRef.current = null;
       setRect(null);
+    };
+
+    const onContextMenu = (e: MouseEvent) => {
+      if (selectingRef.current) e.preventDefault();
     };
 
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
+    document.addEventListener("contextmenu", onContextMenu, true);
     return () => {
       document.removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("contextmenu", onContextMenu, true);
     };
-  }, [rect, allScrubbers, containerRef, onBoxSelect]);
+  }, [allScrubbers, getScrubberBounds, onBoxSelect]);
 
   return (
-    <div className="relative w-full h-full" onPointerDown={handlePointerDown}>
+    <div
+      ref={containerRef}
+      className="relative w-full h-full"
+      onPointerDown={handlePointerDown}
+      onContextMenu={(e) => {
+        if (selectingRef.current) e.preventDefault();
+      }}>
       {children}
       {rect && (
         <div
-          className="fixed pointer-events-none border border-primary/60 bg-primary/10 rounded-sm z-50"
+          className="fixed pointer-events-none border-2 border-primary bg-primary/15 rounded-sm z-[100]"
           style={{
             left: rect.x,
             top: rect.y,
