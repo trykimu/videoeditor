@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { PIXELS_PER_SECOND, RULER_HEIGHT, FPS } from "./types";
 import { Input } from "~/components/ui/input";
 
@@ -113,24 +113,49 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({
   // - Minor 1s
   // - Micro 0.5s, 0.25s, 0.1s depending on zoom
   // - Frame-level ticks when extremely zoomed in
-  const majorSeconds = pixelsPerSecond >= 500 ? 1 : pixelsPerSecond >= 180 ? 5 : 10;
-  const MID_MAJOR_SECONDS = 5;
-  const MINOR_SECONDS = 1;
-  const MICRO_SECONDS = 0.5;
-  const MICRO_QUARTER_SECONDS = 0.25;
-  const MICRO_TENTH_SECONDS = 0.1;
-  const FRAME_SECONDS = 1 / FPS;
-
-  // Visibility thresholds (slightly lowered to show more markings)
-  const showMidMajor = majorSeconds === 10 && pixelsPerSecond * MID_MAJOR_SECONDS >= 64;
-  const showMinor = pixelsPerSecond * MINOR_SECONDS >= 6; // 1s ticks earlier
-  const showMinorLabels = pixelsPerSecond >= 120; // show 1s labels when sufficiently zoomed
-  // To reduce clutter at high zoom, require bigger thresholds for denser ticks
-  const showMicro = pixelsPerSecond * MICRO_SECONDS >= 6; // 0.5s
-  const showMicroQuarter = pixelsPerSecond * MICRO_QUARTER_SECONDS >= 10; // 0.25s
-  const showMicroTenth = pixelsPerSecond * MICRO_TENTH_SECONDS >= 14; // 0.1s
-  const showFrames = pixelsPerSecond * FRAME_SECONDS >= 18; // frame ticks
-  const showFrameLabelsEvery = 10; // label every Nth frame to avoid clutter
+  const tickSpacing = useMemo(() => {
+    const MID_MAJOR_SECONDS = 5;
+    const MINOR_SECONDS = 1;
+    const MICRO_SECONDS = 0.5;
+    const MICRO_QUARTER_SECONDS = 0.25;
+    const MICRO_TENTH_SECONDS = 0.1;
+    const FRAME_SECONDS = 1 / FPS;
+    const majorSeconds = pixelsPerSecond >= 500 ? 1 : pixelsPerSecond >= 180 ? 5 : 10;
+    return {
+      majorSeconds,
+      MID_MAJOR_SECONDS,
+      MINOR_SECONDS,
+      MICRO_SECONDS,
+      MICRO_QUARTER_SECONDS,
+      MICRO_TENTH_SECONDS,
+      FRAME_SECONDS,
+      showMidMajor: majorSeconds === 10 && pixelsPerSecond * MID_MAJOR_SECONDS >= 64,
+      showMinor: pixelsPerSecond * MINOR_SECONDS >= 6,
+      showMinorLabels: pixelsPerSecond >= 120,
+      showMicro: pixelsPerSecond * MICRO_SECONDS >= 6,
+      showMicroQuarter: pixelsPerSecond * MICRO_QUARTER_SECONDS >= 10,
+      showMicroTenth: pixelsPerSecond * MICRO_TENTH_SECONDS >= 14,
+      showFrames: pixelsPerSecond * FRAME_SECONDS >= 18,
+      showFrameLabelsEvery: 10,
+    };
+  }, [pixelsPerSecond]);
+  const {
+    majorSeconds,
+    MID_MAJOR_SECONDS,
+    MINOR_SECONDS,
+    MICRO_SECONDS,
+    MICRO_QUARTER_SECONDS,
+    MICRO_TENTH_SECONDS,
+    FRAME_SECONDS,
+    showMidMajor,
+    showMinor,
+    showMinorLabels,
+    showMicro,
+    showMicroQuarter,
+    showMicroTenth,
+    showFrames,
+    showFrameLabelsEvery,
+  } = tickSpacing;
 
   const formatMajorLabel = (seconds: number) => {
     const total = Math.floor(seconds);

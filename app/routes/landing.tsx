@@ -42,52 +42,14 @@ import { TbBrandDiscord } from "react-icons/tb";
 import { GlowingEffect } from "~/components/ui/glowing-effect";
 import { FollowerPointerCard } from "../components/ui/following-pointer";
 
-// Vite envs for Supabase
-// @ts-ignore
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-
-// @ts-ignore
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
   }
 }
 
-async function getIp() {
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip;
-  } catch {
-    return "unknown";
-  }
-}
-
 async function getWaitlistCount() {
-  try {
-    const base = SUPABASE_URL || "";
-    const url = `${base.replace(/\/$/, "")}/rest/v1/waitlist?select=count`;
-    const res = await fetch(url, {
-      method: "HEAD",
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "count=exact",
-      },
-    });
-
-    const count = res.headers.get("Content-Range");
-    if (count) {
-      const match = count.match(/\/(\d+)$/);
-      return match ? parseInt(match[1]) : 0;
-    }
-    return 0;
-  } catch {
-    return 0;
-  }
+  return 0;
 }
 
 // Helper function to format creator count
@@ -305,30 +267,8 @@ export default function Landing() {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
-    const ip = await getIp();
-    try {
-      const res = await fetch("https://<SUPABASE_URL>.supabase.co/rest/v1/waitlist", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ email, ip_address: ip }),
-      });
-      if (res.ok) {
-        setSuccess(true);
-        setEmail("");
-        setWaitlistCount((prev) => prev + 1);
-        toast.success("You're on the waitlist!");
-      } else {
-        toast.error("Failed to join waitlist. Try again.");
-      }
-    } catch {
-      toast.error("Network error. Try again.");
-    } finally {
-      setLoading(false);
-    }
+    toast.error("Waitlist is currently unavailable.");
+    setLoading(false);
   }
 
   const handleLogoClick = () => {

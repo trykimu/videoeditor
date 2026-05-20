@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { redirect, useLoaderData, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { requireUser } from "~/utils/auth.server";
+import { getBackendBaseUrl } from "~/utils/backend.server";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import {
   Plus,
@@ -53,17 +54,24 @@ type Project = {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const res = await requireUser(request);
-  // the user does not have a cookie or the cookie is invalid, so we redirect to the login page
-  if (res.status !== 200) throw redirect("/login");
-  const { origin } = new URL(request.url);
+  const user = await requireUser(request);
+  if (!user) throw redirect("/login");
+  const backendBase = getBackendBaseUrl(request);
 
-  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/ai/api/api/projects`, {
-    headers: { Cookie: request.headers.get("Cookie") },
-  });
+  let projectsRes;
+  try {
+    projectsRes = await axios.get<{ projects: Project[] }>(`${backendBase}/projects`, {
+      headers: { Cookie: request.headers.get("Cookie") ?? "" },
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw redirect("/login");
+    }
+    throw error;
+  }
 
   return {
-    user: res.data,
+    user,
     projects: projectsRes.data.projects,
   };
 }
@@ -252,7 +260,7 @@ export default function Projects() {
     const name = (projectName || newProjectName || "Untitled Project").trim();
     setCreating(true);
     try {
-      const { data } = await axios.post("/ai/api/api/create-project", { name }, { withCredentials: true });
+      const { data } = await axios.post("/backend/projects", { name }, { withCredentials: true });
       navigate(`/project/${data.project.id}`);
     } finally {
       setCreating(false);
@@ -288,10 +296,17 @@ export default function Projects() {
         </div>
         <div className="flex items-center gap-2">
           <ProfileMenu
-            user={{ name: user.name, email: user.email, image: user.avatar_url }}
+            user={{ name: user.name, email: user.email, image: user.image ?? undefined }}
             starCount={starCount}
             onSignOut={async () => {
-              await axios.post("/ai/api/auth/logout", {}, { withCredentials: true });
+              const { authClient } = await import("~/lib/auth-client");
+              await authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    window.location.href = "/login";
+                  },
+                },
+              });
             }}
           />
         </div>
@@ -387,7 +402,7 @@ export default function Projects() {
               setDrawerOpen(true);
             }}
             onDelete={async (projectId) => {
-              const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
+              const res = await fetch(`/renderer/projects/${encodeURIComponent(projectId)}`, {
                 method: "DELETE",
                 credentials: "include",
               });
@@ -448,7 +463,7 @@ export default function Projects() {
                     const id = renameProjectId!;
                     const newName = renameValue.trim();
                     if (!newName) return;
-                    const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+                    const res = await fetch(`/backend/projects/${encodeURIComponent(id)}`, {
                       method: "PATCH",
                       credentials: "include",
                       headers: { "Content-Type": "application/json" },
@@ -484,7 +499,7 @@ export default function Projects() {
               onClick={async () => {
                 const id = renameProjectId!;
                 if (!id) return;
-                const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+                const res = await fetch(`/renderer/projects/${encodeURIComponent(id)}`, {
                   method: "DELETE",
                   credentials: "include",
                 });

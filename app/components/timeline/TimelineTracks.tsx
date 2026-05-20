@@ -12,6 +12,7 @@ import {
   type TimelineState,
   type Transition,
 } from "./types";
+import { MediaBinItemSchema } from "~/schemas/components/timeline";
 
 interface TimelineTracksProps {
   timeline: TimelineState;
@@ -35,6 +36,7 @@ interface TimelineTracksProps {
   onGroupScrubbers: () => void;
   onUngroupScrubber: (scrubberId: string) => void;
   onMoveToMediaBin?: (scrubberId: string) => void;
+  onRippleEdit?: (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => void;
 }
 
 export const TimelineTracks: React.FC<TimelineTracksProps> = ({
@@ -59,6 +61,7 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
   onGroupScrubbers,
   onUngroupScrubber,
   onMoveToMediaBin,
+  onRippleEdit,
 }) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -78,11 +81,15 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [onScroll, containerRef]);
 
-  // Global click handler to deselect when clicking outside timeline
+  // Global click handler to deselect when clicking outside timeline.
+  // Clicks inside panels marked data-no-deselect (e.g. Inspector) are exempt
+  // so users can edit clip properties without losing their selection.
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (target.closest('[data-no-deselect="true"]')) return;
       const timelineContainer = containerRef.current;
-      if (timelineContainer && !timelineContainer.contains(e.target as Node)) {
+      if (timelineContainer && !timelineContainer.contains(target)) {
         onSelectScrubber(null, false);
       }
     };
@@ -169,7 +176,12 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 const jsonString = e.dataTransfer.getData("application/json");
                 if (!jsonString) return;
 
-                const data = JSON.parse(jsonString);
+                let data: unknown;
+                try {
+                  data = JSON.parse(jsonString);
+                } catch {
+                  return;
+                }
 
                 // Use containerRef for consistent coordinate calculation like the ruler does
                 const scrollContainer = containerRef.current;
@@ -194,17 +206,22 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                 }
 
                 // Handle transition drop
-                if (data.type === "transition") {
-                  onDropTransitionOnTrack(data, trackId, dropXInTimeline);
+                if (
+                  typeof data === "object" &&
+                  data !== null &&
+                  "type" in data &&
+                  (data as { type?: string }).type === "transition"
+                ) {
+                  onDropTransitionOnTrack(data as unknown as Transition, trackId, dropXInTimeline);
                 } else {
-                  // Handle media item drop
-                  onDropOnTrack(data as MediaBinItem, trackId, dropXInTimeline);
+                  const validated = MediaBinItemSchema.safeParse(data);
+                  if (!validated.success) return;
+                  onDropOnTrack(validated.data as unknown as MediaBinItem, trackId, dropXInTimeline);
                 }
               }}>
-              {/* Track backgrounds and grid lines */}
+              {/* Track backgrounds and grid lines (CSS background, no DOM nodes per segment) */}
               {timeline.tracks.map((track, trackIndex) => (
                 <div key={track.id} className="relative" style={{ height: `${DEFAULT_TRACK_HEIGHT}px` }}>
-                  {/* Track background */}
                   <div
                     className={`absolute w-full border-b border-border/30 transition-colors ${
                       trackIndex % 2 === 0
@@ -212,41 +229,19 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                         : "bg-timeline-background hover:bg-muted/20"
                     }`}
                     style={{
-                      top: `0px`,
+                      top: 0,
                       height: `${DEFAULT_TRACK_HEIGHT}px`,
+                      backgroundImage: [
+                        `repeating-linear-gradient(to right, rgb(var(--border) / 0.5) 0, rgb(var(--border) / 0.5) 1px, transparent 1px, transparent ${pixelsPerSecond * 5}px)`,
+                        `repeating-linear-gradient(to right, rgb(var(--border) / 0.25) 0, rgb(var(--border) / 0.25) 1px, transparent 1px, transparent ${pixelsPerSecond}px)`,
+                      ].join(", "),
                     }}
                     onClick={(e) => {
-                      // Deselect scrubber when clicking on track background
                       if (e.target === e.currentTarget) {
                         onSelectScrubber(null, false);
                       }
                     }}
                   />
-
-                  {/* Track label - positioned behind scrubbers
-                  <div
-                    className="absolute left-2 top-1 text-xs text-muted-foreground font-medium pointer-events-none select-none z-[5]"
-                    style={{ userSelect: "none" }}
-                  >
-                    Track {trackIndex + 1}
-                  </div> */}
-
-                  {/* Grid lines */}
-                  {Array.from({ length: Math.floor(timelineWidth / pixelsPerSecond) + 1 }, (_, index) => index).map(
-                    (gridIndex) => (
-                      <div
-                        key={`grid-${track.id}-${gridIndex}`}
-                        className="absolute h-full pointer-events-none"
-                        style={{
-                          left: `${gridIndex * pixelsPerSecond}px`,
-                          top: `0px`,
-                          width: "1px",
-                          height: `${DEFAULT_TRACK_HEIGHT}px`,
-                          backgroundColor: `rgb(var(--border) / ${gridIndex % 5 === 0 ? 0.5 : 0.25})`,
-                        }}
-                      />
-                    ),
-                  )}
                 </div>
               ))}
 
@@ -276,7 +271,9 @@ export const TimelineTracks: React.FC<TimelineTracksProps> = ({
                     snapConfig={{ enabled: true, distance: 10 }}
                     trackCount={timeline.tracks.length}
                     pixelsPerSecond={pixelsPerSecond}
+                    rulerPositionPx={rulerPositionPx}
                     onBeginTransform={onBeginScrubberTransform}
+                    onRippleEdit={onRippleEdit}
                   />
                 );
               })}

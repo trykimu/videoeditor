@@ -12,7 +12,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "fastapi[standard]>=0.115.13",
     "google-genai>=1.22.0",
-    "pyjwt>=2.11.0",
+    "python-dotenv>=1.0.0",
     "python-multipart>=0.0.22",
 ]
 

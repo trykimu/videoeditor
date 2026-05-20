@@ -1,28 +1,42 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import type { PlayerRef, CallbackListener } from "@remotion/player";
 import {
   Play,
   Pause,
   Upload,
-  Download,
   Settings,
   Plus,
-  Minus,
   Scissors,
-  Save as SaveIcon,
   CornerUpLeft,
   CornerUpRight,
+  File,
+  Type,
+  BetweenVerticalEnd,
+  Bot,
+  SlidersHorizontal,
+  Download,
+  Waves,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 
 // Custom video controls
-import { MuteButton, FullscreenButton } from "~/components/ui/video-controls";
+import { MuteButton } from "~/components/ui/video-controls";
+import { useFullscreen } from "~/hooks/useFullscreen";
+import { PreviewFullscreenControls } from "~/components/editor/PreviewFullscreenControls";
+import { AspectRatioSelect } from "~/components/editor/AspectRatioSelect";
+import { ASPECT_RATIO_PRESETS } from "~/lib/aspect-ratios";
+import { cn } from "~/lib/utils";
 
 // Components
-import LeftPanel from "~/components/editor/LeftPanel";
+import LeftPanel, { type LeftPanelSection } from "~/components/editor/LeftPanel";
+import { timelineStateForPersistence } from "~/utils/timeline-persist";
 import { VideoPlayer } from "~/video-compositions/VideoPlayer";
-import { RenderStatus } from "~/components/timeline/RenderStatus";
-import { TimelineRuler } from "~/components/timeline/TimelineRuler";
-import { TimelineTracks } from "~/components/timeline/TimelineTracks";
+import { InspectorPanel } from "~/components/editor/InspectorPanel";
+import { ExportPanel } from "~/components/editor/ExportPanel";
+import { TimelineShell } from "~/components/timeline/v2/TimelineShell";
+import { ZoomSlider } from "~/components/timeline/v2/ZoomSlider";
 import { Button } from "~/components/ui/button";
 import { ProfileMenu } from "~/components/ui/ProfileMenu";
 import { Badge } from "~/components/ui/badge";
@@ -39,36 +53,45 @@ import { useTimeline } from "~/hooks/useTimeline";
 import { useMediaBin } from "~/hooks/useMediaBin";
 import { useRuler } from "~/hooks/useRuler";
 import { useRenderer } from "~/hooks/useRenderer";
+import { useAuth } from "~/hooks/useAuth";
+import { useTimelineViewport } from "~/hooks/useTimelineViewport";
+import { useKeyframeLanes } from "~/hooks/useKeyframeLanes";
 
 // Types and constants
 import {
   FPS,
   type MediaBinItem,
+  type TimelineState,
   type Transition,
   type TrackState,
   type ScrubberState,
 } from "~/components/timeline/types";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { ChatBox } from "~/components/chat/ChatBox";
 import { KimuLogo } from "~/components/ui/KimuLogo";
+import { GitHubRepoStatsSchema, ProjectStateResponseSchema, TimelineStateSchema } from "~/schemas";
 
 interface Message {
   id: string;
   content: string;
   isUser: boolean;
   timestamp: Date;
+  snapshot?: TimelineState | null;
 }
 
 export default function TimelineEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const leftPanelRef = useRef<ImperativePanelHandle | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const params = useParams();
   const projectId = params?.id as string | undefined;
-  console.log("projectId", projectId);
   const [projectName, setProjectName] = useState<string>("");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isUserExpandingSidebar, setIsUserExpandingSidebar] = useState<boolean>(false);
 
   const [width, setWidth] = useState<number>(1920);
   const [height, setHeight] = useState<number>(1080);
@@ -88,12 +111,17 @@ export default function TimelineEditor() {
   }, [height]);
 
   const [isChatMinimized, setIsChatMinimized] = useState<boolean>(false);
+  const { user, signOut } = useAuth();
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [starCount, setStarCount] = useState<number | null>(null);
   // Avoid initial blank render; don't delay render on a 'mounted' gate
 
   const [selectedScrubberIds, setSelectedScrubberIds] = useState<string[]>([]);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextAutoSave = useRef(false);
+  const isInitialMountRef = useRef(true);
 
   // video player media selection state
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -120,12 +148,27 @@ export default function TimelineEditor() {
     handleGroupScrubbers,
     handleUngroupScrubber,
     handleMoveGroupToMediaBin,
+    handleRippleEdit,
+    // Ripple mode
+    rippleEnabled,
+    toggleRippleEnabled,
+    // Zoom (direct set for slider)
+    handleSetZoom,
+    // Track controls
+    handleToggleTrackMute,
+    handleToggleTrackHidden,
+    handleSetTrackName,
+    // Keyframes
+    handleAddKeyframe,
+    handleUpdateKeyframe,
+    handleDeleteKeyframe,
+    handleRemoveKeyframeProperty,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
     getConnectedElements,
     handleUpdateScrubberWithLocking,
-    // setTimelineFromServer,
+    setTimelineFromServer,
     // undo/redo
     undo,
     redo,
@@ -149,6 +192,9 @@ export default function TimelineEditor() {
     handleCloseContextMenu,
   } = useMediaBin(handleDeleteScrubbersByMediaBinId);
 
+  const [mediaArrangeMode, setMediaArrangeMode] = useState<"default" | "group">("default");
+  const [mediaSortBy, setMediaSortBy] = useState<"default" | "name_asc" | "name_desc">("default");
+
   const {
     rulerPositionPx,
     isDraggingRuler,
@@ -156,11 +202,58 @@ export default function TimelineEditor() {
     handleRulerMouseDown,
     handleRulerMouseMove,
     handleRulerMouseUp,
-    handleScroll,
+    handleScroll: handleRulerScroll,
     updateRulerFromPlayer,
+    handleArrowKey,
   } = useRuler(playerRef, timelineWidth, getPixelsPerSecond());
 
-  const { isRendering, renderStatus, handleRenderVideo } = useRenderer();
+  const expandTimelineCallback = useCallback(() => {
+    return expandTimeline(containerRef);
+  }, [expandTimeline]);
+
+  const {
+    scrollLeft: timelineScrollLeft,
+    scrollTop: timelineScrollTop,
+    viewportWidth: timelineViewportWidth,
+    handleScroll: handleViewportScroll,
+    scheduleEdgeScroll,
+    stopEdgeScroll,
+  } = useTimelineViewport({
+    containerRef,
+    zoomLevel,
+    onSetZoom: handleSetZoom,
+    expandTimeline: expandTimelineCallback,
+  });
+
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen } = useFullscreen(previewContainerRef);
+
+  const applyAspectPreset = useCallback((presetId: (typeof ASPECT_RATIO_PRESETS)[number]["id"]) => {
+    const preset = ASPECT_RATIO_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setIsAutoSize(false);
+    setWidth(preset.width);
+    setHeight(preset.height);
+    setWidthInput(String(preset.width));
+    setHeightInput(String(preset.height));
+  }, []);
+
+  const handleScrollCallback = useCallback(() => {
+    handleViewportScroll();
+    handleRulerScroll(containerRef, expandTimelineCallback);
+  }, [handleViewportScroll, handleRulerScroll, expandTimelineCallback]);
+
+  const {
+    expandedIds,
+    toggleKeyframeLanes,
+    isExpanded,
+    getTrackVisualHeight,
+    getTrackIndexFromY,
+  } = useKeyframeLanes();
+
+  const { isRendering, renderProgress, handleRenderVideo } = useRenderer();
+  const [sidebarMode, setSidebarMode] = useState<"default" | "inspector" | "export">("default");
+  const [leftPanelSection, setLeftPanelSection] = useState<LeftPanelSection>("media-bin");
 
   // Wrapper function for transition drop handler to match expected interface
   const handleDropTransitionOnTrackWrapper = (transition: Transition, trackId: string, dropLeftPx: number) => {
@@ -184,170 +277,178 @@ export default function TimelineEditor() {
     return Math.ceil(maxEndTime * FPS);
   })();
 
+  const durationSec = Math.max(durationInFrames / FPS, 0.1);
+  const currentTimeSec = rulerPositionPx / getPixelsPerSecond();
+  const handlePreviewSeek = useCallback(
+    (timeSec: number) => handleRulerDrag(timeSec * getPixelsPerSecond()),
+    [handleRulerDrag, getPixelsPerSecond],
+  );
+
   // Event handlers with toast notifications
   const handleAddMediaClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  // // Hydrate project name and timeline from API
-  // useEffect(() => {
-  //   (async () => {
-  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-  //     if (!id) return;
-  //     let j;
-  //     try {
-  //       const { data } = await axios.get(`/api/projects/${encodeURIComponent(id)}`, {
-  //         withCredentials: true,
-  //       });
-  //       j = data;
-  //     } catch {
-  //       navigate("/projects");
-  //       return;
-  //     }
-  //     setProjectName(j.project?.name || "Project");
-  //     if (j.timeline) setTimelineFromServer(j.timeline);
-  //     // Use saved textBinItems if present, else extract from timeline
-  //     try {
-  //       if (Array.isArray(j.textBinItems) && j.textBinItems.length) {
-  //         const textItems: typeof mediaBinItems = j.textBinItems.map((t: MediaBinItem) => ({
-  //           id: t.id,
-  //           name: t.name,
-  //           mediaType: "text" as const,
-  //           media_width: Number(t.media_width) || 0,
-  //           media_height: Number(t.media_height) || 0,
-  //           text: t.text || null,
-  //           mediaUrlLocal: null,
-  //           mediaUrlRemote: null,
-  //           durationInSeconds: Number(t.durationInSeconds) || 0,
-  //           isUploading: false,
-  //           uploadProgress: null,
-  //           left_transition_id: null,
-  //           right_transition_id: null,
-  //           groupped_scrubbers: t.groupped_scrubbers || null,
-  //         }));
-  //         setTextItems(textItems);
-  //       } else {
-  //         const perTrack = (j.timeline?.tracks || []).flatMap((t: TrackState) => t.scrubbers || []);
-  //         const rootScrubbers = Array.isArray(j.timeline?.scrubbers) ? (j.timeline!.scrubbers as ScrubberState[]) : [];
-  //         const allScrubbers: ScrubberState[] = [...rootScrubbers, ...perTrack];
-  //         const textItems: typeof mediaBinItems = (allScrubbers || [])
-  //           .filter((s: ScrubberState) => s && s.mediaType === "text" && s.text)
-  //           .map((s: ScrubberState) => ({
-  //             id: s.sourceMediaBinId || s.id,
-  //             name: s.text?.textContent || "Text",
-  //             mediaType: "text" as const,
-  //             media_width: s.media_width || 0,
-  //             media_height: s.media_height || 0,
-  //             text: s.text || null,
-  //             mediaUrlLocal: null,
-  //             mediaUrlRemote: null,
-  //             durationInSeconds: s.durationInSeconds || 0,
-  //             isUploading: false,
-  //             uploadProgress: null,
-  //             left_transition_id: null,
-  //             right_transition_id: null,
-  //             groupped_scrubbers: null,
-  //           }));
-  //         if (textItems.length) setTextItems(textItems);
-  //       }
-  //     } catch {
-  //       console.error("Failed to load project");
-  //     }
-  //   })();
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [projectId]);
+  // Hydrate project name + timeline snapshot from backend
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      if (!projectId) return;
+      try {
+        const { data } = await axios.get(`/backend/projects/${encodeURIComponent(projectId)}`, {
+          withCredentials: true,
+        });
+        if (!isMounted) return;
+        // Set the project name from the raw response without gating on the strict schema —
+        // older saves predate the timeline shape and we don't want a parse failure to leave
+        // the topbar showing "Project". The schema is still applied to the timeline below.
+        const rawName: unknown = data?.project?.name;
+        if (typeof rawName === "string" && rawName.length > 0) {
+          setProjectName(rawName);
+        }
+        const parsed = ProjectStateResponseSchema.safeParse(data);
+        if (!parsed.success) {
+          if (import.meta.env?.DEV) {
+            console.warn("Project response failed schema validation:", parsed.error.format());
+          }
+          return;
+        }
+        const strictTimeline = TimelineStateSchema.safeParse(parsed.data.timeline);
+        if (strictTimeline.success) {
+          const tl = strictTimeline.data as TimelineState;
+          const tlWithoutHidden: TimelineState = {
+            tracks: tl.tracks.map(({ hidden: _h, ...track }) => track),
+          };
+          skipNextAutoSave.current = true;
+          setTimelineFromServer(tlWithoutHidden);
+          setSaveStatus("saved");
 
-  // Re-link scrubbers to remote asset URLs after assets hydrate
-  // Ensures images/videos/audios render after refresh (when local blob URLs are gone)
-  // useEffect(() => {
-  //   if (isMediaLoading) return;
-  //   if (!mediaBinItems || mediaBinItems.length === 0) return;
+          // Restore text media bin items from the saved timeline scrubbers.
+          // Text clips aren't stored as renderer assets so they'd otherwise
+          // disappear from the media bin on reload.
+          const seenBinIds = new Set<string>();
+          const textItems = tl.tracks.flatMap((track) =>
+            track.scrubbers.flatMap((s) => {
+              if (s.mediaType !== "text" || !s.text || seenBinIds.has(s.sourceMediaBinId)) return [];
+              seenBinIds.add(s.sourceMediaBinId);
+              return [{
+                id: s.sourceMediaBinId,
+                name: s.name,
+                mediaType: "text" as const,
+                media_width: 0,
+                media_height: 0,
+                text: s.text,
+                mediaUrlLocal: null,
+                mediaUrlRemote: null,
+                durationInSeconds: 0,
+                isUploading: false,
+                uploadProgress: null,
+                left_transition_id: null,
+                right_transition_id: null,
+                groupped_scrubbers: null,
+              }];
+            }),
+          );
+          if (textItems.length > 0) setTextItems(textItems);
+        }
+      } catch {
+        if (isMounted) navigate("/projects");
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId, navigate, setTimelineFromServer]);
 
-  //   const current = getTimelineState();
-  //   let changed = false;
+  // Legacy child routes → single /project/:id with panel state
+  useEffect(() => {
+    const match = location.pathname.match(
+      /^\/project\/([^/]+)\/(media-bin|text-editor|transitions)\/?$/,
+    );
+    if (!match || !projectId) return;
+    setLeftPanelSection(match[2] as LeftPanelSection);
+    setSidebarMode("default");
+    navigate(`/project/${projectId}`, { replace: true });
+  }, [location.pathname, projectId, navigate]);
 
-  //   const assetsByName = new Map();
-  //   for (const item of mediaBinItems) {
-  //     if (item.mediaType === "text") continue;
-  //     if (!item.mediaUrlRemote) continue;
-  //     assetsByName.set(item.name, item);
-  //   }
+  const openSection = useCallback(
+    (section: LeftPanelSection) => {
+      if (sidebarMode !== "default") {
+        setSidebarMode("default");
+      }
 
-  //   const newTracks = current.tracks.map((track) => ({
-  //     ...track,
-  //     scrubbers: track.scrubbers.map((s) => {
-  //       if (s.mediaType === "text") return s;
-  //       if (!s.mediaUrlRemote) {
-  //         const match = assetsByName.get(s.name);
-  //         if (match && match.mediaUrlRemote) {
-  //           changed = true;
-  //           return {
-  //             ...s,
-  //             mediaUrlRemote: match.mediaUrlRemote,
-  //             sourceMediaBinId: match.id,
-  //             media_width: match.media_width || s.media_width,
-  //             media_height: match.media_height || s.media_height,
-  //           };
-  //         }
-  //       }
-  //       return s;
-  //     }),
-  //   }));
+      const isActive = sidebarMode === "default" && leftPanelSection === section;
 
-  //   if (changed) {
-  //     setTimelineFromServer({ ...current, tracks: newTracks });
-  //   }
-  // }, [isMediaLoading, mediaBinItems, getTimelineState, setTimelineFromServer]);
-
-  // Save timeline to server
-  // const handleSaveTimeline = useCallback(async () => {
-  //   try {
-  //     toast.info("Saving state of the project...");
-  //     const id = projectId || (window.location.pathname.match(/\/project\/([^/]+)/)?.[1] ?? "");
-  //     if (!id) {
-  //       toast.error("No project ID");
-  //       return;
-  //     }
-  //     const timelineState = getTimelineState();
-  //     // persist current text items alongside timeline
-  //     const textItemsPayload = getMediaBinItems().filter((i) => i.mediaType === "text");
-  //     const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-  //       method: "PATCH",
-  //       credentials: "include",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         timeline: timelineState,
-  //         textBinItems: textItemsPayload,
-  //       }),
-  //     });
-  //     if (!res.ok) throw new Error(await res.text());
-  //     toast.success("Timeline saved");
-  //   } catch (e) {
-  //     console.error(e);
-  //     toast.error("Failed to save");
-  //   }
-  // }, [getMediaBinItems, getTimelineState, projectId]);
-
-  const handleSaveTimeline = useCallback(async () => {
-    try {
-      toast.info("Saving state of the project...");
-      const id = projectId;
-      if (!id) {
-        toast.error("No project ID");
+      if (isActive) {
+        if (isSidebarCollapsed) {
+          leftPanelRef.current?.expand?.();
+          setIsSidebarCollapsed(false);
+          setIsUserExpandingSidebar(true);
+          setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+        } else {
+          leftPanelRef.current?.collapse?.();
+          setIsSidebarCollapsed(true);
+        }
         return;
       }
 
-      const timelineState = getTimelineState();
-      await axios.put(`/ai/api/api/projects/${encodeURIComponent(id)}`, timelineState, {
-        withCredentials: true,
-      });
+      setLeftPanelSection(section);
+      if (isSidebarCollapsed) {
+        leftPanelRef.current?.expand?.();
+        setIsSidebarCollapsed(false);
+        setIsUserExpandingSidebar(true);
+        setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+      }
+    },
+    [sidebarMode, leftPanelSection, isSidebarCollapsed],
+  );
 
+  const openSidePanel = useCallback(
+    (mode: "inspector" | "export") => {
+      if (sidebarMode === mode) {
+        setSidebarMode("default");
+        return;
+      }
+      setSidebarMode(mode);
+      if (isSidebarCollapsed) {
+        leftPanelRef.current?.expand?.();
+        setIsSidebarCollapsed(false);
+        setIsUserExpandingSidebar(true);
+        setTimeout(() => leftPanelRef.current?.resize?.(20), 0);
+      }
+    },
+    [sidebarMode, isSidebarCollapsed],
+  );
+
+  const saveTimelineSilently = useCallback(async () => {
+    const id = projectId;
+    if (!id) throw new Error("No project ID");
+    setSaveStatus("saving");
+    await axios.put(
+      `/backend/projects/${encodeURIComponent(id)}`,
+      timelineStateForPersistence(getTimelineState()),
+      {
+        withCredentials: true,
+      },
+    );
+    setSaveStatus("saved");
+  }, [getTimelineState, projectId]);
+
+  const handleSaveTimeline = useCallback(async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    try {
+      toast.info("Saving state of the project...");
+      await saveTimelineSilently();
       toast.success("Timeline saved");
     } catch (error) {
       console.error(error);
+      setSaveStatus("unsaved");
       toast.error("Failed to save");
     }
-  }, [getTimelineState, projectId]);
+  }, [saveTimelineSilently]);
 
   // Global Ctrl/Cmd+S to save timeline (registered after handler is defined)
   useEffect(() => {
@@ -395,6 +496,30 @@ export default function TimelineEditor() {
       } as AddEventListenerOptions);
   }, [handleSaveTimeline, undo, redo, selectedItem, handleDeleteScrubber, setSelectedItem]);
 
+  // Debounced auto-save: fires 3s after the last meaningful timeline change
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    if (skipNextAutoSave.current) {
+      skipNextAutoSave.current = false;
+      return;
+    }
+    setSaveStatus("unsaved");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await saveTimelineSilently();
+      } catch {
+        setSaveStatus("unsaved");
+      }
+    }, 3000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [timeline, saveTimelineSilently]);
+
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
@@ -425,22 +550,6 @@ export default function TimelineEditor() {
     },
     [handleAddMediaToBin],
   );
-
-  const handleRenderClick = useCallback(() => {
-    if (timelineData.length === 0 || timelineData.every((item) => item.scrubbers.length === 0)) {
-      toast.error("No timeline to render. Add some media first!");
-      return;
-    }
-
-    handleRenderVideo(
-      getTimelineData,
-      timeline,
-      isAutoSize ? null : width,
-      isAutoSize ? null : height,
-      getPixelsPerSecond,
-    );
-    toast.info("Starting render...");
-  }, [handleRenderVideo, getTimelineData, timeline, width, height, isAutoSize, timelineData, getPixelsPerSecond]);
 
   const handleLogTimelineData = useCallback(() => {
     if (timelineData.length === 0) {
@@ -478,8 +587,8 @@ export default function TimelineEditor() {
   }, []);
 
   const handleAddTextClick = useCallback(() => {
-    navigate("/editor/text-editor");
-  }, [navigate]);
+    openSection("text-editor");
+  }, [openSection]);
 
   const handleAddTrackClick = useCallback(() => {
     handleAddTrack();
@@ -563,14 +672,6 @@ export default function TimelineEditor() {
     },
     [handleMoveGroupToMediaBin, handleAddGroupToMediaBin],
   );
-
-  const expandTimelineCallback = useCallback(() => {
-    return expandTimeline(containerRef);
-  }, [expandTimeline]);
-
-  const handleScrollCallback = useCallback(() => {
-    handleScroll(containerRef, expandTimelineCallback);
-  }, [handleScroll, expandTimelineCallback]);
 
   // Play/pause controls with Player sync
   const [isPlaying, setIsPlaying] = useState(false);
@@ -657,7 +758,8 @@ export default function TimelineEditor() {
         const response = await fetch("https://api.github.com/repos/robinroy03/videoeditor");
         if (response.ok) {
           const data = await response.json();
-          setStarCount(data.stargazers_count);
+          const parsed = GitHubRepoStatsSchema.safeParse(data);
+          if (parsed.success) setStarCount(parsed.data.stargazers_count);
         }
       } catch (error) {
         console.error("Failed to fetch GitHub stars:", error);
@@ -680,32 +782,23 @@ export default function TimelineEditor() {
     }
   }, [isDraggingRuler, handleRulerMouseMove, handleRulerMouseUp]);
 
-  // Timeline wheel zoom functionality
+  // Arrow key playhead movement (handled by useTimelineViewport's RAF zoom + useRuler's arrow key)
   useEffect(() => {
-    const timelineContainer = containerRef.current;
-    if (!timelineContainer) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Only zoom if Ctrl or Cmd is held
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const scrollDirection = e.deltaY > 0 ? -1 : 1;
-
-        if (scrollDirection > 0) {
-          handleZoomIn();
-        } else {
-          handleZoomOut();
-        }
-      }
+    const handleArrowKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const target = e.target as HTMLElement;
+      const isInput =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.contentEditable === "true" ||
+        target.isContentEditable;
+      if (isInput) return;
+      e.preventDefault();
+      handleArrowKey(e.key === "ArrowLeft" ? "left" : "right", e.shiftKey);
     };
-
-    timelineContainer.addEventListener("wheel", handleWheel, {
-      passive: false,
-    });
-    return () => {
-      timelineContainer.removeEventListener("wheel", handleWheel);
-    };
-  }, [handleZoomIn, handleZoomOut]);
+    document.addEventListener("keydown", handleArrowKeyDown);
+    return () => document.removeEventListener("keydown", handleArrowKeyDown);
+  }, [handleArrowKey]);
 
   return (
     <div
@@ -718,338 +811,476 @@ export default function TimelineEditor() {
       }}>
       {/* Ultra-minimal Top Bar */}
       <header className="h-9 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-3 shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <KimuLogo className="h-4 w-4" />
           <h1 className="text-sm font-medium tracking-tight">Kimu Studio</h1>
         </div>
 
-        {/* Center project name */}
+        {/* Center: project name */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <span className="text-xs leading-none text-muted-foreground font-mono">{projectName || "Project"}</span>
         </div>
 
-        <div className="flex items-center gap-1">
-          {/* Save / Import / Export */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSaveTimeline}
-            className="h-7 px-2 text-xs"
-            title="Save timeline (Ctrl/Cmd+S)">
-            <SaveIcon className="h-3 w-3 mr-1" />
-            Save
-          </Button>
-
+        {/* Right: save status + Import */}
+        <div className="flex items-center gap-2">
+          {saveStatus === "saved" && (
+            <span className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" aria-hidden />
+              Saved
+            </span>
+          )}
+          {saveStatus === "saving" && (
+            <span className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-green-500/70 animate-pulse shrink-0" aria-hidden />
+              Saving…
+            </span>
+          )}
+          {saveStatus === "unsaved" && (
+            <span
+              className="flex items-center gap-1.5 text-xs leading-none text-muted-foreground"
+              title="Unsaved changes — Ctrl/Cmd+S to save">
+              <span className="h-2 w-2 rounded-full bg-yellow-500 shrink-0" aria-hidden />
+              Unsaved
+            </span>
+          )}
           <Button variant="ghost" size="sm" onClick={handleAddMediaClick} className="h-7 px-2 text-xs">
             <Upload className="h-3 w-3 mr-1" />
             Import
           </Button>
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleRenderClick}
-            disabled={isRendering}
-            className="h-7 px-2 text-xs">
-            <Download className="h-3 w-3 mr-1" />
-            {isRendering ? "Rendering..." : "Export"}
-          </Button>
-
-          <ProfileMenu
-            user={{ name: "test", email: "test@test.com", image: "https://github.com/shadcn.png" }}
-            starCount={starCount}
-            onSignOut={() => {}}
-          />
         </div>
       </header>
 
-      {/* Main content: Left panel full height, center preview+timeline, right chat always visible */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* Left Panel - Media Bin & Tools (full height) */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-          <div className="h-full border-r border-border">
-            <LeftPanel
-              mediaBinItems={mediaBinItems}
-              isMediaLoading={isMediaLoading}
-              onAddMedia={handleAddMediaToBin}
-              onAddText={handleAddTextToBin}
-              contextMenu={contextMenu}
-              handleContextMenu={handleContextMenu}
-              handleDeleteFromContext={handleDeleteFromContext}
-              handleSplitAudioFromContext={handleSplitAudioFromContext}
-              handleCloseContextMenu={handleCloseContextMenu}
+      {/* Main content with sidebar rail + editor panels */}
+      <div className="flex flex-1 min-h-0">
+        <div className="w-12 border-r border-border/50 bg-muted/30 flex flex-col items-center justify-between py-2">
+          <div className="flex flex-col gap-1 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "default" && leftPanelSection === "media-bin"
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("media-bin")}
+              title="Media Bin">
+              <File className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "default" && leftPanelSection === "text-editor"
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("text-editor")}
+              title="Text Editor">
+              <Type className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "default" && leftPanelSection === "transitions"
+                  ? "bg-background text-primary"
+                  : "text-muted-foreground"
+              }`}
+              onClick={() => openSection("transitions")}
+              title="Transitions">
+              <BetweenVerticalEnd className="h-5 w-5" />
+            </Button>
+
+            <div className="w-6 border-t border-border/30 my-1" />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "inspector" ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSidePanel("inspector")}
+              title="Inspector">
+              <SlidersHorizontal className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-9 w-9 p-0 ${
+                sidebarMode === "export" ? "bg-background text-primary" : "text-muted-foreground"
+              }`}
+              onClick={() => openSidePanel("export")}
+              title="Export">
+              <Download className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="h-9 w-9 flex items-center justify-center">
+            <ProfileMenu
+              user={{ name: user?.name, email: user?.email, image: user?.image ?? undefined }}
+              starCount={starCount}
+              onSignOut={async () => {
+                await signOut();
+                window.location.assign("/login");
+              }}
             />
           </div>
-        </ResizablePanel>
+        </div>
 
-        <ResizableHandle withHandle />
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1"
+          onLayout={(sizes: number[]) => {
+            const leftSize = sizes?.[0] ?? 0;
+            if (isSidebarCollapsed && leftSize > 0 && !isUserExpandingSidebar) {
+              leftPanelRef.current?.collapse?.();
+              setIsSidebarCollapsed(true);
+              return;
+            }
+            if (isUserExpandingSidebar && leftSize >= 12) {
+              setIsUserExpandingSidebar(false);
+            }
+            setIsSidebarCollapsed(leftSize < 1);
+          }}>
+          {/* Left Panel - Media Bin, Inspector, or Export */}
+          <ResizablePanel ref={leftPanelRef} defaultSize={20} minSize={15} maxSize={40} collapsible collapsedSize={0}>
+            <div className="h-full border-r border-border">
+              {sidebarMode === "inspector" ? (
+                <InspectorPanel
+                  selectedScrubberIds={selectedScrubberIds}
+                  getAllScrubbers={getAllScrubbers}
+                  pixelsPerSecond={getPixelsPerSecond()}
+                  onUpdate={handleUpdateScrubberWithLocking}
+                />
+              ) : sidebarMode === "export" ? (
+                <ExportPanel
+                  projectId={projectId}
+                  projectName={projectName}
+                  isRendering={isRendering}
+                  renderProgress={renderProgress}
+                  timeline={timeline}
+                  timelineData={timelineData}
+                  getTimelineData={getTimelineData}
+                  getPixelsPerSecond={getPixelsPerSecond}
+                  handleRenderVideo={handleRenderVideo}
+                />
+              ) : (
+                <LeftPanel
+                  section={leftPanelSection}
+                  mediaBinItems={mediaBinItems}
+                  isMediaLoading={isMediaLoading}
+                  onAddMedia={handleAddMediaToBin}
+                  onAddText={handleAddTextToBin}
+                  contextMenu={contextMenu}
+                  handleContextMenu={handleContextMenu}
+                  handleDeleteFromContext={handleDeleteFromContext}
+                  handleSplitAudioFromContext={handleSplitAudioFromContext}
+                  handleCloseContextMenu={handleCloseContextMenu}
+                  showTabs={false}
+                  arrangeMode={mediaArrangeMode}
+                  sortBy={mediaSortBy}
+                  onArrangeModeChange={setMediaArrangeMode}
+                  onSortByChange={setMediaSortBy}
+                  onAfterAddText={() => setLeftPanelSection("media-bin")}
+                />
+              )}
+            </div>
+          </ResizablePanel>
 
-        {/* Center Area: Preview and Timeline */}
-        <ResizablePanel defaultSize={55}>
-          <ResizablePanelGroup direction="vertical">
-            {/* Preview Area */}
-            <ResizablePanel defaultSize={65} minSize={40}>
-              <div className="h-full flex flex-col bg-background">
-                {/* Compact Top Bar */}
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>Resolution:</span>
+          <ResizableHandle withHandle className={isSidebarCollapsed ? "opacity-0 pointer-events-none" : undefined} />
+
+          {/* Center Area: Preview and Timeline */}
+          <ResizablePanel defaultSize={isChatMinimized ? 80 : 55}>
+            <ResizablePanelGroup direction="vertical">
+              {/* Preview Area */}
+              <ResizablePanel defaultSize={65} minSize={40}>
+                <div className="h-full flex flex-col bg-background">
+                  {/* Compact Top Bar */}
+                  <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <AspectRatioSelect
+                        width={width}
+                        height={height}
+                        disabled={isAutoSize}
+                        onSelectPreset={applyAspectPreset}
+                      />
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={widthInput}
+                          onChange={(e) => {
+                            setWidthInput(e.target.value);
+                            const n = Number(e.target.value);
+                            if (isFinite(n) && n > 0) setWidth(n);
+                          }}
+                          onBlur={commitWidth}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              commitWidth();
+                              (e.currentTarget as HTMLInputElement).blur();
+                            }
+                          }}
+                          disabled={isAutoSize}
+                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          ref={widthInputRef}
+                        />
+                        <span>×</span>
+                        <Input
+                          type="number"
+                          value={heightInput}
+                          onChange={(e) => {
+                            setHeightInput(e.target.value);
+                            const n = Number(e.target.value);
+                            if (isFinite(n) && n > 0) setHeight(n);
+                          }}
+                          onBlur={commitHeight}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              commitHeight();
+                              (e.currentTarget as HTMLInputElement).blur();
+                            }
+                          }}
+                          disabled={isAutoSize}
+                          className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
+                          ref={heightInputRef}
+                        />
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={widthInput}
-                        onChange={(e) => {
-                          setWidthInput(e.target.value);
-                          const n = Number(e.target.value);
-                          if (isFinite(n) && n > 0) setWidth(n);
-                        }}
-                        onBlur={commitWidth}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            commitWidth();
-                            (e.currentTarget as HTMLInputElement).blur();
-                          }
-                        }}
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        ref={widthInputRef}
-                      />
-                      <span>×</span>
-                      <Input
-                        type="number"
-                        value={heightInput}
-                        onChange={(e) => {
-                          setHeightInput(e.target.value);
-                          const n = Number(e.target.value);
-                          if (isFinite(n) && n > 0) setHeight(n);
-                        }}
-                        onBlur={commitHeight}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            commitHeight();
-                            (e.currentTarget as HTMLInputElement).blur();
-                          }
-                        }}
-                        disabled={isAutoSize}
-                        className="h-5 w-14 text-xs px-1 border-0 bg-muted/50"
-                        ref={heightInputRef}
-                      />
+                      <div className="flex items-center gap-1">
+                        <Switch
+                          id="auto-size"
+                          checked={isAutoSize}
+                          onCheckedChange={handleAutoSizeChange}
+                          className="scale-75"
+                        />
+                        <Label
+                          htmlFor="auto-size"
+                          className="text-xs cursor-pointer"
+                          title="Fit the preview to your media size in the timeline. Turn off to use the width × height values for preview and export.">
+                          Auto
+                        </Label>
+                      </div>
+
+                      {!isChatMinimized && null}
+                      {isChatMinimized && (
+                        <>
+                          <Separator orientation="vertical" className="h-4 mx-1" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsChatMinimized(false)}
+                            className="h-6 w-6 p-0 text-primary"
+                            title="Open Chat">
+                            <Bot className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      <Switch
-                        id="auto-size"
-                        checked={isAutoSize}
-                        onCheckedChange={handleAutoSizeChange}
-                        className="scale-75"
+                  {/* Video Preview */}
+                  <div
+                    ref={previewContainerRef}
+                    className={
+                      "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
+                      "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
+                    }>
+                    <div className="flex-1 flex items-center justify-center w-full">
+                      <VideoPlayer
+                        timelineData={timelineData}
+                        durationInFrames={durationInFrames}
+                        ref={playerRef}
+                        compositionWidth={isAutoSize ? null : width}
+                        compositionHeight={isAutoSize ? null : height}
+                        timeline={timeline}
+                        handleUpdateScrubber={handleUpdateScrubber}
+                        selectedItem={selectedItem}
+                        setSelectedItem={setSelectedItem}
+                        getPixelsPerSecond={getPixelsPerSecond}
                       />
-                      <Label htmlFor="auto-size" className="text-xs">
-                        Auto
-                      </Label>
                     </div>
 
-                    {!isChatMinimized && null}
-                    {isChatMinimized && (
-                      <>
-                        <Separator orientation="vertical" className="h-4 mx-1" />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsChatMinimized(false)}
-                          className="h-6 w-6 p-0 text-primary"
-                          title="Open Chat">
-                          <KimuLogo className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Video Preview */}
-                <div
-                  className={
-                    "flex-1 bg-zinc-200/70 dark:bg-zinc-900 " +
-                    "flex flex-col items-center justify-center p-3 border border-border/50 rounded-lg overflow-hidden shadow-2xl relative"
-                  }>
-                  <div className="flex-1 flex items-center justify-center w-full">
-                    <VideoPlayer
-                      timelineData={timelineData}
-                      durationInFrames={durationInFrames}
-                      ref={playerRef}
-                      compositionWidth={isAutoSize ? null : width}
-                      compositionHeight={isAutoSize ? null : height}
-                      timeline={timeline}
-                      handleUpdateScrubber={handleUpdateScrubber}
-                      selectedItem={selectedItem}
-                      setSelectedItem={setSelectedItem}
-                      getPixelsPerSecond={getPixelsPerSecond}
-                    />
-                  </div>
-
-                  {/* Custom Video Controls - Below Player */}
-                  <div className="w-full flex items-center justify-center gap-2 mt-3 px-4">
-                    {/* Left side controls */}
-                    <div className="flex items-center gap-1">
+                    {/* Single control cluster — reused in fullscreen (no duplicates in overlay) */}
+                    <div
+                      className={cn(
+                        "flex items-center justify-center gap-2 mt-3 px-4",
+                        isFullscreen && "absolute bottom-3 left-0 right-0 z-20 mt-0 text-white",
+                      )}>
                       <MuteButton playerRef={playerRef} />
-                    </div>
-
-                    {/* Center play/pause button */}
-                    <div className="flex items-center">
-                      <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-6 w-6 p-0">
-                        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                      <Button variant="ghost" size="sm" onClick={togglePlayback} className="h-8 w-8 p-0">
+                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       </Button>
-                    </div>
-
-                    {/* Right side controls */}
-                    <div className="flex items-center gap-1">
-                      <FullscreenButton playerRef={playerRef} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            {/* Timeline Area */}
-            <ResizablePanel defaultSize={35} minSize={25}>
-              <div className="h-full flex flex-col bg-muted/20">
-                <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Timeline</span>
-                    <Badge variant="outline" className="text-xs h-4 px-1.5 font-mono">
-                      {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={undo}
-                      disabled={!canUndo}
-                      className="h-6 w-6 p-0"
-                      title="Undo (Ctrl/Cmd+Z)">
-                      <CornerUpLeft className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={redo}
-                      disabled={!canRedo}
-                      className="h-6 w-6 p-0"
-                      title="Redo (Ctrl/Cmd+Shift+Z)">
-                      <CornerUpRight className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleZoomOut}
-                        className="h-6 w-6 p-0 text-xs"
-                        title="Zoom Out">
-                        <Minus className="h-3 w-3" />
+                        onClick={toggleFullscreen}
+                        className="h-8 w-8 p-0"
+                        title={isFullscreen ? "Exit fullscreen" : "Fullscreen preview"}>
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                       </Button>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs h-4 px-1.5 font-mono cursor-pointer hover:bg-secondary/80 transition-colors"
-                        onClick={handleZoomReset}
-                        title="Click to reset zoom to 100%">
-                        {Math.round(zoomLevel * 100)}%
+                    </div>
+
+                    <PreviewFullscreenControls
+                      isFullscreen={isFullscreen}
+                      currentTimeSec={currentTimeSec}
+                      durationSec={durationSec}
+                      onSeek={handlePreviewSeek}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              {/* Timeline Area */}
+              <ResizablePanel defaultSize={35} minSize={25}>
+                <div className="h-full flex flex-col bg-muted/20">
+                  <div className="h-8 border-b border-border/50 bg-muted/30 flex items-center justify-between px-3 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium">Timeline</span>
+                      <Badge variant="outline" className="text-xs h-4 px-1.5 font-mono">
+                        {Math.round(((durationInFrames || 0) / FPS) * 10) / 10}s
                       </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleZoomIn}
-                        className="h-6 w-6 p-0 text-xs"
-                        title="Zoom In">
-                        <Plus className="h-3 w-3" />
+                        onClick={undo}
+                        disabled={!canUndo}
+                        className="h-6 w-6 p-0"
+                        title="Undo (Ctrl/Cmd+Z)">
+                        <CornerUpLeft className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={redo}
+                        disabled={!canRedo}
+                        className="h-6 w-6 p-0"
+                        title="Redo (Ctrl/Cmd+Shift+Z)">
+                        <CornerUpRight className="h-3 w-3" />
                       </Button>
                     </div>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Track
-                    </Button>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSplitClick}
-                      className="h-6 px-2 text-xs"
-                      title="Split selected scrubber at ruler position">
-                      <Scissors className="h-3 w-3 mr-1" />
-                      Split
-                    </Button>
-                    <Separator orientation="vertical" className="h-4 mx-1" />
-                    <Button variant="ghost" size="sm" onClick={handleLogTimelineData} className="h-6 px-2 text-xs">
-                      <Settings className="h-3 w-3 mr-1" />
-                      Debug
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <ZoomSlider
+                        zoomLevel={zoomLevel}
+                        onZoomIn={handleZoomIn}
+                        onZoomOut={handleZoomOut}
+                        onZoomReset={handleZoomReset}
+                      />
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      {/* Ripple edit toggle */}
+                      <Button
+                        variant={rippleEnabled ? "default" : "ghost"}
+                        size="sm"
+                        onClick={toggleRippleEnabled}
+                        className="h-6 px-2 text-xs"
+                        title={rippleEnabled ? "Ripple edit: ON — disable" : "Ripple edit: OFF — enable"}>
+                        <Waves className="h-3 w-3 mr-1" />
+                        Ripple
+                      </Button>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button variant="ghost" size="sm" onClick={handleAddTrackClick} className="h-6 px-2 text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Track
+                      </Button>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSplitClick}
+                        className="h-6 px-2 text-xs"
+                        title="Split selected scrubber at ruler position">
+                        <Scissors className="h-3 w-3 mr-1" />
+                        Split
+                      </Button>
+                      <Separator orientation="vertical" className="h-4 mx-1" />
+                      <Button variant="ghost" size="sm" onClick={handleLogTimelineData} className="h-6 px-2 text-xs">
+                        <Settings className="h-3 w-3 mr-1" />
+                        Debug
+                      </Button>
+                    </div>
                   </div>
+
+                  <TimelineShell
+                    timeline={timeline}
+                    timelineWidth={timelineWidth}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    zoomLevel={zoomLevel}
+                    rulerPositionPx={rulerPositionPx}
+                    isDraggingRuler={isDraggingRuler}
+                    containerRef={containerRef}
+                    selectedScrubberIds={selectedScrubberIds}
+                    getAllScrubbers={getAllScrubbers}
+                    onUpdateScrubber={handleUpdateScrubberWithLocking}
+                    onDeleteScrubber={handleDeleteScrubber}
+                    onBeginScrubberTransform={snapshotTimeline}
+                    onSelectScrubber={handleSelectScrubber}
+                    onGroupScrubbers={handleGroupSelected}
+                    onUngroupScrubber={handleUngroupSelected}
+                    onMoveToMediaBin={handleMoveToMediaBinSelected}
+                    onRippleEdit={handleRippleEdit}
+                    onDeleteTrack={handleDeleteTrack}
+                    onToggleMute={handleToggleTrackMute}
+                    onToggleTrackHidden={handleToggleTrackHidden}
+                    onSetTrackName={handleSetTrackName}
+                    onDropOnTrack={handleDropOnTrack}
+                    onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
+                    onDeleteTransition={handleDeleteTransition}
+                    expandTimeline={expandTimelineCallback}
+                    onRulerMouseDown={handleRulerMouseDown}
+                    onRulerClick={(e) => {
+                      if (!containerRef.current) return;
+                      const rect = containerRef.current.getBoundingClientRect();
+                      // Read scrollLeft directly from DOM — no React state lag
+                      const x = e.clientX - rect.left + (containerRef.current.scrollLeft || 0);
+                      handleRulerDrag(x);
+                    }}
+                    onScroll={handleScrollCallback}
+                    snapEnabled={true}
+                    expandedIds={expandedIds}
+                    getTrackVisualHeight={getTrackVisualHeight}
+                    onToggleKeyframeLanes={toggleKeyframeLanes}
+                    onAddKeyframe={handleAddKeyframe}
+                    onUpdateKeyframe={handleUpdateKeyframe}
+                    onDeleteKeyframe={handleDeleteKeyframe}
+                    onRemoveKeyframeProperty={handleRemoveKeyframeProperty}
+                    onBoxSelect={(ids) => setSelectedScrubberIds(ids)}
+                    scheduleEdgeScroll={scheduleEdgeScroll}
+                    stopEdgeScroll={stopEdgeScroll}
+                  />
                 </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
 
-                <TimelineRuler
-                  timelineWidth={timelineWidth}
-                  rulerPositionPx={rulerPositionPx}
-                  containerRef={containerRef}
-                  onRulerDrag={handleRulerDrag}
-                  onRulerMouseDown={handleRulerMouseDown}
-                  pixelsPerSecond={getPixelsPerSecond()}
-                  scrollLeft={containerRef.current?.scrollLeft || 0}
-                />
-
-                <TimelineTracks
-                  timeline={timeline}
-                  timelineWidth={timelineWidth}
-                  rulerPositionPx={rulerPositionPx}
-                  containerRef={containerRef}
-                  onScroll={handleScrollCallback}
-                  onDeleteTrack={handleDeleteTrack}
-                  onUpdateScrubber={handleUpdateScrubberWithLocking}
-                  onDeleteScrubber={handleDeleteScrubber}
-                  onDropOnTrack={handleDropOnTrack}
-                  onDropTransitionOnTrack={handleDropTransitionOnTrackWrapper}
-                  onDeleteTransition={handleDeleteTransition}
-                  getAllScrubbers={getAllScrubbers}
-                  expandTimeline={expandTimelineCallback}
-                  onRulerMouseDown={handleRulerMouseDown}
-                  pixelsPerSecond={getPixelsPerSecond()}
-                  selectedScrubberIds={selectedScrubberIds}
-                  onSelectScrubber={handleSelectScrubber}
-                  onGroupScrubbers={handleGroupSelected}
-                  onUngroupScrubber={handleUngroupSelected}
-                  onMoveToMediaBin={handleMoveToMediaBinSelected}
-                  onBeginScrubberTransform={snapshotTimeline}
-                />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-
-        {/* Right Panel - Chat (toggleable) */}
-        {!isChatMinimized && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
-              <div className="h-full border-l border-border">
-                <ChatBox
-                  mediaBinItems={mediaBinItems}
-                  handleDropOnTrack={handleDropOnTrack}
-                  isMinimized={false}
-                  onToggleMinimize={() => setIsChatMinimized(true)}
-                  messages={chatMessages}
-                  onMessagesChange={setChatMessages}
-                  timelineState={timeline}
-                  handleUpdateScrubber={handleUpdateScrubberWithLocking}
-                  handleDeleteScrubber={handleDeleteScrubber}
-                />
-              </div>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+          {/* Right Panel - Chat (toggleable) */}
+          {!isChatMinimized && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+                <div className="h-full border-l border-border">
+                  <ChatBox
+                    mediaBinItems={mediaBinItems}
+                    handleDropOnTrack={handleDropOnTrack}
+                    isMinimized={false}
+                    onToggleMinimize={() => setIsChatMinimized(true)}
+                    messages={chatMessages}
+                    onMessagesChange={setChatMessages}
+                    timelineState={timeline}
+                    handleUpdateScrubber={handleUpdateScrubberWithLocking}
+                    handleDeleteScrubber={handleDeleteScrubber}
+                    handleSplitScrubberAtRuler={handleSplitScrubberAtRuler}
+                    pixelsPerSecond={getPixelsPerSecond()}
+                    handleAddTrack={handleAddTrack}
+                    restoreTimeline={setTimelineFromServer}
+                  />
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      </div>
 
       {/* Hidden file input */}
       <input
@@ -1061,12 +1292,6 @@ export default function TimelineEditor() {
         onChange={handleFileInputChange}
       />
 
-      {/* Render Status as Toast */}
-      {renderStatus && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <RenderStatus renderStatus={renderStatus} />
-        </div>
-      )}
     </div>
   );
 }

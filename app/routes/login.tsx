@@ -1,29 +1,19 @@
-import { GoogleLogin, GoogleOAuthProvider, type CredentialResponse } from "@react-oauth/google";
 import { Clapperboard, Wand2, Scissors } from "lucide-react";
 import { KimuLogo } from "~/components/ui/KimuLogo";
 import { FaGoogle } from "react-icons/fa";
-import axios from "axios";
 import { redirect, type LoaderFunctionArgs } from "react-router";
 import { requireUser } from "~/utils/auth.server";
+import { authClient } from "~/lib/auth-client";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const res = await requireUser(request);
-  // the user has a cookie and it is valid, so we redirect to the projects page
-  if (res.status === 200) throw redirect("/projects");
+  const user = await requireUser(request);
+  if (user) throw redirect("/projects");
   return null;
 }
 
 export default function LoginPage() {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-  const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
-    console.log("credentialResponse", credentialResponse);
-    const response = await axios.post("/ai/api/auth/google", {
-      credential: credentialResponse.credential,
-    });
-    if (response.status === 200) {
-      window.location.href = "/projects";
-    }
+  const handleGoogleLogin = async () => {
+    await authClient.signIn.social({ provider: "google", callbackURL: "/projects" });
   };
 
   return (
@@ -101,20 +91,12 @@ export default function LoginPage() {
           <h1 className="mt-6 text-lg font-semibold tracking-tight">Welcome to Kimu</h1>
           <p className="mt-1 text-xs text-muted-foreground">Cinematic editing, reimagined.</p>
           <div className="mt-6 w-full max-w-sm flex flex-col items-center gap-3">
-            <GoogleOAuthProvider clientId={googleClientId}>
-              <div className="relative inline-block">
-                <button className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
-                  <FaGoogle className="h-4 w-4" />
-                  Continue with Google
-                </button>
-                <div className="absolute inset-0 opacity-0 overflow-hidden">
-                  <GoogleLogin
-                    onSuccess={(credentialResponse) => handleGoogleLogin(credentialResponse)}
-                    onError={() => console.log("Google sign-in error")}
-                  />
-                </div>
-              </div>{" "}
-            </GoogleOAuthProvider>
+            <button
+              onClick={handleGoogleLogin}
+              className="inline-flex items-center justify-center gap-3 h-11 px-6 rounded-md bg-white text-black text-sm font-medium transition-colors hover:bg-neutral-200 active:bg-neutral-300">
+              <FaGoogle className="h-4 w-4" />
+              Continue with Google
+            </button>
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">We never post on your behalf.</p>
         </div>

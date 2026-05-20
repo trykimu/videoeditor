@@ -55,6 +55,10 @@ interface MediaBinProps {
   handleDeleteFromContext: () => Promise<void>;
   handleSplitAudioFromContext: () => Promise<void>;
   handleCloseContextMenu: () => void;
+  arrangeModeExternal?: "default" | "group";
+  sortByExternal?: "default" | "name_asc" | "name_desc";
+  onArrangeModeChange?: (mode: "default" | "group") => void;
+  onSortByChange?: (sort: "default" | "name_asc" | "name_desc") => void;
 }
 
 // Memoized component for video thumbnails to prevent flickering
@@ -211,7 +215,8 @@ export function loader() {
   return null;
 }
 
-export default function MediaBin() {
+export default function MediaBin(props: MediaBinProps) {
+  const outletCtx = useOutletContext<MediaBinProps | undefined>();
   const {
     mediaBinItems,
     isMediaLoading,
@@ -222,14 +227,18 @@ export default function MediaBin() {
     handleDeleteFromContext,
     handleSplitAudioFromContext,
     handleCloseContextMenu,
-  } = useOutletContext<MediaBinProps>();
+    arrangeModeExternal,
+    sortByExternal,
+    onArrangeModeChange,
+    onSortByChange,
+  } = { ...outletCtx, ...props };
 
   // Drag & Drop state for external file imports
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Arrange & sorting state
-  const [arrangeMode, setArrangeMode] = useState<"default" | "group">("default");
-  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">("default");
+  // Arrange & sorting state (controlled by parent when provided)
+  const [arrangeMode, setArrangeMode] = useState<"default" | "group">(arrangeModeExternal ?? "default");
+  const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc">(sortByExternal ?? "default");
   const [collapsed, setCollapsed] = useState<{
     [key in "videos" | "gifs" | "images" | "audio" | "text"]: boolean;
   }>({
@@ -239,6 +248,30 @@ export default function MediaBin() {
     audio: false,
     text: false,
   });
+
+  useEffect(() => {
+    if (arrangeModeExternal && arrangeModeExternal !== arrangeMode) setArrangeMode(arrangeModeExternal);
+  }, [arrangeModeExternal, arrangeMode]);
+
+  useEffect(() => {
+    if (sortByExternal && sortByExternal !== sortBy) setSortBy(sortByExternal);
+  }, [sortByExternal, sortBy]);
+
+  const updateArrangeMode = useCallback(
+    (mode: "default" | "group") => {
+      setArrangeMode(mode);
+      onArrangeModeChange?.(mode);
+    },
+    [onArrangeModeChange],
+  );
+
+  const updateSortBy = useCallback(
+    (sort: "default" | "name_asc" | "name_desc") => {
+      setSortBy(sort);
+      onSortByChange?.(sort);
+    },
+    [onSortByChange],
+  );
 
   const handleDragOverRoot = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     // Only react to file drags from OS, not internal element drags
@@ -310,15 +343,36 @@ export default function MediaBin() {
     return name.endsWith(".gif") || url.includes(".gif");
   };
 
-  const counts = useMemo(() => {
-    const videos = mediaBinItems.filter((i) => i.mediaType === "video").length;
-    const gifs = mediaBinItems.filter(isGif).length;
-    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i)).length;
-    const audio = mediaBinItems.filter((i) => i.mediaType === "audio").length;
-    const text = mediaBinItems.filter((i) => i.mediaType === "text").length;
-    const all = mediaBinItems.length;
-    return { all, videos, images, gifs, audio, text };
+  // Single-pass partition by category. Counts and grouped lists are derived from one walk.
+  const partitioned = useMemo(() => {
+    const videos: MediaBinItem[] = [];
+    const gifs: MediaBinItem[] = [];
+    const images: MediaBinItem[] = [];
+    const audio: MediaBinItem[] = [];
+    const text: MediaBinItem[] = [];
+    for (const item of mediaBinItems) {
+      if (item.mediaType === "video") videos.push(item);
+      else if (item.mediaType === "audio") audio.push(item);
+      else if (item.mediaType === "text") text.push(item);
+      else if (item.mediaType === "image") {
+        if (isGif(item)) gifs.push(item);
+        else images.push(item);
+      }
+    }
+    return { videos, gifs, images, audio, text };
   }, [mediaBinItems]);
+
+  const counts = useMemo(
+    () => ({
+      all: mediaBinItems.length,
+      videos: partitioned.videos.length,
+      gifs: partitioned.gifs.length,
+      images: partitioned.images.length,
+      audio: partitioned.audio.length,
+      text: partitioned.text.length,
+    }),
+    [mediaBinItems.length, partitioned],
+  );
 
   const defaultArrangedItems = useMemo(() => {
     if (sortBy === "name_asc") return [...mediaBinItems].sort((a, b) => a.name.localeCompare(b.name));
@@ -327,26 +381,19 @@ export default function MediaBin() {
   }, [mediaBinItems, sortBy]);
 
   const groupedItems = useMemo(() => {
-    const videos = mediaBinItems.filter((i) => i.mediaType === "video");
-    const gifs = mediaBinItems.filter(isGif);
-    const images = mediaBinItems.filter((i) => i.mediaType === "image" && !isGif(i));
-    const audio = mediaBinItems.filter((i) => i.mediaType === "audio");
-    const text = mediaBinItems.filter((i) => i.mediaType === "text");
-
     const maybeSort = (arr: MediaBinItem[]) => {
       if (sortBy === "name_asc") return [...arr].sort((a, b) => a.name.localeCompare(b.name));
       if (sortBy === "name_desc") return [...arr].sort((a, b) => b.name.localeCompare(a.name));
       return arr;
     };
-
     return {
-      videos: maybeSort(videos),
-      gifs: maybeSort(gifs),
-      images: maybeSort(images),
-      audio: maybeSort(audio),
-      text: maybeSort(text),
+      videos: maybeSort(partitioned.videos),
+      gifs: maybeSort(partitioned.gifs),
+      images: maybeSort(partitioned.images),
+      audio: maybeSort(partitioned.audio),
+      text: maybeSort(partitioned.text),
     };
-  }, [mediaBinItems, sortBy]);
+  }, [partitioned, sortBy]);
   const renderThumbnail = (item: MediaBinItem) => {
     const mediaUrl = item.mediaUrlLocal || item.mediaUrlRemote;
 
@@ -458,7 +505,7 @@ export default function MediaBin() {
                 className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
                   arrangeMode === "default" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
                 }`}
-                onClick={() => setArrangeMode("default")}
+                onClick={() => updateArrangeMode("default")}
                 title="Default order"
                 aria-pressed={arrangeMode === "default"}>
                 <List className="h-2 w-2" />
@@ -469,7 +516,7 @@ export default function MediaBin() {
                 className={`h-5 w-5 p-0 bg-transparent hover:bg-transparent ${
                   arrangeMode === "group" ? "text-primary" : "text-muted-foreground/70 hover:text-foreground"
                 }`}
-                onClick={() => setArrangeMode("group")}
+                onClick={() => updateArrangeMode("group")}
                 title="Smart Group"
                 aria-pressed={arrangeMode === "group"}>
                 <Layers className="h-2 w-2" />
@@ -493,19 +540,19 @@ export default function MediaBin() {
                 <DropdownMenuLabel className="text-[11px]">Sort</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setSortBy("default")}
+                  onClick={() => updateSortBy("default")}
                   className={`text-[12px] gap-2 ${sortBy === "default" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ArrowUpDown className={`h-3 w-3 ${sortBy === "default" ? "text-primary" : ""}`} /> Original order
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setSortBy("name_asc")}
+                  onClick={() => updateSortBy("name_asc")}
                   className={`text-[12px] gap-2 ${sortBy === "name_asc" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ChevronUp className={`h-3 w-3 ${sortBy === "name_asc" ? "text-primary" : ""}`} /> Name A–Z
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setSortBy("name_desc")}
+                  onClick={() => updateSortBy("name_desc")}
                   className={`text-[12px] gap-2 ${sortBy === "name_desc" ? "text-primary" : ""}`}
                   data-variant="ghost">
                   <ChevronDown className={`h-3 w-3 ${sortBy === "name_desc" ? "text-primary" : ""}`} /> Name Z–A

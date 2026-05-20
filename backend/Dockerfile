@@ -1,14 +1,22 @@
-FROM python:3.12-slim
+FROM python:3.12.7-slim
 
-RUN pip install uv
+# curl for healthchecks; uv installed via pip.
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev
 
 COPY . .
+
+# Run as a non-root user.
+RUN useradd --system --uid 1001 --create-home appuser \
+    && chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 3000
 

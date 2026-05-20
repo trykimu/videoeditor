@@ -1,4 +1,19 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: videoeditor-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   postgres:
     image: postgres:18
     container_name: videoeditor-postgres-dev
@@ -6,14 +21,20 @@ services:
     environment:
       POSTGRES_DB: videoeditor
       POSTGRES_USER: videoeditor
-      POSTGRES_PASSWORD: videoeditor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-videoeditor}
     ports:
       - "5432:5432"
-
-  nginx:
-    image: nginx:latest
-    container_name: videoeditor-nginx-dev
-    ports:
-      - "8080:80"
     volumes:
-      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      # Persist data across `docker compose down` so dev DBs survive restarts.
+      - postgres_data_dev:/var/lib/postgresql/data
+      # Auto-run migrations on first init only (postgres entrypoint convention).
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U videoeditor -d videoeditor"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
