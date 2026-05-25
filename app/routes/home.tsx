@@ -1,5 +1,8 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import type { PlayerRef, CallbackListener } from "@remotion/player";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import axios from "axios";
+import { requireUser } from "~/utils/auth.server";
 import {
   Play,
   Pause,
@@ -31,7 +34,6 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "~/components/ui/resizable";
-import axios from "axios";
 import { toast } from "sonner";
 
 // Hooks
@@ -59,7 +61,15 @@ interface Message {
   timestamp: Date;
 }
 
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const res = await requireUser(request);
+  if (res.status !== 200) throw redirect("/login");
+  return { user: res.data };
+}
+
 export default function TimelineEditor() {
+  const { user } = useLoaderData<typeof loader>();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -338,7 +348,7 @@ export default function TimelineEditor() {
       }
 
       const timelineState = getTimelineState();
-      await axios.put(`/ai/api/api/projects/${encodeURIComponent(id)}`, timelineState, {
+      await axios.put(`/ai/api/projects/${encodeURIComponent(id)}`, timelineState, {
         withCredentials: true,
       });
 
@@ -756,7 +766,7 @@ export default function TimelineEditor() {
           </Button>
 
           <ProfileMenu
-            user={{ name: "test", email: "test@test.com", image: "https://github.com/shadcn.png" }}
+            user={{ name: user.name ?? "", email: user.email ?? "", image: user.avatar_url ?? "" }}
             starCount={starCount}
             onSignOut={() => {}}
           />

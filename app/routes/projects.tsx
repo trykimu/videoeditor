@@ -58,7 +58,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (res.status !== 200) throw redirect("/login");
   const { origin } = new URL(request.url);
 
-  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/ai/api/api/projects`, {
+  const projectsRes = await axios.get<{ projects: Project[] }>(`${origin}/ai/api/projects`, {
     headers: { Cookie: request.headers.get("Cookie") },
   });
 
