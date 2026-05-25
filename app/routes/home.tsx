@@ -3,7 +3,6 @@ import type { PlayerRef, CallbackListener } from "@remotion/player";
 import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import axios from "axios";
 import { requireUser } from "~/utils/auth.server";
-import type { PlayerRef, CallbackListener } from "@remotion/player";
 import {
   Play,
   Pause,
@@ -35,7 +34,6 @@ import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "~/components/ui/resizable";
-import axios from "axios";
 import { toast } from "sonner";
 
 // Hooks
