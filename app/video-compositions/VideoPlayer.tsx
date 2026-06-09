@@ -20,6 +20,8 @@ import { SortedOutlines, layerContainer, outer } from "./DragDrop";
 type TimelineCompositionProps = {
   timelineData: TimelineDataItem[];
   isRendering: boolean; // it's either render (True) or preview (False)
+  compositionWidth?: number | null;
+  compositionHeight?: number | null;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
   timeline: TimelineState;
@@ -44,6 +46,8 @@ export type VideoPlayerProps = {
 export function TimelineComposition({
   timelineData,
   isRendering,
+  compositionWidth,
+  compositionHeight,
   selectedItem,
   setSelectedItem,
   timeline,
@@ -52,8 +56,13 @@ export function TimelineComposition({
 }: TimelineCompositionProps) {
   // Resolve pixels per second based on rendering mode
   const resolvedPixelsPerSecond = isRendering ? (getPixelsPerSecond as number) : (getPixelsPerSecond as () => number)();
+
+  if (!timelineData?.length) {
+    return <AbsoluteFill style={outer} />;
+  }
+
   // Get all transitions from timelineData
-  const allTransitions = timelineData[0].transitions;
+  const allTransitions = timelineData[0].transitions ?? {};
 
   // Step 1: Group scrubbers by trackIndex
   const trackGroups: {
@@ -120,6 +129,7 @@ export function TimelineComposition({
         const imageUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!imageUrl) break;
         content = (
           <AbsoluteFill
             style={{
@@ -128,7 +138,7 @@ export function TimelineComposition({
               width: scrubber.width_player,
               height: scrubber.height_player,
             }}>
-            <Img src={imageUrl!} />
+            <Img src={imageUrl} />
           </AbsoluteFill>
         );
         break;
@@ -137,6 +147,7 @@ export function TimelineComposition({
         const videoUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!videoUrl) break;
         content = (
           <AbsoluteFill
             style={{
@@ -146,9 +157,11 @@ export function TimelineComposition({
               height: scrubber.height_player,
             }}>
             <Video
-              src={videoUrl!}
+              src={videoUrl}
               trimBefore={scrubber.trimBefore || undefined}
               trimAfter={scrubber.trimAfter || undefined}
+              playbackRate={scrubber.playbackRate ?? 1}
+              volume={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
             />
           </AbsoluteFill>
         );
@@ -158,36 +171,47 @@ export function TimelineComposition({
         const audioUrl = isRendering
           ? scrubber.mediaUrlRemote || scrubber.mediaUrlLocal
           : scrubber.mediaUrlLocal || scrubber.mediaUrlRemote;
+        if (!audioUrl) break;
         content = (
           <Audio
-            src={audioUrl!}
+            src={audioUrl}
             trimBefore={scrubber.trimBefore || undefined}
             trimAfter={scrubber.trimAfter || undefined}
+            playbackRate={scrubber.playbackRate ?? 1}
+            volume={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
           />
         );
         break;
       }
       default:
-        console.warn(`Unknown media type: ${scrubber.mediaType}`);
         break;
     }
 
     return content;
   };
 
-  // Helper function to get transition presentation
-  const getTransitionPresentation = (transition: Transition) => {
+  // Helper function to get transition presentation.
+  // Each per-effect helper returns its own TransitionPresentation<P> generic; the union of those
+  // is not assignable to any single TransitionPresentation<P>, so we erase the prop generic to a
+  // permissive `Record<string, unknown>` (Remotion accepts any presentation factory at runtime).
+  type AnyPresentation = TransitionPresentation<Record<string, unknown>>;
+  const safeTransitionWidth = compositionWidth && compositionWidth > 0 ? compositionWidth : 1920;
+  const safeTransitionHeight = compositionHeight && compositionHeight > 0 ? compositionHeight : 1080;
+  const getTransitionPresentation = (transition: Transition): AnyPresentation => {
+    const cast = (p: unknown) => p as AnyPresentation;
     switch (transition.presentation) {
       case "fade":
-        return fade();
+        return cast(fade());
       case "wipe":
-        return wipe();
+        return cast(wipe());
       case "slide":
-        return slide();
+        return cast(slide());
       case "flip":
-        return flip();
+        return cast(flip());
       case "iris":
-        return iris({ width: 1000, height: 1000 });
+        return cast(iris({ width: safeTransitionWidth, height: safeTransitionHeight }));
+      default:
+        return cast(fade());
     }
   };
 
@@ -243,7 +267,6 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Transition
             key={`left-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
             presentation={getTransitionPresentation(transition)}
             timing={getTransitionTiming(transition)}
           />,
@@ -265,7 +288,6 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-left-transition`}
-                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
                 presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
@@ -321,7 +343,6 @@ export function TimelineComposition({
             transitionSeriesElements.push(
               <TransitionSeries.Transition
                 key={`grouped-${grouppedScrubber.id}-right-transition`}
-                // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
                 presentation={getTransitionPresentation(transition)}
                 timing={getTransitionTiming(transition)}
               />,
@@ -378,7 +399,6 @@ export function TimelineComposition({
         transitionSeriesElements.push(
           <TransitionSeries.Transition
             key={`right-transition-${scrubber.id}`}
-            // @ts-expect-error - NOTE: typescript is being stoopid. The fix is nasty so let it be. it is not an error.
             presentation={getTransitionPresentation(transition)}
             timing={getTransitionTiming(transition)}
           />,
@@ -486,6 +506,8 @@ export function VideoPlayer({
         timelineData,
         durationInFrames,
         isRendering: false,
+        compositionWidth: safeWidth,
+        compositionHeight: safeHeight,
         selectedItem,
         setSelectedItem,
         timeline,

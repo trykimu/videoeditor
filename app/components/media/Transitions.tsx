@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "~/components/ui/card";
 import { FPS } from "../timeline/types";
+import { TransitionDragPayloadSchema } from "~/schemas";
 import { generateUUID } from "~/utils/uuid";
 
 // Data router loader (no data needed, ensures route is compatible with data router)
@@ -66,7 +67,8 @@ const TransitionThumbnail = ({
       leftScrubberId: null,
       rightScrubberId: null,
     };
-    e.dataTransfer.setData("application/json", JSON.stringify(transitionData));
+    const payload = TransitionDragPayloadSchema.parse(transitionData);
+    e.dataTransfer.setData("application/json", JSON.stringify(payload));
     e.dataTransfer.effectAllowed = "copy";
   };
 

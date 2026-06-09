@@ -3,8 +3,6 @@
 // import { Player } from "@remotion/player";
 // import { createTikTokStyleCaptions } from "@remotion/captions";
 
-import { GoogleLogin, GoogleOAuthProvider, type CredentialResponse } from "@react-oauth/google";
-
 // type Caption = {
 //   text: string;
 //   startMs: number;
@@ -552,24 +550,9 @@ import { GoogleLogin, GoogleOAuthProvider, type CredentialResponse } from "@reac
 // export default CaptionsPlayer;
 
 export default function learn() {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-  const handleGoogleSuccess = (credentialResponse: CredentialResponse) => {
-    console.log("Google sign-in success", credentialResponse);
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <GoogleOAuthProvider clientId={googleClientId}>
-        <div className="relative inline-block">
-          <button className="px-6 py-3 bg-white text-gray-700 font-medium rounded-lg shadow-md border border-gray-300">
-            Sign in with Google
-          </button>
-          <div className="absolute inset-0 opacity-0 overflow-hidden">
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => console.log("Google sign-in error")} />
-          </div>
-        </div>
-      </GoogleOAuthProvider>
+      <p className="text-muted-foreground">Learn page</p>
     </div>
   );
 }

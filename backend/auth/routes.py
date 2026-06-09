@@ -1,175 +1,81 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+import logging
+from urllib.parse import unquote
 
-from auth.schema import KimuJWT, KimuPayload, SignUpGoogleRequest
-from auth.service import (
-    COOKIE_MAX_AGE,
-    COOKIE_NAME,
-    generate_kimu_jwt,
-    verify_google_id_token,
-    verify_kimu_jwt,
-)
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from auth.schema import SessionUser
 from db import get_db_pool
-from utils import require_env
+
+logger = logging.getLogger(__name__)
+
+# HTTPS production uses the __Secure- prefix; dev may use the plain name.
+_BETTER_AUTH_COOKIE_NAMES = (
+    "__Secure-better-auth.session_token",
+    "better-auth.session_token",
+)
+
+
+def _extract_session_token_from_cookies(request: Request) -> str | None:
+    """
+    Better Auth stores a signed cookie value as "<token>.<signature>".
+    Extract the raw token used in the session table.
+    """
+    raw_cookie_value: str | None = None
+    for cookie_name in _BETTER_AUTH_COOKIE_NAMES:
+        raw_cookie_value = request.cookies.get(cookie_name)
+        if raw_cookie_value:
+            break
+    if not raw_cookie_value:
+        return None
+
+    decoded_cookie = unquote(raw_cookie_value)
+    token = decoded_cookie.split(".", 1)[0]
+    return token or None
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-GOOGLE_CLIENT_ID: str = require_env("VITE_GOOGLE_CLIENT_ID")
-JWT_SECRET: str = require_env("JWT_SECRET")
-
 
 async def get_current_user(
-    kimu_session: str = Cookie(alias=COOKIE_NAME),
-) -> KimuJWT:
+    request: Request,
+) -> SessionUser:
     """
-    FastAPI dependency. Reads the session JWT from the HttpOnly cookie.
+    FastAPI dependency. Reads the BetterAuth session token from the HttpOnly
+    cookie and validates it against the session/user tables in Postgres.
     """
-    try:
-        return verify_kimu_jwt(kimu_session, JWT_SECRET)
-    except Exception as exc:
+    session_token = _extract_session_token_from_cookies(request)
+    if not session_token:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(exc),
-        ) from exc
-
-
-@router.post("/google")
-async def google_sign_in(body: SignUpGoogleRequest) -> JSONResponse:
-    """
-    Verify the Google ID token, upsert the user, return user info and
-    set an HttpOnly session cookie with the Kimu JWT.
-    """
-    # 1. Verify the Google credential
-    try:
-        google_user = verify_google_id_token(body.credential, GOOGLE_CLIENT_ID)
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google token verification failed: {exc}",
-        ) from exc
-
-    # 2. Upsert user + identity in Postgres
-    pool = await get_db_pool()
-    async with pool.acquire() as conn, conn.transaction():
-        row = await conn.fetchrow(
-            """
-            SELECT u.id, u.email, u.name
-            FROM user_identities ui
-            JOIN users u ON u.id = ui.user_id
-            WHERE ui.provider = $1 AND ui.provider_sub = $2
-            """,
-            "google",
-            google_user.sub,
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
 
-        if row is None:
-            # Create or reuse the user row by email, then link Google identity.
-            user_row = await conn.fetchrow(
-                """
-                INSERT INTO users (email, name)
-                VALUES ($1, $2)
-                ON CONFLICT (email)
-                DO NOTHING
-                RETURNING id, email, name
-                """,
-                google_user.email,
-                google_user.name,
-            )
+    pool = await get_db_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT u.id, u.name, u.email, u.image
+            FROM session s
+            JOIN "user" u ON u.id = s."userId"
+            WHERE s.token = $1 AND s."expiresAt" > now()
+            """,
+            session_token,
+        )
 
-            if user_row is None:
-                user_row = await conn.fetchrow(
-                    """
-                    SELECT id, email, name
-                    FROM users
-                    WHERE email = $1
-                    """,
-                    google_user.email,
-                )
-                if user_row is None:
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="Failed to create or fetch user",
-                    )
+    if row is None:
+        logger.warning("Invalid or expired session token attempted")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        )
 
-            await conn.execute(
-                """
-                INSERT INTO user_identities (user_id, provider, provider_sub)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (provider, provider_sub) DO NOTHING
-                """,
-                user_row["id"],
-                "google",
-                google_user.sub,
-            )
-
-            row = await conn.fetchrow(
-                """
-                SELECT u.id, u.email, u.name
-                FROM user_identities ui
-                JOIN users u ON u.id = ui.user_id
-                WHERE ui.provider = $1 AND ui.provider_sub = $2
-                """,
-                "google",
-                google_user.sub,
-            )
-
-        if row is None:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create or fetch user identity",
-            )
-
-        user_id = str(row["id"])
-        user_email = str(row["email"])
-        user_name = str(row["name"])
-
-    # 3. Generate Kimu JWT
-    payload = KimuPayload(
-        user_id=user_id,
-        email=user_email,
-        name=user_name,
-        avatar_url=google_user.picture,
-    )
-    token = generate_kimu_jwt(payload, JWT_SECRET)
-
-    # 4. Build response with HttpOnly cookie
-    body_data = KimuPayload(
-        user_id=user_id,
-        email=user_email,
-        name=user_name,
-        avatar_url=google_user.picture,
-    )
-    response = JSONResponse(content=body_data.model_dump())
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=token,
-        max_age=COOKIE_MAX_AGE,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/",
-    )
-    return response
-
-
-@router.get("/me", response_model=KimuPayload)
-async def get_me(user: KimuJWT = Depends(get_current_user)) -> KimuPayload:
-    """
-    Return the current user's profile from the JWT.
-    """
-    return KimuPayload(
-        user_id=user.user_id,
-        email=user.email,
-        name=user.name,
-        avatar_url=user.avatar_url,
+    return SessionUser(
+        user_id=str(row["id"]),
+        email=str(row["email"]),
+        name=str(row["name"]),
+        image=str(row["image"]) if row["image"] else None,
     )
 
 
-@router.post("/logout")
-async def logout() -> JSONResponse:
-    """
-    Log out the current user by clearing the HttpOnly session cookie.
-    """
-    response = JSONResponse(content={})
-    response.delete_cookie(key=COOKIE_NAME)
-    return response
+@router.get("/me", response_model=SessionUser)
+async def get_me(user: SessionUser = Depends(get_current_user)) -> SessionUser:
+    return user

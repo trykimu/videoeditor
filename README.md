@@ -56,35 +56,124 @@
 <br> and much more...</p>
 </samp>
 
-## 🐋Deployment
+## 💻 Development
 
-```
-git clone https://github.com/robinroy03/videoeditor.git
-cd videoeditor
-docker compose up
+<strong> 🛠️ <ins>Local Development</ins></strong>
+
+Only postgres runs in Docker. All three services run directly on your machine — Vite handles proxying so no nginx is needed.
+
+```bash
+# Install dependencies
+pnpm i
+cd backend && uv sync && cd ..
+
+# 1. Start postgres
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. Start FastAPI  (terminal 1)
+cd backend && uv run uvicorn main:app --reload --port 3000
+
+# 3. Start renderer  (terminal 2)
+pnpm dlx tsx app/videorender/videorender.ts
+
+# 4. Start frontend  (terminal 3)
+pnpm dev
 ```
 
-## 🧑‍💻Development
+Open **`http://localhost:5173`**. The Vite dev server proxies requests transparently:
 
-```
-docker compose -f docker-compose.dev.yml up
-migrate the db (docker exec -i videoeditor-postgres-dev psql -U videoeditor -d videoeditor -f /dev/stdin < migrations/000_init.sql)
-pnpm run dev (frontend)
-pnpm dlx tsx app/videorender/videorender.ts (backend)
-cd backend
-uv run main.py
+<samp>
 
-localhost:8080 for the server
+- `/backend/*` → FastAPI at `:3000`
+- `/renderer/*` → Renderer at `:8000`
+- `/*` → React Router SSR (Vite)
+
+</samp>
+
+`Requirements`
+
+<samp>
+  
+- Node.js 20+
+- Python 3.12+
+- pnpm
+- Docker (for postgres only)
+
+</samp>
+
+## 🚀 Production
+
+Everything runs in Docker behind nginx. One command:
+
+```bash
+docker compose up -d
 ```
+
+**With Custom Domain:**
+
+```bash
+PROD_DOMAIN=yourdomain.com docker compose up -d
+```
+
+nginx routes:
+
+<samp>
+
+- `/backend/*` → FastAPI
+- `/renderer/*` → Renderer (video rendering)
+- `/*` → Frontend (React Router SSR)
+
+</samp>
+
+**Ports:**
+
+- HTTP: `80` (redirects to HTTPS)
+- HTTPS: `443`
+
+## ⚙️ Environment Configuration
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```env
+# Local/Docker Postgres (dev or self-hosted prod):
+DATABASE_URL=postgresql://videoeditor:videoeditor@localhost:5432/videoeditor
+
+# — OR — Supabase Session Pooler (cloud):
+DATABASE_URL=postgresql://postgres.REF:password@aws-0-REGION.pooler.supabase.com:5432/postgres
+DATABASE_SSL=true   # required for Supabase; omit for local/Docker Postgres
+
+# BetterAuth
+BETTER_AUTH_SECRET=   # generate with: openssl rand -hex 32
+BETTER_AUTH_URL=https://yourdomain.com   # http://localhost:5173 for dev
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# AI Features (optional)
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+**Environment Variables Explained:**
+
+- `DATABASE_URL`: PostgreSQL connection string. Use the local Docker URL for dev/self-hosted prod, or the Supabase Session Pooler URL for cloud.
+- `DATABASE_SSL`: Set to `"true"` when connecting to Supabase or any remote DB that requires SSL. Leave unset for local/Docker Postgres.
+- `BETTER_AUTH_SECRET`: Random secret used to sign sessions — generate with `openssl rand -hex 32`.
+- `BETTER_AUTH_URL`: The public URL of the app. Used by BetterAuth for OAuth callbacks.
+- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials — register at [console.cloud.google.com](https://console.cloud.google.com).
+- `GEMINI_API_KEY`: Required for AI-powered video editing features.
+
+<br>
 
 ## 📃TODO
 
-We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support.
+<samp> We have a lot of work! For starters, we plan to integrate all Remotion APIs. I'll add a proper roadmap soon. Join the [Discord Server](https://discord.com/invite/GSknuxubZK) for updates and support. </samp>
 
 ## ❤️Contribution
 
-We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md).
+<samp> We would love your contributions! ❤️ Check the [contribution guide](CONTRIBUTING.md). </samp>
 
 ## 📜License
 
-This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project.
+<samp> This project is licensed under a dual-license. Refer to [LICENSE](LICENSE.md) for details. The [Remotion license](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) also applies to the relevant parts of the project. </samp>
+

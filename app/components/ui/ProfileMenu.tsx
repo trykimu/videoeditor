@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Progress } from "~/components/ui/progress";
+import { StorageResponseSchema } from "~/schemas";
 
 type UserLike = {
   name?: string | null;
@@ -24,7 +25,7 @@ export function ProfileMenu({
 }: {
   user: UserLike;
   starCount: number | null;
-  onSignOut: () => void;
+  onSignOut: () => void | Promise<void>;
 }) {
   const { theme, setTheme } = useTheme();
   const [usedBytes, setUsedBytes] = React.useState<number | null>(null);
@@ -34,14 +35,14 @@ export function ProfileMenu({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/storage", { credentials: "include" });
+        const res = await fetch("/renderer/storage", { credentials: "include" });
         if (!res.ok) return;
         const j = await res.json();
         if (!cancelled) {
-          const u = Number(j?.usedBytes || 0);
-          const l = Number(j?.limitBytes || limitBytes);
-          setUsedBytes(Number.isFinite(u) ? u : 0);
-          setLimitBytes(Number.isFinite(l) ? l : 2 * 1024 * 1024 * 1024);
+          const parsed = StorageResponseSchema.safeParse(j);
+          if (!parsed.success) return;
+          setUsedBytes(parsed.data.usedBytes);
+          setLimitBytes(parsed.data.limitBytes);
         }
       } catch {
         console.error("Storage fetch failed");
@@ -50,7 +51,7 @@ export function ProfileMenu({
     return () => {
       cancelled = true;
     };
-  }, [limitBytes]);
+  }, []);
 
   function formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -98,7 +99,7 @@ export function ProfileMenu({
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[220px]">
+      <DropdownMenuContent align="end" sideOffset={6} collisionPadding={10} className="min-w-[220px]">
         <div className="px-2 py-1.5 text-xs text-muted-foreground">{user.name || user.email || "Signed in"}</div>
         <DropdownMenuItem asChild>
           <a href="/profile" className="text-xs">
@@ -180,12 +181,8 @@ export function ProfileMenu({
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => {
-            onSignOut();
-            setTimeout(() => {
-              // Use navigation API or router instead of direct href assignment
-              window.location.assign("/");
-            }, 100);
+          onClick={async () => {
+            await onSignOut();
           }}
           variant="destructive">
           <LogOut className="h-4 w-4" />

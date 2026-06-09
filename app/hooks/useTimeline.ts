@@ -10,6 +10,7 @@ import {
   type MediaBinItem,
   type TimelineDataItem,
   type Transition,
+  type Keyframe,
   FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
@@ -35,7 +36,7 @@ export const useTimeline = () => {
   const [redoStack, setRedoStack] = useState<TimelineState[]>([]);
   const isApplyingHistoryRef = useRef(false);
 
-  const deepClone = useCallback(<T>(obj: T): T => JSON.parse(JSON.stringify(obj)), []);
+  const deepClone = useCallback(<T>(obj: T): T => structuredClone(obj), []);
 
   const snapshotTimeline = useCallback(() => {
     setUndoStack((prev) => {
@@ -142,16 +143,12 @@ export const useTimeline = () => {
     }));
   }, []);
 
-  // TODO: remove this after testing
-  // useEffect(() => {
-  //   console.log('timeline meoeoeo', JSON.stringify(timeline, null, 2))
-  // }, [timeline])
-
   const getTimelineData = useCallback((): TimelineDataItem[] => {
     const pixelsPerSecond = getPixelsPerSecond();
 
     const scrubbers = [];
     for (const track of timeline.tracks) {
+      if (track.hidden) continue;
       for (const scrubber of track.scrubbers) {
         scrubbers.push({
           id: scrubber.id,
@@ -163,7 +160,7 @@ export const useTimeline = () => {
           endTime: (scrubber.left + scrubber.width) / pixelsPerSecond,
           duration: scrubber.width / pixelsPerSecond,
           trackId: track.id,
-          trackIndex: scrubber.y || 0,
+          trackIndex: scrubber.y ?? 0,
           media_width: scrubber.media_width,
           media_height: scrubber.media_height,
           text: scrubber.text,
@@ -177,6 +174,9 @@ export const useTimeline = () => {
           // for video scrubbers (and audio in the future)
           trimBefore: scrubber.trimBefore,
           trimAfter: scrubber.trimAfter,
+          playbackRate: scrubber.playbackRate,
+          volume: scrubber.volume,
+          muted: scrubber.muted,
 
           left_transition_id: scrubber.left_transition_id,
           right_transition_id: scrubber.right_transition_id,
@@ -187,6 +187,7 @@ export const useTimeline = () => {
 
     const transitions: { [id: string]: Transition } = {};
     for (const track of timeline.tracks) {
+      if (track.hidden) continue;
       for (const transition of track.transitions) {
         transitions[transition.id] = {
           id: transition.id,
@@ -207,8 +208,6 @@ export const useTimeline = () => {
         transitions: transitions,
       },
     ];
-
-    // console.log('bahahh', JSON.stringify(timelineData, null, 2));
 
     return timelineData;
   }, [timeline, getPixelsPerSecond]);
@@ -296,7 +295,7 @@ export const useTimeline = () => {
 
         if (currentTrackIndex === -1) return prev;
 
-        const newTrackIndex = updatedScrubber.y || 0;
+        const newTrackIndex = updatedScrubber.y ?? 0;
 
         // If track hasn't changed, just update in place
         if (currentTrackIndex === newTrackIndex) {
@@ -459,7 +458,6 @@ export const useTimeline = () => {
   );
 
   const handleAddScrubberToTrack = useCallback((trackId: string, newScrubber: ScrubberState) => {
-    console.log("Adding scrubber to track", trackId, newScrubber);
     setTimeline((prev) => ({
       ...prev,
       tracks: prev.tracks.map((track) =>
@@ -549,8 +547,6 @@ export const useTimeline = () => {
   const handleDropOnTrack = useCallback(
     (item: MediaBinItem, trackId: string, dropLeftPx: number) => {
       snapshotTimeline();
-      console.log("Dropped", item.name, "on track", trackId, "at", dropLeftPx, "px");
-
       const pixelsPerSecond = getPixelsPerSecond();
       let widthPx = item.mediaType === "text" ? 80 : 150;
       if (
@@ -564,7 +560,7 @@ export const useTimeline = () => {
       widthPx = Math.max(20, widthPx);
 
       const targetTrackIndex = timeline.tracks.findIndex((t) => t.id === trackId);
-      if (targetTrackIndex === -1) return;
+      if (targetTrackIndex === -1) return "";
 
       // For text elements, provide default dimensions if they're 0
       const playerWidth =
@@ -616,6 +612,9 @@ export const useTimeline = () => {
         // for video scrubbers (and audio in the future)
         trimBefore: null,
         trimAfter: null,
+        playbackRate: 1,
+        volume: 1,
+        muted: false,
 
         left_transition_id: null,
         right_transition_id: null,
@@ -639,6 +638,7 @@ export const useTimeline = () => {
       } else {
         handleAddScrubberToTrack(trackId, newScrubber);
       }
+      return newScrubber.id;
     },
     [
       timeline.tracks,
@@ -1487,6 +1487,193 @@ export const useTimeline = () => {
     });
   }, []);
 
+  // Ripple edit: shift all clips on the same track that start at or after `originalRightEdgePx`
+  // by `deltaPx`. Called when Alt is held during a right-edge resize.
+  const handleRippleEdit = useCallback(
+    (scrubberId: string, originalRightEdgePx: number, deltaPx: number) => {
+      if (deltaPx === 0) return;
+      snapshotTimeline();
+      setTimeline((prev) => {
+        const target = prev.tracks.flatMap((t) => t.scrubbers).find((s) => s.id === scrubberId);
+        if (!target) return prev;
+        return {
+          ...prev,
+          tracks: prev.tracks.map((track) => ({
+            ...track,
+            scrubbers: track.scrubbers.map((s) => {
+              if (s.id === scrubberId) return s;
+              if (s.y !== target.y) return s;
+              if (s.left < originalRightEdgePx) return s;
+              return { ...s, left: Math.max(0, s.left + deltaPx) };
+            }),
+          })),
+        };
+      });
+    },
+    [snapshotTimeline],
+  );
+
+  // Ripple mode toggle (all moves shift following clips on same track)
+  const [rippleEnabled, setRippleEnabled] = useState(false);
+  const toggleRippleEnabled = useCallback(() => setRippleEnabled((v) => !v), []);
+
+  // Set zoom to an exact level (for the logarithmic slider)
+  const handleSetZoom = useCallback(
+    (newZoom: number) => {
+      const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+      const currentZoom = zoomLevelRef.current;
+      const zoomRatio = clampedZoom / currentZoom;
+      zoomLevelRef.current = clampedZoom;
+      setZoomLevel(clampedZoom);
+      setTimeline((currentTimeline) => ({
+        ...currentTimeline,
+        tracks: currentTimeline.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((scrubber) => ({
+            ...scrubber,
+            left: scrubber.left * zoomRatio,
+            width: scrubber.width * zoomRatio,
+          })),
+        })),
+      }));
+    },
+    [],
+  );
+
+  // Track mute toggle
+  const handleToggleTrackHidden = useCallback((trackId: string) => {
+    snapshotTimeline();
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) =>
+        track.id === trackId ? { ...track, hidden: !track.hidden } : track,
+      ),
+    }));
+  }, [snapshotTimeline]);
+
+  const handleToggleTrackMute = useCallback((trackId: string) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) =>
+        track.id === trackId ? { ...track, muted: !track.muted } : track,
+      ),
+    }));
+  }, []);
+
+  // Track name update
+  const handleSetTrackName = useCallback((trackId: string, name: string) => {
+    setTimeline((prev) => ({
+      ...prev,
+      tracks: prev.tracks.map((track) =>
+        track.id === trackId ? { ...track, name } : track,
+      ),
+    }));
+  }, []);
+
+  // Keyframe management
+  const handleAddKeyframe = useCallback(
+    (
+      scrubberId: string,
+      property: Keyframe["value"] extends number | string ? string : never,
+      keyframe: Keyframe,
+    ) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((s) => {
+            if (s.id !== scrubberId) return s;
+            const existingTracks = s.keyframes?.tracks ?? [];
+            const trackIdx = existingTracks.findIndex((kt) => kt.property === property);
+            let newKeyframeTracks;
+            if (trackIdx >= 0) {
+              newKeyframeTracks = existingTracks.map((kt, i) =>
+                i === trackIdx
+                  ? { ...kt, keyframes: [...kt.keyframes, keyframe].sort((a, b) => a.timeInSeconds - b.timeInSeconds) }
+                  : kt,
+              );
+            } else {
+              newKeyframeTracks = [
+                ...existingTracks,
+                { property: property as any, keyframes: [keyframe] },
+              ];
+            }
+            return { ...s, keyframes: { tracks: newKeyframeTracks } };
+          }),
+        })),
+      }));
+    },
+    [snapshotTimeline],
+  );
+
+  const handleUpdateKeyframe = useCallback(
+    (scrubberId: string, property: string, oldTimeInSeconds: number, newKeyframe: Keyframe) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((s) => {
+            if (s.id !== scrubberId) return s;
+            const newKeyframeTracks = (s.keyframes?.tracks ?? []).map((kt) => {
+              if (kt.property !== property) return kt;
+              return {
+                ...kt,
+                keyframes: kt.keyframes
+                  .map((kf) => (kf.timeInSeconds === oldTimeInSeconds ? newKeyframe : kf))
+                  .sort((a, b) => a.timeInSeconds - b.timeInSeconds),
+              };
+            });
+            return { ...s, keyframes: { tracks: newKeyframeTracks } };
+          }),
+        })),
+      }));
+    },
+    [snapshotTimeline],
+  );
+
+  const handleDeleteKeyframe = useCallback(
+    (scrubberId: string, property: string, timeInSeconds: number) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((s) => {
+            if (s.id !== scrubberId) return s;
+            const newKeyframeTracks = (s.keyframes?.tracks ?? [])
+              .map((kt) => {
+                if (kt.property !== property) return kt;
+                return { ...kt, keyframes: kt.keyframes.filter((kf) => kf.timeInSeconds !== timeInSeconds) };
+              })
+              .filter((kt) => kt.keyframes.length > 0);
+            return { ...s, keyframes: { tracks: newKeyframeTracks } };
+          }),
+        })),
+      }));
+    },
+    [snapshotTimeline],
+  );
+
+  const handleRemoveKeyframeProperty = useCallback(
+    (scrubberId: string, property: string) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => ({
+          ...track,
+          scrubbers: track.scrubbers.map((s) => {
+            if (s.id !== scrubberId) return s;
+            const newKeyframeTracks = (s.keyframes?.tracks ?? []).filter((kt) => kt.property !== property);
+            return { ...s, keyframes: { tracks: newKeyframeTracks } };
+          }),
+        })),
+      }));
+    },
+    [snapshotTimeline],
+  );
+
   // Move a grouped scrubber to media bin and remove from timeline
   const handleMoveGroupToMediaBin = useCallback(
     (groupedScrubberId: string, addToMediaBin: (scrubber: ScrubberState, pixelsPerSecond: number) => void) => {
@@ -1539,6 +1726,21 @@ export const useTimeline = () => {
     handleGroupScrubbers,
     handleUngroupScrubber,
     handleMoveGroupToMediaBin,
+    handleRippleEdit,
+    // Ripple mode
+    rippleEnabled,
+    toggleRippleEnabled,
+    // Zoom
+    handleSetZoom,
+    // Track controls
+    handleToggleTrackMute,
+    handleToggleTrackHidden,
+    handleSetTrackName,
+    // Keyframes
+    handleAddKeyframe,
+    handleUpdateKeyframe,
+    handleDeleteKeyframe,
+    handleRemoveKeyframeProperty,
     // Transition management
     handleAddTransitionToTrack,
     handleDeleteTransition,
