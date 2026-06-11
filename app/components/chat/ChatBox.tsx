@@ -80,6 +80,27 @@ interface Message {
   snapshot?: TimelineState | null;
 }
 
+const MENTION_TERMINATOR_PATTERN = /[\s,.;:!?()[\]{}"'`]/;
+
+function hasMentionToken(value: string, itemName: string): boolean {
+  const normalizedValue = value.toLowerCase();
+  const mention = `@${itemName.toLowerCase()}`;
+  let index = normalizedValue.indexOf(mention);
+
+  while (index !== -1) {
+    const prevChar = index > 0 ? normalizedValue[index - 1] : undefined;
+    if (prevChar === undefined || /\s/.test(prevChar)) {
+      const nextChar = normalizedValue[index + mention.length];
+      if (nextChar === undefined || MENTION_TERMINATOR_PATTERN.test(nextChar)) {
+        return true;
+      }
+    }
+    index = normalizedValue.indexOf(mention, index + mention.length);
+  }
+
+  return false;
+}
+
 interface ChatBoxProps {
   className?: string;
   mediaBinItems: MediaBinItem[];
@@ -387,12 +408,9 @@ export function ChatBox({
     textarea.style.height = newHeight + "px";
     setTextareaHeight(newHeight);
 
-    // Clean up mentioned items that are no longer in the text
-    const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const currentMentions = Array.from(value.matchAll(mentionPattern)).map((match) => match[1]);
-    setMentionedItems((prev) =>
-      prev.filter((item) => currentMentions.some((mention) => mention.toLowerCase() === item.name.toLowerCase())),
-    );
+    // Clean up mentioned items that are no longer in the text.
+    // Media names often include punctuation like "clip-01.mp4", which \w-based parsing drops.
+    setMentionedItems((prev) => prev.filter((item) => hasMentionToken(value, item.name)));
 
     // Check for @ mentions
     const beforeCursor = value.slice(0, cursorPos);
@@ -804,7 +822,6 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleDeleteScrubber(target.id);
             aiResponseContent = `✅ Deleted "${target.name}".`;
-
           } else if (fn === "LLMSetVolume") {
             const parsed = SetVolumeArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for LLMSetVolume");
@@ -816,8 +833,9 @@ export function ChatBox({
             }
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleUpdateScrubber({ ...target, volume: volume as number, muted: muted ?? false });
-            aiResponseContent = muted ? `✅ Muted "${target.name}".` : `✅ Set "${target.name}" volume to ${Math.round((volume as number) * 100)}%.`;
-
+            aiResponseContent = muted
+              ? `✅ Muted "${target.name}".`
+              : `✅ Set "${target.name}" volume to ${Math.round((volume as number) * 100)}%.`;
           } else if (fn === "LLMSetPlaybackSpeed") {
             const parsed = SetPlaybackSpeedArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for LLMSetPlaybackSpeed");
@@ -830,7 +848,6 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleUpdateScrubber({ ...target, playbackRate: playback_rate as number });
             aiResponseContent = `✅ Set "${target.name}" speed to ${playback_rate}×.`;
-
           } else if (fn === "LLMSplitScrubber") {
             if (!handleSplitScrubberAtRuler) throw new Error("Split handler unavailable");
             const parsed = SplitScrubberArgsSchema.safeParse(args);
@@ -844,10 +861,10 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             const rulerPx = (time_seconds as number) * pixelsPerSecond;
             const count = handleSplitScrubberAtRuler(rulerPx, target.id);
-            aiResponseContent = count > 0
-              ? `✅ Split "${target.name}" at ${time_seconds}s.`
-              : `❌ Could not split "${target.name}" — make sure ${time_seconds}s is within the clip.`;
-
+            aiResponseContent =
+              count > 0
+                ? `✅ Split "${target.name}" at ${time_seconds}s.`
+                : `❌ Could not split "${target.name}" — make sure ${time_seconds}s is within the clip.`;
           } else if (fn === "LLMCreateTrack") {
             const parsed = CreateTrackArgsSchema.safeParse(args);
             const n = parsed.success ? (parsed.data.count ?? 1) : 1;
@@ -857,7 +874,6 @@ export function ChatBox({
             } else {
               aiResponseContent = "❌ Cannot create track: handler unavailable.";
             }
-
           } else if (fn === "LLMSetResolution" || fn === "SetResolution") {
             aiResponseContent = `ℹ️ Resolution change is not yet supported via chat.`;
           } else {
