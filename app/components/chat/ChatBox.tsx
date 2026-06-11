@@ -88,9 +88,12 @@ function hasMentionToken(value: string, itemName: string): boolean {
   let index = normalizedValue.indexOf(mention);
 
   while (index !== -1) {
-    const nextChar = normalizedValue[index + mention.length];
-    if (nextChar === undefined || MENTION_TERMINATOR_PATTERN.test(nextChar)) {
-      return true;
+    const prevChar = index > 0 ? normalizedValue[index - 1] : undefined;
+    if (prevChar === undefined || /\s/.test(prevChar)) {
+      const nextChar = normalizedValue[index + mention.length];
+      if (nextChar === undefined || MENTION_TERMINATOR_PATTERN.test(nextChar)) {
+        return true;
+      }
     }
     index = normalizedValue.indexOf(mention, index + mention.length);
   }
