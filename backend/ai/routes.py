@@ -1,26 +1,20 @@
+import asyncio
 import json
 import logging
-import asyncio
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 
+from ai.provider import generate_ai_response
 from ai.schema import FunctionCallResponse
 from auth.routes import get_current_user
 from auth.schema import SessionUser
 from db import get_db_pool
-from utils import require_env
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ai"])
-
-_GEMINI_MODEL = "gemini-2.5-flash"
-
-GEMINI_API_KEY: str = require_env("GEMINI_API_KEY")
-gemini_client: genai.Client = genai.Client(api_key=GEMINI_API_KEY)
 
 _MAX_MESSAGE_LENGTH = 20_000
 _MAX_HISTORY_ITEMS = 50
@@ -44,7 +38,7 @@ async def _ensure_rate_limit_table() -> None:
         return
     async with _rate_limit_init_lock:
         if _rate_limit_ready:
-            return
+            return  # type: ignore[unreachable]  # Another task may set it while this task waits for the lock.
         pool = await get_db_pool()
         async with pool.acquire() as conn:
             await conn.execute(
@@ -73,30 +67,29 @@ async def _ensure_rate_limit_table() -> None:
 async def _enforce_rate_limit(user_id: str) -> None:
     await _ensure_rate_limit_table()
     pool = await get_db_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", user_id)
-            await conn.execute(
-                f"""
-                DELETE FROM {_RATE_LIMIT_TABLE}
-                WHERE occurred_at < now() - make_interval(secs => $1::int)
-                """,
-                _RATE_LIMIT_WINDOW_SECONDS,
+    async with pool.acquire() as conn, conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", user_id)
+        await conn.execute(
+            f"""
+            DELETE FROM {_RATE_LIMIT_TABLE}
+            WHERE occurred_at < now() - make_interval(secs => $1::int)
+            """,
+            _RATE_LIMIT_WINDOW_SECONDS,
+        )
+        count_row = await conn.fetchrow(
+            f"SELECT COUNT(*)::int AS request_count FROM {_RATE_LIMIT_TABLE} WHERE user_id = $1",
+            user_id,
+        )
+        request_count = int(count_row["request_count"]) if count_row else 0
+        if request_count >= _RATE_LIMIT_MAX_REQUESTS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Rate limit exceeded: {_RATE_LIMIT_MAX_REQUESTS} requests per minute",
             )
-            count_row = await conn.fetchrow(
-                f"SELECT COUNT(*)::int AS request_count FROM {_RATE_LIMIT_TABLE} WHERE user_id = $1",
-                user_id,
-            )
-            request_count = int(count_row["request_count"]) if count_row else 0
-            if request_count >= _RATE_LIMIT_MAX_REQUESTS:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Rate limit exceeded: {_RATE_LIMIT_MAX_REQUESTS} requests per minute",
-                )
-            await conn.execute(
-                f"INSERT INTO {_RATE_LIMIT_TABLE} (user_id) VALUES ($1)",
-                user_id,
-            )
+        await conn.execute(
+            f"INSERT INTO {_RATE_LIMIT_TABLE} (user_id) VALUES ($1)",
+            user_id,
+        )
 
 
 class Message(BaseModel):
@@ -116,7 +109,7 @@ async def process_ai_message(
 ) -> FunctionCallResponse:
     await _enforce_rate_limit(user.user_id)
 
-    # Bound the serialized payload before forwarding to Gemini to cap token spend.
+    # Bound the serialized payload before forwarding to the AI provider to cap spend.
     timeline_json = json.dumps(request.timeline_state or {}, ensure_ascii=False)
     if len(timeline_json) > _MAX_TIMELINE_BYTES:
         raise HTTPException(
@@ -194,15 +187,7 @@ Media bin: {mediabin_json}
 """
 
     try:
-        response = gemini_client.models.generate_content(
-            model=_GEMINI_MODEL,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": FunctionCallResponse,
-            },
-        )
-        return FunctionCallResponse.model_validate(response.parsed)
+        return generate_ai_response(prompt)
     except ValueError as exc:
         # Don't include user content (timeline / messages) in logs — log the type only.
         logger.warning("AI response validation failed: %s", type(exc).__name__)
