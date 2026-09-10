@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-import { KEYFRAME_LANE_HEIGHT, DEFAULT_TRACK_HEIGHT } from "~/components/timeline/types";
-import type { TrackState } from "~/components/timeline/types";
+import { KEYFRAME_LANE_HEIGHT, DEFAULT_TRACK_HEIGHT, type TrackState } from "~/components/timeline/types";
 
 export function useKeyframeLanes() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -17,10 +16,7 @@ export function useKeyframeLanes() {
     });
   }, []);
 
-  const isExpanded = useCallback(
-    (scrubberId: string) => expandedIds.has(scrubberId),
-    [expandedIds],
-  );
+  const isExpanded = useCallback((scrubberId: string) => expandedIds.has(scrubberId), [expandedIds]);
 
   // Returns the total visual height for a track row (base + expanded keyframe lanes)
   const getTrackVisualHeight = useCallback(

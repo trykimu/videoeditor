@@ -16,12 +16,7 @@ interface Rect {
 }
 
 function rectsOverlap(a: Rect, b: { left: number; top: number; width: number; height: number }): boolean {
-  return (
-    a.x < b.left + b.width &&
-    a.x + a.width > b.left &&
-    a.y < b.top + b.height &&
-    a.y + a.height > b.top
-  );
+  return a.x < b.left + b.width && a.x + a.width > b.left && a.y < b.top + b.height && a.y + a.height > b.top;
 }
 
 function getScrubbersInRect(
@@ -39,12 +34,7 @@ function getScrubbersInRect(
 }
 
 /** Marquee select with right-click drag (does not conflict with left-click scrubber drag). */
-export function BoxSelection({
-  getScrubberBounds,
-  allScrubbers,
-  onBoxSelect,
-  children,
-}: BoxSelectionProps) {
+export function BoxSelection({ getScrubberBounds, allScrubbers, onBoxSelect, children }: BoxSelectionProps) {
   const [rect, setRect] = useState<Rect | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const rectRef = useRef<Rect | null>(null);

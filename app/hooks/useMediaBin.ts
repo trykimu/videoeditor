@@ -405,16 +405,14 @@ export const useMediaBin = (handleDeleteScrubbersByMediaBinId: (mediaBinId: stri
       const withoutText = prev.filter((i) => i.mediaType !== "text");
       return [
         ...withoutText,
-        ...textItems.map(
-          (t): MediaBinItem => ({
-            ...t,
-            mediaType: "text" as const,
-            mediaUrlLocal: null,
-            mediaUrlRemote: null,
-            isUploading: false,
-            uploadProgress: null,
-          }),
-        ),
+        ...textItems.map((t): MediaBinItem => ({
+          ...t,
+          mediaType: "text" as const,
+          mediaUrlLocal: null,
+          mediaUrlRemote: null,
+          isUploading: false,
+          uploadProgress: null,
+        })),
       ];
     });
   }, []);

@@ -29,21 +29,12 @@ function stripVolatile(value: unknown): unknown {
   const obj = value as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
-    if (
-      k === "is_dragging" ||
-      k === "isDragging" ||
-      k === "keyframeLanesExpanded" ||
-      k === "mediaUrlLocal"
-    ) {
+    if (k === "is_dragging" || k === "isDragging" || k === "keyframeLanesExpanded" || k === "mediaUrlLocal") {
       continue;
     }
     if (typeof v === "number") {
       const isTimeKey =
-        k === "startTime" ||
-        k === "endTime" ||
-        k === "duration" ||
-        k === "trimBefore" ||
-        k === "trimAfter";
+        k === "startTime" || k === "endTime" || k === "duration" || k === "trimBefore" || k === "trimAfter";
       out[k] = isTimeKey ? roundNum(v) : roundNum(v, 2);
       continue;
     }
@@ -84,15 +75,11 @@ function stableStringify(value: unknown): string {
 }
 
 export function computeExportFingerprint(input: ExportFingerprintInput): string {
-  const preset = (["1080p", "720p", "source", "4k"].includes(input.resolutionPreset)
-    ? input.resolutionPreset
-    : "1080p") as ExportResolutionPreset;
+  const preset = (
+    ["1080p", "720p", "source", "4k"].includes(input.resolutionPreset) ? input.resolutionPreset : "1080p"
+  ) as ExportResolutionPreset;
 
-  const capped = capExportDimensions(
-    input.compositionWidth || 1920,
-    input.compositionHeight || 1080,
-    preset,
-  );
+  const capped = capExportDimensions(input.compositionWidth || 1920, input.compositionHeight || 1080, preset);
 
   const payload = {
     timeline: normalizeTimelineData(input.timelineData),
@@ -103,8 +90,7 @@ export function computeExportFingerprint(input: ExportFingerprintInput): string 
     crf: Math.round(input.crf),
     resolutionPreset: preset,
     muted: input.muted,
-    jpegQuality:
-      typeof input.jpegQuality === "number" ? Math.round(input.jpegQuality) : null,
+    jpegQuality: typeof input.jpegQuality === "number" ? Math.round(input.jpegQuality) : null,
     x264Preset: input.x264Preset ?? null,
   };
   return createHash("sha256").update(stableStringify(payload)).digest("hex");

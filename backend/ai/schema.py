@@ -102,9 +102,15 @@ class LLMResizeScrubberArgs(BaseSchema):
     function_name: Literal["LLMResizeScrubber"] = Field(
         description="Change the displayed duration of a clip on the timeline"
     )
-    scrubber_id: str | None = Field(default=None, description="ID of the clip to resize (prefer over name)")
-    scrubber_name: str | None = Field(default=None, description="Name substring to find the clip if id unknown")
-    track_number: int | None = Field(default=None, description="1-based track to search when id/name not given")
+    scrubber_id: str | None = Field(
+        default=None, description="ID of the clip to resize (prefer over name)"
+    )
+    scrubber_name: str | None = Field(
+        default=None, description="Name substring to find the clip if id unknown"
+    )
+    track_number: int | None = Field(
+        default=None, description="1-based track to search when id/name not given"
+    )
     new_duration_seconds: float = Field(description="New duration in seconds")
     pixels_per_second: int = Field(default=100, description="Pixels per second")
 
@@ -113,8 +119,12 @@ class LLMDeleteScrubberArgs(BaseSchema):
     function_name: Literal["LLMDeleteScrubber"] = Field(
         description="Remove a single clip from the timeline"
     )
-    scrubber_id: str | None = Field(default=None, description="ID of the clip to delete")
-    scrubber_name: str | None = Field(default=None, description="Name substring to find the clip if id unknown")
+    scrubber_id: str | None = Field(
+        default=None, description="ID of the clip to delete"
+    )
+    scrubber_name: str | None = Field(
+        default=None, description="Name substring to find the clip if id unknown"
+    )
 
 
 class LLMDeleteScrubbersInTrackArgs(BaseSchema):
@@ -129,8 +139,12 @@ class LLMSetVolumeArgs(BaseSchema):
         description="Set the volume or mute state of an audio/video clip"
     )
     scrubber_id: str | None = Field(default=None, description="ID of the clip")
-    scrubber_name: str | None = Field(default=None, description="Name substring to find the clip")
-    volume: float = Field(ge=0.0, le=1.0, description="Volume level 0.0 (silent) to 1.0 (full)")
+    scrubber_name: str | None = Field(
+        default=None, description="Name substring to find the clip"
+    )
+    volume: float = Field(
+        ge=0.0, le=1.0, description="Volume level 0.0 (silent) to 1.0 (full)"
+    )
     muted: bool = Field(default=False, description="Whether to mute the clip")
 
 
@@ -139,8 +153,12 @@ class LLMSetPlaybackSpeedArgs(BaseSchema):
         description="Set the playback speed of a clip (0.25×, 0.5×, 1×, 1.5×, 2×, 4×)"
     )
     scrubber_id: str | None = Field(default=None, description="ID of the clip")
-    scrubber_name: str | None = Field(default=None, description="Name substring to find the clip")
-    playback_rate: float = Field(description="Speed multiplier: 0.25, 0.5, 1, 1.5, 2, or 4")
+    scrubber_name: str | None = Field(
+        default=None, description="Name substring to find the clip"
+    )
+    playback_rate: float = Field(
+        description="Speed multiplier: 0.25, 0.5, 1, 1.5, 2, or 4"
+    )
 
 
 class LLMSplitScrubberArgs(BaseSchema):
@@ -148,8 +166,12 @@ class LLMSplitScrubberArgs(BaseSchema):
         description="Split a clip into two at a given time position"
     )
     scrubber_id: str | None = Field(default=None, description="ID of the clip to split")
-    scrubber_name: str | None = Field(default=None, description="Name substring to find the clip")
-    time_seconds: float = Field(description="Absolute timeline time (in seconds) to split at")
+    scrubber_name: str | None = Field(
+        default=None, description="Name substring to find the clip"
+    )
+    time_seconds: float = Field(
+        description="Absolute timeline time (in seconds) to split at"
+    )
 
 
 class LLMCreateTrackArgs(BaseSchema):
@@ -164,7 +186,9 @@ class LLMMoveScrubbersByOffsetArgs(BaseSchema):
         description="Shift multiple clips forward or backward by a time offset"
     )
     scrubber_ids: list[str] = Field(description="IDs of the clips to shift")
-    offset_seconds: float = Field(description="Seconds to shift (positive = right, negative = left)")
+    offset_seconds: float = Field(
+        description="Seconds to shift (positive = right, negative = left)"
+    )
     pixels_per_second: int = Field(default=100, description="Pixels per second")
 
 
@@ -183,9 +207,15 @@ class LLMUpdateTextStyleArgs(BaseSchema):
     scrubber_id: str = Field(description="ID of the text clip")
     fontSize: int | None = Field(default=None, description="Font size in pixels")
     fontFamily: str | None = Field(default=None, description="Font family name")
-    color: str | None = Field(default=None, description="Colour as hex string, e.g. '#ff0000'")
-    textAlign: Literal["left", "center", "right"] | None = Field(default=None, description="Text alignment")
-    fontWeight: Literal["normal", "bold"] | None = Field(default=None, description="Font weight")
+    color: str | None = Field(
+        default=None, description="Colour as hex string, e.g. '#ff0000'"
+    )
+    textAlign: Literal["left", "center", "right"] | None = Field(
+        default=None, description="Text alignment"
+    )
+    fontWeight: Literal["normal", "bold"] | None = Field(
+        default=None, description="Font weight"
+    )
 
 
 class FunctionCallResponse(BaseSchema):

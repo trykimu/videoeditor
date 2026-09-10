@@ -10,7 +10,7 @@ interface LeftPanelProps {
   section: LeftPanelSection;
   mediaBinItems: MediaBinItem[];
   isMediaLoading?: boolean;
-  onAddMedia: (file: File) => void;
+  onAddMedia: (file: File) => Promise<void>;
   onAddText: (
     textContent: string,
     fontSize: number,
@@ -25,8 +25,8 @@ interface LeftPanelProps {
     item: MediaBinItem;
   } | null;
   handleContextMenu: (e: React.MouseEvent, item: MediaBinItem) => void;
-  handleDeleteFromContext: () => void;
-  handleSplitAudioFromContext: () => void;
+  handleDeleteFromContext: () => Promise<void>;
+  handleSplitAudioFromContext: () => Promise<void>;
   handleCloseContextMenu: () => void;
   arrangeMode?: "default" | "group";
   sortBy?: "default" | "name_asc" | "name_desc";

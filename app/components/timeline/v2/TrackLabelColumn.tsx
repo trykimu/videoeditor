@@ -7,6 +7,7 @@ import {
   TRACK_LABEL_WIDTH,
   type TrackState,
   type ScrubberState,
+  type Keyframe,
 } from "../types";
 import {
   DropdownMenu,
@@ -14,11 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import {
-  getKeyframeBlockTopWithinTrack,
-  getKeyframeLaneCount,
-  sortScrubbersOnTrack,
-} from "./keyframe-layout";
+import { getKeyframeBlockTopWithinTrack, getKeyframeLaneCount, sortScrubbersOnTrack } from "./keyframe-layout";
 import { KEYFRAME_PROPERTIES } from "./KeyframeLanes";
 
 interface TrackLabelColumnProps {
@@ -31,7 +28,7 @@ interface TrackLabelColumnProps {
   onToggleMute: (trackId: string) => void;
   onToggleKeyframeLanes: (scrubberId: string) => void;
   onSetTrackName: (trackId: string, name: string) => void;
-  onAddKeyframe: (scrubberId: string, property: string, keyframe: { timeInSeconds: number; value: number; easing: string }) => void;
+  onAddKeyframe: (scrubberId: string, property: string, keyframe: Keyframe) => void;
   rulerPositionPx: number;
   pixelsPerSecond: number;
 }
@@ -54,9 +51,7 @@ export function TrackLabelColumn({
     <div
       className="flex-shrink-0 flex flex-col border-r border-border bg-background z-10"
       style={{ width: TRACK_LABEL_WIDTH }}>
-      <div
-        className="flex-shrink-0 border-b border-border flex items-center px-3"
-        style={{ height: RULER_HEIGHT }}>
+      <div className="flex-shrink-0 border-b border-border flex items-center px-3" style={{ height: RULER_HEIGHT }}>
         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tracks</span>
       </div>
 
@@ -70,9 +65,7 @@ export function TrackLabelColumn({
                 key={track.id}
                 className="border-b border-border/50 flex flex-col relative"
                 style={{ height: rowHeight }}>
-                <div
-                  className="flex items-center gap-1 px-2"
-                  style={{ height: DEFAULT_TRACK_HEIGHT }}>
+                <div className="flex items-center gap-1 px-2" style={{ height: DEFAULT_TRACK_HEIGHT }}>
                   <TrackNameEditor
                     name={track.name ?? `Track ${trackIndex + 1}`}
                     onChange={(name) => onSetTrackName(track.id, name)}
@@ -233,9 +226,7 @@ function KeyframeLabelBlock({
             </button>
           )}
           <Diamond className="h-2.5 w-2.5 shrink-0 text-primary" />
-          <span className="text-[10px] font-medium capitalize text-foreground truncate flex-1">
-            {kt.property}
-          </span>
+          <span className="text-[10px] font-medium capitalize text-foreground truncate flex-1">{kt.property}</span>
           <span className="text-[9px] text-muted-foreground tabular-nums">{kt.keyframes.length}</span>
         </div>
       ))}
@@ -243,13 +234,7 @@ function KeyframeLabelBlock({
   );
 }
 
-function TrackNameEditor({
-  name,
-  onChange,
-}: {
-  name: string;
-  onChange: (name: string) => void;
-}) {
+function TrackNameEditor({ name, onChange }: { name: string; onChange: (name: string) => void }) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(name);
   const inputRef = React.useRef<HTMLInputElement>(null);

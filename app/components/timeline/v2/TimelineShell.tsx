@@ -119,10 +119,7 @@ export function TimelineShell({
   scheduleEdgeScroll,
   stopEdgeScroll,
 }: TimelineShellProps) {
-  const totalTracksHeight = timeline.tracks.reduce(
-    (sum, t) => sum + getTrackVisualHeight(t),
-    0,
-  );
+  const totalTracksHeight = timeline.tracks.reduce((sum, t) => sum + getTrackVisualHeight(t), 0);
 
   // Ref to the TrackLabelColumn's inner scrolling div — we sync it imperatively
   // on scroll so there is zero React-render lag on the label column.
@@ -174,16 +171,10 @@ export function TimelineShell({
           sticks to the top when scrolling vertically while scrolling horizontally
           together with the track content. This eliminates ALL JavaScript-driven
           ruler sync and the associated scroll lag. */}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-auto timeline-scrollbar"
-        onScroll={handleScroll}>
-
+      <div ref={containerRef} className="flex-1 overflow-auto timeline-scrollbar" onScroll={handleScroll}>
         <div style={{ width: timelineWidth, minHeight: "100%" }}>
           {/* Sticky ruler — sticks on vertical scroll; playhead head stays here */}
-          <div
-            className="sticky top-0 z-10 bg-background"
-            style={{ height: RULER_HEIGHT }}>
+          <div className="sticky top-0 z-10 bg-background" style={{ height: RULER_HEIGHT }}>
             <VirtualRuler
               pixelsPerSecond={pixelsPerSecond}
               timelineWidth={timelineWidth}

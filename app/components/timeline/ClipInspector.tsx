@@ -65,9 +65,7 @@ export const ClipInspector: React.FC<ClipInspectorProps> = ({ scrubber, pixelsPe
               max={1}
               step={0.05}
               value={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
-              onChange={(e) =>
-                onUpdate({ ...scrubber, volume: parseFloat(e.target.value), muted: false })
-              }
+              onChange={(e) => onUpdate({ ...scrubber, volume: parseFloat(e.target.value), muted: false })}
               className="w-full h-1 accent-primary cursor-pointer"
             />
             <div className="text-[10px] text-muted-foreground text-right mt-0.5">

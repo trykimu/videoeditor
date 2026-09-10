@@ -105,13 +105,7 @@ export function KeyframeLanes({
   );
 }
 
-function EmptyKeyframeLane({
-  available,
-  onAdd,
-}: {
-  available: Property[];
-  onAdd: (p: Property) => void;
-}) {
+function EmptyKeyframeLane({ available, onAdd }: { available: Property[]; onAdd: (p: Property) => void }) {
   return (
     <div
       className="relative flex items-center gap-2 px-3 border-t border-border/40 bg-muted/20"
@@ -173,9 +167,7 @@ function PropertyLane({
   }, [scrubber.id, property, clipStartSec, clipEndSec, rulerPositionPx, pixelsPerSecond, onAddKeyframe]);
 
   return (
-    <div
-      className="relative border-t border-border/40 bg-muted/15"
-      style={{ height: KEYFRAME_LANE_HEIGHT }}>
+    <div className="relative border-t border-border/40 bg-muted/15" style={{ height: KEYFRAME_LANE_HEIGHT }}>
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 z-[1] flex items-center gap-1 rounded-r-md bg-background/90 border border-border/60 px-1.5 py-0.5 shadow-sm pointer-events-none"
         style={{ left: Math.max(0, scrubber.left - 2), maxWidth: 88 }}>
@@ -262,10 +254,7 @@ function KeyframeMarker({
       const onMove = (ev: PointerEvent) => {
         if (!dragRef.current.active) return;
         const dx = ev.clientX - dragRef.current.startX;
-        const newTime = Math.min(
-          clipEndSec,
-          Math.max(clipStartSec, dragRef.current.startTime + dx / pixelsPerSecond),
-        );
+        const newTime = Math.min(clipEndSec, Math.max(clipStartSec, dragRef.current.startTime + dx / pixelsPerSecond));
         if (elRef.current) {
           elRef.current.style.left = `${newTime * pixelsPerSecond}px`;
         }

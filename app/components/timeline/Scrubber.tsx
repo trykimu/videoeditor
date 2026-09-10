@@ -160,78 +160,81 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   }, []);
 
   // Stable mousemove handler — added/removed only at drag start/end.
-  const handleDocumentMouseMove = useCallback((e: MouseEvent) => {
-    const d = dragRef.current;
-    if (!d.active) return;
-    const { scrubber: s, containerRef, expandTimeline, timelineWidth, trackCount } = propsRef.current;
+  const handleDocumentMouseMove = useCallback(
+    (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d.active) return;
+      const { scrubber: s, containerRef, expandTimeline, timelineWidth, trackCount } = propsRef.current;
 
-    if (d.mode === "drag") {
-      let rawLeft = e.clientX - d.startClientX + d.startLeft;
-      rawLeft = Math.max(0, Math.min(timelineWidth - s.width, rawLeft));
+      if (d.mode === "drag") {
+        let rawLeft = e.clientX - d.startClientX + d.startLeft;
+        rawLeft = Math.max(0, Math.min(timelineWidth - s.width, rawLeft));
 
-      const snapped = findSnap(rawLeft, s.id);
-      d.snappedEdge = snapped !== rawLeft ? "left" : null;
-      d.currentLeft = snapped;
+        const snapped = findSnap(rawLeft, s.id);
+        d.snappedEdge = snapped !== rawLeft ? "left" : null;
+        d.currentLeft = snapped;
 
-      // Track change from mouse Y relative to the scroll container
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const relY = e.clientY - rect.top + containerRef.current.scrollTop;
-        d.currentTrack = Math.max(0, Math.min(trackCount - 1, Math.floor(relY / DEFAULT_TRACK_HEIGHT)));
-      }
-
-      applyTransform(d.currentLeft, d.currentTrack);
-
-      // Edge auto-scroll
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const threshold = 80;
-        const speed = 12;
-        if (e.clientX < rect.left + threshold) containerRef.current.scrollLeft -= speed;
-        else if (e.clientX > rect.right - threshold) {
-          containerRef.current.scrollLeft += speed;
-          expandTimeline();
+        // Track change from mouse Y relative to the scroll container
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const relY = e.clientY - rect.top + containerRef.current.scrollTop;
+          d.currentTrack = Math.max(0, Math.min(trackCount - 1, Math.floor(relY / DEFAULT_TRACK_HEIGHT)));
         }
-      }
-    } else if (d.mode === "resize-left") {
-      const delta = e.clientX - d.startClientX;
-      let newLeft = d.startLeft + delta;
-      let newWidth = d.startWidth - delta;
 
-      newLeft = Math.max(0, newLeft);
-      newWidth = Math.max(MINIMUM_WIDTH, newWidth);
+        applyTransform(d.currentLeft, d.currentTrack);
 
-      const snapped = findSnap(newLeft, s.id);
-      d.snappedEdge = snapped !== newLeft ? "left" : null;
-      newLeft = snapped;
-      newWidth = d.startLeft + d.startWidth - newLeft;
-      if (newLeft + newWidth > timelineWidth) newWidth = timelineWidth - newLeft;
-
-      d.currentLeft = newLeft;
-      d.currentWidth = newWidth;
-      applyTransform(d.currentLeft, d.startTrack, d.currentWidth);
-    } else if (d.mode === "resize-right") {
-      d.altHeld = e.altKey;
-      const delta = e.clientX - d.startClientX;
-      let newWidth = Math.max(MINIMUM_WIDTH, d.startWidth + delta);
-
-      const rightEdge = d.startLeft + newWidth;
-      const snappedRight = findSnap(rightEdge, s.id);
-      d.snappedEdge = snappedRight !== rightEdge ? "right" : null;
-      newWidth = snappedRight - d.startLeft;
-
-      if (d.startLeft + newWidth > timelineWidth) {
-        if (expandTimeline()) {
-          newWidth = Math.max(MINIMUM_WIDTH, d.startWidth + delta);
-        } else {
-          newWidth = timelineWidth - d.startLeft;
+        // Edge auto-scroll
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const threshold = 80;
+          const speed = 12;
+          if (e.clientX < rect.left + threshold) containerRef.current.scrollLeft -= speed;
+          else if (e.clientX > rect.right - threshold) {
+            containerRef.current.scrollLeft += speed;
+            expandTimeline();
+          }
         }
-      }
+      } else if (d.mode === "resize-left") {
+        const delta = e.clientX - d.startClientX;
+        let newLeft = d.startLeft + delta;
+        let newWidth = d.startWidth - delta;
 
-      d.currentWidth = newWidth;
-      applyTransform(d.startLeft, d.startTrack, d.currentWidth);
-    }
-  }, [findSnap, applyTransform]); // stable
+        newLeft = Math.max(0, newLeft);
+        newWidth = Math.max(MINIMUM_WIDTH, newWidth);
+
+        const snapped = findSnap(newLeft, s.id);
+        d.snappedEdge = snapped !== newLeft ? "left" : null;
+        newLeft = snapped;
+        newWidth = d.startLeft + d.startWidth - newLeft;
+        if (newLeft + newWidth > timelineWidth) newWidth = timelineWidth - newLeft;
+
+        d.currentLeft = newLeft;
+        d.currentWidth = newWidth;
+        applyTransform(d.currentLeft, d.startTrack, d.currentWidth);
+      } else if (d.mode === "resize-right") {
+        d.altHeld = e.altKey;
+        const delta = e.clientX - d.startClientX;
+        let newWidth = Math.max(MINIMUM_WIDTH, d.startWidth + delta);
+
+        const rightEdge = d.startLeft + newWidth;
+        const snappedRight = findSnap(rightEdge, s.id);
+        d.snappedEdge = snappedRight !== rightEdge ? "right" : null;
+        newWidth = snappedRight - d.startLeft;
+
+        if (d.startLeft + newWidth > timelineWidth) {
+          if (expandTimeline()) {
+            newWidth = Math.max(MINIMUM_WIDTH, d.startWidth + delta);
+          } else {
+            newWidth = timelineWidth - d.startLeft;
+          }
+        }
+
+        d.currentWidth = newWidth;
+        applyTransform(d.startLeft, d.startTrack, d.currentWidth);
+      }
+    },
+    [findSnap, applyTransform],
+  ); // stable
 
   // Stable mouseup handler.
   const handleDocumentMouseUp = useCallback(() => {
@@ -267,10 +270,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
       const { scrubber: s, onSelect, onBeginTransform } = propsRef.current;
       onSelect(s.id, e.ctrlKey || e.metaKey);
 
-      if (
-        (mode === "resize-left" || mode === "resize-right") &&
-        (s.mediaType === "video" || s.mediaType === "audio")
-      ) return;
+      if ((mode === "resize-left" || mode === "resize-right") && (s.mediaType === "video" || s.mediaType === "audio"))
+        return;
 
       dragRef.current = {
         active: true,
@@ -312,7 +313,8 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         target.tagName === "TEXTAREA" ||
         target.contentEditable === "true" ||
         target.isContentEditable
-      ) return;
+      )
+        return;
       e.preventDefault();
       onDelete?.(scrubber.id);
     };
@@ -322,7 +324,9 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number }>({
-    visible: false, x: 0, y: 0,
+    visible: false,
+    x: 0,
+    y: 0,
   });
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
@@ -347,8 +351,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
     };
   }, [contextMenu.visible]);
 
-  const waveformUrl =
-    scrubber.mediaType === "audio" ? (scrubber.mediaUrlRemote ?? scrubber.mediaUrlLocal) : null;
+  const waveformUrl = scrubber.mediaType === "audio" ? (scrubber.mediaUrlRemote ?? scrubber.mediaUrlLocal) : null;
   const waveformPeaks = useWaveform(waveformUrl);
   const scrubberH = DEFAULT_TRACK_HEIGHT - 4;
 
@@ -372,9 +375,7 @@ export const Scrubber: React.FC<ScrubberProps> = ({
   };
 
   const isResizable =
-    scrubber.mediaType !== "video" &&
-    scrubber.mediaType !== "audio" &&
-    scrubber.mediaType !== "groupped_scrubber";
+    scrubber.mediaType !== "video" && scrubber.mediaType !== "audio" && scrubber.mediaType !== "groupped_scrubber";
 
   return (
     <>
@@ -395,10 +396,14 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         }}
         onMouseDown={(e) => handleMouseDown(e, "drag")}
         onContextMenu={handleContextMenu}>
-
         {/* Waveform */}
         {waveformPeaks && (
-          <WaveformCanvas peaks={waveformPeaks} width={scrubber.width} height={scrubberH} color="rgba(255,255,255,0.5)" />
+          <WaveformCanvas
+            peaks={waveformPeaks}
+            width={scrubber.width}
+            height={scrubberH}
+            color="rgba(255,255,255,0.5)"
+          />
         )}
 
         {/* Media type badge */}
@@ -417,13 +422,9 @@ export const Scrubber: React.FC<ScrubberProps> = ({
 
         {/* Status badges */}
         <div className="absolute bottom-0.5 right-6 flex items-center gap-0.5 pointer-events-none">
-          {scrubber.muted && (
-            <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">M</div>
-          )}
+          {scrubber.muted && <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">M</div>}
           {scrubber.playbackRate !== undefined && scrubber.playbackRate !== 1 && (
-            <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">
-              {scrubber.playbackRate}x
-            </div>
+            <div className="text-[9px] font-bold opacity-80 bg-black/30 rounded px-0.5">{scrubber.playbackRate}x</div>
           )}
         </div>
 
@@ -432,13 +433,12 @@ export const Scrubber: React.FC<ScrubberProps> = ({
           <button
             className="absolute bottom-0.5 right-0.5 p-0.5 rounded opacity-60 hover:opacity-100 transition-opacity z-20"
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onToggleKeyframeLanes(scrubber.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleKeyframeLanes(scrubber.id);
+            }}
             title="Toggle keyframe lanes">
-            {keyframesExpanded ? (
-              <ChevronDown className="h-2.5 w-2.5" />
-            ) : (
-              <ChevronRight className="h-2.5 w-2.5" />
-            )}
+            {keyframesExpanded ? <ChevronDown className="h-2.5 w-2.5" /> : <ChevronRight className="h-2.5 w-2.5" />}
           </button>
         )}
 
@@ -467,11 +467,13 @@ export const Scrubber: React.FC<ScrubberProps> = ({
         <div
           className="fixed bg-popover text-popover-foreground border border-border rounded-md shadow-lg py-1 z-[9999]"
           style={{ left: contextMenu.x, top: contextMenu.y }}>
-
           {selectedScrubberIds.length > 1 && scrubber.mediaType !== "groupped_scrubber" && (
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-              onClick={() => { onGroupScrubbers(); setContextMenu({ visible: false, x: 0, y: 0 }); }}>
+              onClick={() => {
+                onGroupScrubbers();
+                setContextMenu({ visible: false, x: 0, y: 0 });
+              }}>
               <Group className="h-3 w-3" />
               Group Selected
             </button>
@@ -481,13 +483,19 @@ export const Scrubber: React.FC<ScrubberProps> = ({
             <>
               <button
                 className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-                onClick={() => { onUngroupScrubber(scrubber.id); setContextMenu({ visible: false, x: 0, y: 0 }); }}>
+                onClick={() => {
+                  onUngroupScrubber(scrubber.id);
+                  setContextMenu({ visible: false, x: 0, y: 0 });
+                }}>
                 <Ungroup className="h-3 w-3" />
                 Ungroup
               </button>
               <button
                 className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
-                onClick={() => { onMoveToMediaBin?.(scrubber.id); setContextMenu({ visible: false, x: 0, y: 0 }); }}>
+                onClick={() => {
+                  onMoveToMediaBin?.(scrubber.id);
+                  setContextMenu({ visible: false, x: 0, y: 0 });
+                }}>
                 <Archive className="h-3 w-3" />
                 Move to Media Bin
               </button>
@@ -505,7 +513,10 @@ export const Scrubber: React.FC<ScrubberProps> = ({
                 </button>
               </div>
               <input
-                type="range" min={0} max={1} step={0.05}
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
                 value={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
                 onChange={(e) => onUpdate({ ...scrubber, volume: parseFloat(e.target.value), muted: false })}
                 className="w-full h-1 accent-primary cursor-pointer"

@@ -804,7 +804,6 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleDeleteScrubber(target.id);
             aiResponseContent = `✅ Deleted "${target.name}".`;
-
           } else if (fn === "LLMSetVolume") {
             const parsed = SetVolumeArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for LLMSetVolume");
@@ -816,8 +815,9 @@ export function ChatBox({
             }
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleUpdateScrubber({ ...target, volume: volume as number, muted: muted ?? false });
-            aiResponseContent = muted ? `✅ Muted "${target.name}".` : `✅ Set "${target.name}" volume to ${Math.round((volume as number) * 100)}%.`;
-
+            aiResponseContent = muted
+              ? `✅ Muted "${target.name}".`
+              : `✅ Set "${target.name}" volume to ${Math.round((volume as number) * 100)}%.`;
           } else if (fn === "LLMSetPlaybackSpeed") {
             const parsed = SetPlaybackSpeedArgsSchema.safeParse(args);
             if (!parsed.success) throw new Error("Invalid arguments for LLMSetPlaybackSpeed");
@@ -830,7 +830,6 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             handleUpdateScrubber({ ...target, playbackRate: playback_rate as number });
             aiResponseContent = `✅ Set "${target.name}" speed to ${playback_rate}×.`;
-
           } else if (fn === "LLMSplitScrubber") {
             if (!handleSplitScrubberAtRuler) throw new Error("Split handler unavailable");
             const parsed = SplitScrubberArgsSchema.safeParse(args);
@@ -844,10 +843,10 @@ export function ChatBox({
             if (!target) throw new Error(`Clip not found: ${scrubber_id ?? scrubber_name}`);
             const rulerPx = (time_seconds as number) * pixelsPerSecond;
             const count = handleSplitScrubberAtRuler(rulerPx, target.id);
-            aiResponseContent = count > 0
-              ? `✅ Split "${target.name}" at ${time_seconds}s.`
-              : `❌ Could not split "${target.name}" — make sure ${time_seconds}s is within the clip.`;
-
+            aiResponseContent =
+              count > 0
+                ? `✅ Split "${target.name}" at ${time_seconds}s.`
+                : `❌ Could not split "${target.name}" — make sure ${time_seconds}s is within the clip.`;
           } else if (fn === "LLMCreateTrack") {
             const parsed = CreateTrackArgsSchema.safeParse(args);
             const n = parsed.success ? (parsed.data.count ?? 1) : 1;
@@ -857,7 +856,6 @@ export function ChatBox({
             } else {
               aiResponseContent = "❌ Cannot create track: handler unavailable.";
             }
-
           } else if (fn === "LLMSetResolution" || fn === "SetResolution") {
             aiResponseContent = `ℹ️ Resolution change is not yet supported via chat.`;
           } else {
