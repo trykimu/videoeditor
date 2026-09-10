@@ -89,14 +89,7 @@ export function formatResolutionLabel(w: number, h: number): string {
   return `${w} × ${h}`;
 }
 
-export const X264_PRESETS = [
-  "ultrafast",
-  "superfast",
-  "veryfast",
-  "faster",
-  "fast",
-  "medium",
-] as const;
+export const X264_PRESETS = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium"] as const;
 
 export type X264Preset = (typeof X264_PRESETS)[number];
 
@@ -109,7 +102,13 @@ export function clampExportCrf(crf: number, advanced = false): number {
 export function sanitizeExportFileName(name: string, ext: string): string {
   const dotExt = ext.startsWith(".") ? ext : `.${ext}`;
   let base = name.trim().replace(/\.(mp4|webm|mov|mkv)$/i, "");
-  base = base.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-").replace(/^-+|-+$/g, "");
+  base = base.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "-");
+  // Trim leading/trailing dashes without a `-+$` regex (polynomial backtracking on long inputs).
+  let start = 0;
+  let end = base.length;
+  while (start < end && base[start] === "-") start++;
+  while (end > start && base[end - 1] === "-") end--;
+  base = base.slice(start, end);
   if (!base) base = "export";
   return `${base.slice(0, 120)}${dotExt}`;
 }

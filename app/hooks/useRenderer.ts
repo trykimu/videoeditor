@@ -139,9 +139,10 @@ export const useRenderer = () => {
         );
         start = data;
       } catch (err) {
-        const msg = axios.isAxiosError(err) && err.response?.status === 500
-          ? "Server error — check render server logs"
-          : "Failed to queue render job";
+        const msg =
+          axios.isAxiosError(err) && err.response?.status === 500
+            ? "Server error — check render server logs"
+            : "Failed to queue render job";
         toast.error(msg);
         finish(options.onComplete);
         return;

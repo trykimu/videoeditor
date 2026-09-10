@@ -243,13 +243,7 @@ export default function TimelineEditor() {
     handleRulerScroll(containerRef, expandTimelineCallback);
   }, [handleViewportScroll, handleRulerScroll, expandTimelineCallback]);
 
-  const {
-    expandedIds,
-    toggleKeyframeLanes,
-    isExpanded,
-    getTrackVisualHeight,
-    getTrackIndexFromY,
-  } = useKeyframeLanes();
+  const { expandedIds, toggleKeyframeLanes, isExpanded, getTrackVisualHeight, getTrackIndexFromY } = useKeyframeLanes();
 
   const { isRendering, renderProgress, handleRenderVideo } = useRenderer();
   const [sidebarMode, setSidebarMode] = useState<"default" | "inspector" | "export">("default");
@@ -331,22 +325,24 @@ export default function TimelineEditor() {
             track.scrubbers.flatMap((s) => {
               if (s.mediaType !== "text" || !s.text || seenBinIds.has(s.sourceMediaBinId)) return [];
               seenBinIds.add(s.sourceMediaBinId);
-              return [{
-                id: s.sourceMediaBinId,
-                name: s.name,
-                mediaType: "text" as const,
-                media_width: 0,
-                media_height: 0,
-                text: s.text,
-                mediaUrlLocal: null,
-                mediaUrlRemote: null,
-                durationInSeconds: 0,
-                isUploading: false,
-                uploadProgress: null,
-                left_transition_id: null,
-                right_transition_id: null,
-                groupped_scrubbers: null,
-              }];
+              return [
+                {
+                  id: s.sourceMediaBinId,
+                  name: s.name,
+                  mediaType: "text" as const,
+                  media_width: 0,
+                  media_height: 0,
+                  text: s.text,
+                  mediaUrlLocal: null,
+                  mediaUrlRemote: null,
+                  durationInSeconds: 0,
+                  isUploading: false,
+                  uploadProgress: null,
+                  left_transition_id: null,
+                  right_transition_id: null,
+                  groupped_scrubbers: null,
+                },
+              ];
             }),
           );
           if (textItems.length > 0) setTextItems(textItems);
@@ -358,13 +354,11 @@ export default function TimelineEditor() {
     return () => {
       isMounted = false;
     };
-  }, [projectId, navigate, setTimelineFromServer]);
+  }, [projectId, navigate, setTimelineFromServer, setTextItems]);
 
   // Legacy child routes → single /project/:id with panel state
   useEffect(() => {
-    const match = location.pathname.match(
-      /^\/project\/([^/]+)\/(media-bin|text-editor|transitions)\/?$/,
-    );
+    const match = location.pathname.match(/^\/project\/([^/]+)\/(media-bin|text-editor|transitions)\/?$/);
     if (!match || !projectId) return;
     setLeftPanelSection(match[2] as LeftPanelSection);
     setSidebarMode("default");
@@ -424,13 +418,9 @@ export default function TimelineEditor() {
     const id = projectId;
     if (!id) throw new Error("No project ID");
     setSaveStatus("saving");
-    await axios.put(
-      `/backend/projects/${encodeURIComponent(id)}`,
-      timelineStateForPersistence(getTimelineState()),
-      {
-        withCredentials: true,
-      },
-    );
+    await axios.put(`/backend/projects/${encodeURIComponent(id)}`, timelineStateForPersistence(getTimelineState()), {
+      withCredentials: true,
+    });
     setSaveStatus("saved");
   }, [getTimelineState, projectId]);
 
@@ -975,7 +965,6 @@ export default function TimelineEditor() {
                   handleDeleteFromContext={handleDeleteFromContext}
                   handleSplitAudioFromContext={handleSplitAudioFromContext}
                   handleCloseContextMenu={handleCloseContextMenu}
-                  showTabs={false}
                   arrangeMode={mediaArrangeMode}
                   sortBy={mediaSortBy}
                   onArrangeModeChange={setMediaArrangeMode}
@@ -1291,7 +1280,6 @@ export default function TimelineEditor() {
         className="hidden"
         onChange={handleFileInputChange}
       />
-
     </div>
   );
 }

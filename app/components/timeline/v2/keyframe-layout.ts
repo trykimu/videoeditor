@@ -1,9 +1,4 @@
-import {
-  DEFAULT_TRACK_HEIGHT,
-  KEYFRAME_LANE_HEIGHT,
-  type ScrubberState,
-  type TrackState,
-} from "../types";
+import { DEFAULT_TRACK_HEIGHT, KEYFRAME_LANE_HEIGHT, type ScrubberState, type TrackState } from "../types";
 
 export function sortScrubbersOnTrack(track: TrackState): ScrubberState[] {
   return [...track.scrubbers].sort((a, b) => a.left - b.left || a.id.localeCompare(b.id));

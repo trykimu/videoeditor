@@ -1,16 +1,6 @@
 import React from "react";
-import {
-  ASPECT_RATIO_PRESETS,
-  findAspectPreset,
-  type AspectRatioPresetId,
-} from "~/lib/aspect-ratios";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+import { ASPECT_RATIO_PRESETS, findAspectPreset, type AspectRatioPresetId } from "~/lib/aspect-ratios";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { AspectRatioIcon } from "./AspectRatioIcon";
 import { cn } from "~/lib/utils";
 
@@ -31,9 +21,7 @@ export function AspectRatioSelect({ width, height, disabled, onSelectPreset }: A
         if (id !== "custom") onSelectPreset(id as AspectRatioPresetId);
       }}
       disabled={disabled}>
-      <SelectTrigger
-        size="sm"
-        className="h-7 min-w-[108px] gap-2 border-0 bg-muted/50 px-2 text-xs shadow-none">
+      <SelectTrigger size="sm" className="h-7 min-w-[108px] gap-2 border-0 bg-muted/50 px-2 text-xs shadow-none">
         <AspectRatioIcon id={activeId} className="shrink-0" active={activeId !== "custom"} />
         <SelectValue>{activeId === "custom" ? "Custom" : activeId}</SelectValue>
       </SelectTrigger>
