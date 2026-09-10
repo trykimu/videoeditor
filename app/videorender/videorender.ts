@@ -479,14 +479,24 @@ app.use(express.json());
 app.use(cors());
 
 // ─── Rate limiting ────────────────────────────────────────────────────────────
-// Per-IP limits on user-facing routes. `/health` and the renderer-internal asset
-// proxy (hit many times per render by headless Chrome) are intentionally excluded.
+// Per-IP limits on every route except `/health`.
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 const apiLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
   limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// The renderer-internal asset proxy is hit by headless Chrome many times per
+// render (one process per concurrent tab, all from localhost), so its limit is
+// deliberately loose — it exists to bound abuse, not to throttle renders.
+const internalAssetLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: 2000,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
@@ -524,7 +534,7 @@ function generateUUID(): string {
 // it fetch assets during rendering. The path matches `mediaUrlLocal` values
 // stored as `/renderer/assets/{id}/file` in the timeline JSON.
 
-app.get("/renderer/assets/:assetId/file", async (req: Request, res: Response): Promise<void> => {
+app.get("/renderer/assets/:assetId/file", internalAssetLimiter, async (req: Request, res: Response): Promise<void> => {
   const assetId = routeParam(req, "assetId");
   if (!UUID_PATTERN.test(assetId)) {
     res.status(400).end();
