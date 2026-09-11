@@ -14,11 +14,7 @@ export interface SnapResult {
   snapPoint: SnapPoint | null;
 }
 
-export function resolveTimelineSnap(
-  rawPx: number,
-  snapPoints: SnapPoint[],
-  threshold: number,
-): SnapResult {
+export function resolveTimelineSnap(rawPx: number, snapPoints: SnapPoint[], threshold: number): SnapResult {
   let closest: SnapPoint | null = null;
   let closestDist = Infinity;
 

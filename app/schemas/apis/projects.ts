@@ -21,7 +21,11 @@ export const ProjectsResponseSchema = z.object({
 const timelineField = z.preprocess(
   (val) => {
     if (typeof val === "string") {
-      try { return JSON.parse(val); } catch { return null; }
+      try {
+        return JSON.parse(val);
+      } catch {
+        return null;
+      }
     }
     return val;
   },

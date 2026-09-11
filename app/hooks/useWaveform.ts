@@ -62,8 +62,15 @@ function requestPeaks(url: string): Promise<Float32Array> {
   let promise = inFlight.get(url);
   if (!promise) {
     promise = computePeaks(url).then(
-      (p) => { peakCache.set(url, p); inFlight.delete(url); return p; },
-      (err) => { inFlight.delete(url); throw err; },
+      (p) => {
+        peakCache.set(url, p);
+        inFlight.delete(url);
+        return p;
+      },
+      (err) => {
+        inFlight.delete(url);
+        throw err;
+      },
     );
     inFlight.set(url, promise);
   }
@@ -77,9 +84,7 @@ function requestPeaks(url: string): Promise<Float32Array> {
  * Only useful for audio and video clips — pass null for other types.
  */
 export function useWaveform(url: string | null | undefined): Float32Array | null {
-  const [peaks, setPeaks] = useState<Float32Array | null>(() =>
-    url ? (peakCache.get(url) ?? null) : null,
-  );
+  const [peaks, setPeaks] = useState<Float32Array | null>(() => (url ? (peakCache.get(url) ?? null) : null));
 
   useEffect(() => {
     if (!url) {
@@ -95,11 +100,15 @@ export function useWaveform(url: string | null | undefined): Float32Array | null
 
     let cancelled = false;
     requestPeaks(url).then(
-      (p) => { if (!cancelled) setPeaks(p); },
+      (p) => {
+        if (!cancelled) setPeaks(p);
+      },
       () => {},
     );
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [url]);
 
   return peaks;

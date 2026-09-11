@@ -1,13 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Download, Play, Loader2, Film, ArrowDownAZ, Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { type ExportHistoryItem } from "~/hooks/useExportHistory";
 
 export type ExportHistorySort = "newest" | "oldest" | "name-asc" | "name-desc";
@@ -66,9 +60,7 @@ export function ExportHistory({ items, loading, deletingId, onDelete }: ExportHi
     <>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            Export history
-          </div>
+          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Export history</div>
           {!loading && items.length > 1 && (
             <Select value={sort} onValueChange={(v) => setSort(v as ExportHistorySort)}>
               <SelectTrigger size="sm" className="h-6 w-[108px] text-[9px] px-1.5 gap-1">
@@ -121,11 +113,7 @@ export function ExportHistory({ items, loading, deletingId, onDelete }: ExportHi
                     title="Preview"
                     disabled={isDeleting}>
                     {item.thumbnailUrl ? (
-                      <img
-                        src={item.thumbnailUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <span className="flex h-full w-full items-center justify-center text-muted-foreground">
                         <Film className="h-4 w-4" />
@@ -140,9 +128,7 @@ export function ExportHistory({ items, loading, deletingId, onDelete }: ExportHi
                     <span className="text-[10px] font-medium truncate" title={item.fileName}>
                       {item.fileName}
                     </span>
-                    <span className="text-[9px] text-muted-foreground">
-                      {formatRenderDate(item.createdAt)}
-                    </span>
+                    <span className="text-[9px] text-muted-foreground">{formatRenderDate(item.createdAt)}</span>
                     <span className="text-[9px] text-muted-foreground font-mono">
                       {item.width}×{item.height} · {item.codec.toUpperCase()}
                     </span>
@@ -172,11 +158,7 @@ export function ExportHistory({ items, loading, deletingId, onDelete }: ExportHi
                       title="Delete export"
                       disabled={isDeleting || deletingId !== null}
                       onClick={() => void handleDelete(item)}>
-                      {isDeleting ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3 w-3" />
-                      )}
+                      {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                     </Button>
                   </div>
                 </li>
@@ -188,29 +170,24 @@ export function ExportHistory({ items, loading, deletingId, onDelete }: ExportHi
 
       {preview && (
         <div className="fixed inset-0 z-[9998]">
-          <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-            onClick={() => setPreview(null)}
-          />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setPreview(null)} />
           <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-2xl rounded-lg border border-border bg-background shadow-xl overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
                 <div className="min-w-0">
                   <p className="text-xs font-medium truncate">{preview.fileName}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {formatRenderDate(preview.createdAt)}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground">{formatRenderDate(preview.createdAt)}</p>
                 </div>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPreview(null)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setPreview(null)}>
                   Close
                 </Button>
               </div>
-              <video
-                src={preview.previewUrl}
-                controls
-                autoPlay
-                className="w-full max-h-[60vh] bg-black"
-              />
+              <video src={preview.previewUrl} controls autoPlay className="w-full max-h-[60vh] bg-black" />
             </div>
           </div>
         </div>

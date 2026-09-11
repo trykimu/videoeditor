@@ -37,31 +37,31 @@ async def _ensure_rate_limit_table() -> None:
     if _rate_limit_ready:
         return
     async with _rate_limit_init_lock:
-        if _rate_limit_ready:
-            return  # type: ignore[unreachable]  # Another task may set it while this task waits for the lock.
-        pool = await get_db_pool()
-        async with pool.acquire() as conn:
-            await conn.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {_RATE_LIMIT_TABLE} (
-                    user_id TEXT NOT NULL,
-                    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        # Re-check after acquiring the lock (another task may have finished setup).
+        if not _rate_limit_ready:
+            pool = await get_db_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {_RATE_LIMIT_TABLE} (
+                        user_id TEXT NOT NULL,
+                        occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                    """
                 )
-                """
-            )
-            await conn.execute(
-                f"""
-                CREATE INDEX IF NOT EXISTS idx_{_RATE_LIMIT_TABLE}_user_time
-                ON {_RATE_LIMIT_TABLE} (user_id, occurred_at)
-                """
-            )
-            await conn.execute(
-                f"""
-                CREATE INDEX IF NOT EXISTS idx_{_RATE_LIMIT_TABLE}_time
-                ON {_RATE_LIMIT_TABLE} (occurred_at)
-                """
-            )
-        _rate_limit_ready = True
+                await conn.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{_RATE_LIMIT_TABLE}_user_time
+                    ON {_RATE_LIMIT_TABLE} (user_id, occurred_at)
+                    """
+                )
+                await conn.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{_RATE_LIMIT_TABLE}_time
+                    ON {_RATE_LIMIT_TABLE} (occurred_at)
+                    """
+                )
+            _rate_limit_ready = True
 
 
 async def _enforce_rate_limit(user_id: str) -> None:

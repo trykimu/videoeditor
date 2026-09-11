@@ -6,21 +6,18 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import fs from "fs";
 import dotenv from "dotenv";
 import { Transform } from "stream";
-import {
-  S3Client,
-  DeleteObjectCommand,
-  CopyObjectCommand,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, CopyObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import pkg, { type PoolClient } from "pg";
 import { Queue, Worker, QueueEvents, Job } from "bullmq";
 import IORedis from "ioredis";
 import { auth } from "~/lib/auth.server";
+import { fromNodeHeaders } from "better-auth/node";
 import {
   capExportDimensions,
   clampExportCrf,
@@ -155,10 +152,7 @@ async function ensureProjectRendersTable(): Promise<void> {
 }
 
 async function assertProjectOwned(userId: string, projectId: string): Promise<boolean> {
-  const { rows } = await db.query(
-    `SELECT id FROM projects WHERE id = $1::uuid AND user_id = $2`,
-    [projectId, userId],
-  );
+  const { rows } = await db.query(`SELECT id FROM projects WHERE id = $1::uuid AND user_id = $2`, [projectId, userId]);
   return rows.length > 0;
 }
 
@@ -202,11 +196,9 @@ async function signRenderAssetUrls(
   );
   let thumbnailUrl: string | null = null;
   if (row.r2_thumb_key) {
-    thumbnailUrl = await getSignedUrl(
-      r2,
-      new GetObjectCommand({ Bucket: RENDERS_BUCKET, Key: row.r2_thumb_key }),
-      { expiresIn: 3600 },
-    );
+    thumbnailUrl = await getSignedUrl(r2, new GetObjectCommand({ Bucket: RENDERS_BUCKET, Key: row.r2_thumb_key }), {
+      expiresIn: 3600,
+    });
   }
   return { downloadUrl, previewUrl, thumbnailUrl };
 }
@@ -216,11 +208,7 @@ function isUserOwnedRenderKey(key: string, userId: string): boolean {
   return key.startsWith(prefix) && !key.includes("..") && key.length > prefix.length;
 }
 
-async function deleteRenderR2Objects(
-  userId: string,
-  videoKey: string,
-  thumbKey: string | null,
-): Promise<void> {
+async function deleteRenderR2Objects(userId: string, videoKey: string, thumbKey: string | null): Promise<void> {
   if (!RENDERS_BUCKET) {
     throw new Error("Renders bucket not configured");
   }
@@ -273,10 +261,7 @@ async function extractThumbnail(videoPath: string, thumbPath: string): Promise<b
 const renderQueue = new Queue<RenderJobData>("renders", { connection: createRedisConnection() });
 const renderQueueEvents = new QueueEvents("renders", { connection: createRedisConnection() });
 
-const renderWorker = new Worker<
-  RenderJobData,
-  { downloadUrl: string; fileName: string; renderId: string }
->(
+const renderWorker = new Worker<RenderJobData, { downloadUrl: string; fileName: string; renderId: string }>(
   "renders",
   async (job) => {
     const {
@@ -305,9 +290,7 @@ const renderWorker = new Worker<
       resolutionPreset,
     );
     if (capped.scaled) {
-      console.log(
-        `📐 Export resolution capped to ${capped.width}×${capped.height} (preset: ${resolutionPreset})`,
-      );
+      console.log(`📐 Export resolution capped to ${capped.width}×${capped.height} (preset: ${resolutionPreset})`);
     }
     const inputProps = {
       ...rawInputProps,
@@ -315,18 +298,10 @@ const renderWorker = new Worker<
       compositionHeight: capped.height,
     };
     const tuning = getRemotionRenderTuning(capped.width, capped.height);
-    if (
-      typeof jpegQualityOverride === "number" &&
-      jpegQualityOverride >= 60 &&
-      jpegQualityOverride <= 100
-    ) {
+    if (typeof jpegQualityOverride === "number" && jpegQualityOverride >= 60 && jpegQualityOverride <= 100) {
       tuning.jpegQuality = Math.round(jpegQualityOverride);
     }
-    if (
-      codec === "h264" &&
-      x264PresetOverride &&
-      (X264_PRESETS as readonly string[]).includes(x264PresetOverride)
-    ) {
+    if (codec === "h264" && x264PresetOverride && (X264_PRESETS as readonly string[]).includes(x264PresetOverride)) {
       tuning.x264Preset = x264PresetOverride;
     }
 
@@ -382,10 +357,7 @@ const renderWorker = new Worker<
           void job.updateProgress(percent);
         }
       },
-      ffmpegOverride:
-        codec === "h265"
-          ? ({ args }) => [...args, "-tag:v", "hvc1"]
-          : undefined,
+      ffmpegOverride: codec === "h265" ? ({ args }) => [...args, "-tag:v", "hvc1"] : undefined,
       timeoutInMilliseconds: 900000,
     });
 
@@ -486,20 +458,67 @@ renderWorker.on("failed", (job, err) => {
     try {
       const p = `out/${renderJobId}.mp4`;
       if (fs.existsSync(p)) fs.unlinkSync(p);
-    } catch {}
+    } catch {
+      // Best-effort cleanup of the local render artefact; ignore failures.
+    }
   }
 });
 
 async function getAuthenticatedUserId(req: Request): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: req.headers });
+  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
   return session?.user?.id ?? null;
 }
 
 // ─── Express app ──────────────────────────────────────────────────────────────
 
 const app = express();
+// Deployed behind nginx (see nginx.conf), which sets X-Forwarded-For. Trust that
+// single proxy hop so per-IP rate limits key on the real client address.
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cors());
+
+// ─── Rate limiting ────────────────────────────────────────────────────────────
+// Per-IP limits on every route except `/health`.
+
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+const apiLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// The renderer-internal asset proxy is hit by headless Chrome many times per
+// render (one process per concurrent tab, all from localhost), so its limit is
+// deliberately loose — it exists to bound abuse, not to throttle renders.
+const internalAssetLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: 2000,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// Uploads and render jobs are expensive (R2 writes, ffmpeg/Chrome) — keep these tighter.
+const heavyLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// ─── Route param helper ───────────────────────────────────────────────────────
+// Express 5 typings allow `string[]` for repeated segments; every route here
+// uses single segments, so normalise to a plain string.
+
+function routeParam(req: Request, name: string): string {
+  const value = req.params[name];
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+}
 
 // ─── UUID helper ──────────────────────────────────────────────────────────────
 
@@ -515,8 +534,8 @@ function generateUUID(): string {
 // it fetch assets during rendering. The path matches `mediaUrlLocal` values
 // stored as `/renderer/assets/{id}/file` in the timeline JSON.
 
-app.get("/renderer/assets/:assetId/file", async (req: Request, res: Response): Promise<void> => {
-  const { assetId } = req.params;
+app.get("/renderer/assets/:assetId/file", internalAssetLimiter, async (req: Request, res: Response): Promise<void> => {
+  const assetId = routeParam(req, "assetId");
   if (!UUID_PATTERN.test(assetId)) {
     res.status(400).end();
     return;
@@ -539,7 +558,10 @@ app.get("/renderer/assets/:assetId/file", async (req: Request, res: Response): P
     res.setHeader("Content-Type", object.ContentType || rows[0].mime_type || "application/octet-stream");
     res.setHeader("Cache-Control", "private, max-age=300");
     if (typeof object.ContentLength === "number") res.setHeader("Content-Length", String(object.ContentLength));
-    body.on("error", () => { if (!res.headersSent) res.status(500).end(); else res.end(); });
+    body.on("error", () => {
+      if (!res.headersSent) res.status(500).end();
+      else res.end();
+    });
     body.pipe(res);
   } catch (err) {
     console.error("renderer asset proxy error:", err);
@@ -562,7 +584,7 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/assets", async (req: Request, res: Response): Promise<void> => {
+app.get("/assets", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -617,14 +639,14 @@ app.get("/assets", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-app.get("/assets/:assetId/file", async (req: Request, res: Response): Promise<void> => {
+app.get("/assets/:assetId/file", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const { assetId } = req.params;
+  const assetId = routeParam(req, "assetId");
   try {
     const { rows } = await db.query<{ r2_key: string; mime_type: string }>(
       `SELECT r2_key, mime_type
@@ -690,7 +712,7 @@ app.get("/assets/:assetId/file", async (req: Request, res: Response): Promise<vo
 // r2_objects row, create the asset record, and then upload file bytes to this
 // renderer service at /assets/upload/:assetId (same-origin, no browser→R2 CORS).
 
-app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise<void> => {
+app.post("/assets/initiate-upload", heavyLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -780,120 +802,117 @@ app.post("/assets/initiate-upload", async (req: Request, res: Response): Promise
 // Receives raw bytes from browser and uploads to R2 server-side.
 // This keeps browser traffic same-origin and avoids R2 CORS preflight failures.
 
-app.put(
-  "/assets/upload/:assetId",
-  async (req: Request, res: Response): Promise<void> => {
-    const userId = await getAuthenticatedUserId(req);
-    if (!userId) {
-      res.status(401).json({ error: "Unauthorized" });
+app.put("/assets/upload/:assetId", heavyLimiter, async (req: Request, res: Response): Promise<void> => {
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const assetId = routeParam(req, "assetId");
+  if (!assetId) {
+    res.status(400).json({ error: "assetId is required" });
+    return;
+  }
+  const declaredLength = Number(req.headers["content-length"] || 0);
+  if (declaredLength > MAX_ASSET_UPLOAD_BYTES) {
+    res.status(413).json({ error: "File too large" });
+    return;
+  }
+
+  try {
+    const { rows } = await db.query<{ r2_key: string; mime_type: string; content_hash: string | null }>(
+      `SELECT r2_key, mime_type, content_hash
+           FROM assets
+          WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL`,
+      [assetId, userId],
+    );
+
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Asset not found" });
       return;
     }
 
-    const { assetId } = req.params;
-    if (!assetId) {
-      res.status(400).json({ error: "assetId is required" });
+    const r2Key = rows[0].r2_key;
+    const fallbackMimeType = rows[0].mime_type || "application/octet-stream";
+    const reqMimeType = req.headers["content-type"];
+    const contentType = typeof reqMimeType === "string" ? reqMimeType : fallbackMimeType;
+    let actualFileSize = 0;
+    const sizeGuardStream = new Transform({
+      transform(chunk, _encoding, callback) {
+        const chunkSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk));
+        actualFileSize += chunkSize;
+        if (actualFileSize > MAX_ASSET_UPLOAD_BYTES) {
+          callback(new Error("UPLOAD_TOO_LARGE"));
+          return;
+        }
+        callback(null, chunk);
+      },
+    });
+
+    req.on("aborted", () => {
+      sizeGuardStream.destroy(new Error("UPLOAD_ABORTED"));
+    });
+    req.on("error", (streamErr) => {
+      sizeGuardStream.destroy(streamErr);
+    });
+    req.pipe(sizeGuardStream);
+
+    const upload = new Upload({
+      client: r2,
+      params: {
+        Bucket: ASSETS_BUCKET,
+        Key: r2Key,
+        Body: sizeGuardStream,
+        ContentType: contentType,
+      },
+      queueSize: 4,
+      partSize: 10 * 1024 * 1024,
+    });
+    await upload.done();
+
+    if (actualFileSize === 0) {
+      await r2.send(
+        new DeleteObjectCommand({
+          Bucket: ASSETS_BUCKET,
+          Key: r2Key,
+        }),
+      );
+      res.status(400).json({ error: "File body is required" });
       return;
     }
-    const declaredLength = Number(req.headers["content-length"] || 0);
-    if (declaredLength > MAX_ASSET_UPLOAD_BYTES) {
+    await db.query(
+      `UPDATE assets
+            SET file_size = $3
+          WHERE id = $1 AND user_id = $2`,
+      [assetId, userId, actualFileSize],
+    );
+    if (rows[0].content_hash) {
+      await db.query(
+        `UPDATE r2_objects
+              SET file_size = $2
+            WHERE content_hash = $1`,
+        [rows[0].content_hash, actualFileSize],
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && err.message === "UPLOAD_TOO_LARGE") {
       res.status(413).json({ error: "File too large" });
       return;
     }
-
-    try {
-      const { rows } = await db.query<{ r2_key: string; mime_type: string; content_hash: string | null }>(
-        `SELECT r2_key, mime_type, content_hash
-           FROM assets
-          WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL`,
-        [assetId, userId],
-      );
-
-      if (rows.length === 0) {
-        res.status(404).json({ error: "Asset not found" });
-        return;
-      }
-
-      const r2Key = rows[0].r2_key;
-      const fallbackMimeType = rows[0].mime_type || "application/octet-stream";
-      const reqMimeType = req.headers["content-type"];
-      const contentType = typeof reqMimeType === "string" ? reqMimeType : fallbackMimeType;
-      let actualFileSize = 0;
-      const sizeGuardStream = new Transform({
-        transform(chunk, _encoding, callback) {
-          const chunkSize = Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(String(chunk));
-          actualFileSize += chunkSize;
-          if (actualFileSize > MAX_ASSET_UPLOAD_BYTES) {
-            callback(new Error("UPLOAD_TOO_LARGE"));
-            return;
-          }
-          callback(null, chunk);
-        },
-      });
-
-      req.on("aborted", () => {
-        sizeGuardStream.destroy(new Error("UPLOAD_ABORTED"));
-      });
-      req.on("error", (streamErr) => {
-        sizeGuardStream.destroy(streamErr);
-      });
-      req.pipe(sizeGuardStream);
-
-      const upload = new Upload({
-        client: r2,
-        params: {
-          Bucket: ASSETS_BUCKET,
-          Key: r2Key,
-          Body: sizeGuardStream,
-          ContentType: contentType,
-        },
-        queueSize: 4,
-        partSize: 10 * 1024 * 1024,
-      });
-      await upload.done();
-
-      if (actualFileSize === 0) {
-        await r2.send(
-          new DeleteObjectCommand({
-            Bucket: ASSETS_BUCKET,
-            Key: r2Key,
-          }),
-        );
-        res.status(400).json({ error: "File body is required" });
-        return;
-      }
-      await db.query(
-        `UPDATE assets
-            SET file_size = $3
-          WHERE id = $1 AND user_id = $2`,
-        [assetId, userId, actualFileSize],
-      );
-      if (rows[0].content_hash) {
-        await db.query(
-          `UPDATE r2_objects
-              SET file_size = $2
-            WHERE content_hash = $1`,
-          [rows[0].content_hash, actualFileSize],
-        );
-      }
-
-      res.json({ success: true });
-    } catch (err) {
-      if (err instanceof Error && err.message === "UPLOAD_TOO_LARGE") {
-        res.status(413).json({ error: "File too large" });
-        return;
-      }
-      console.error("upload-bytes error:", err);
-      res.status(500).json({ error: "Failed to upload file" });
-    }
-  },
-);
+    console.error("upload-bytes error:", err);
+    res.status(500).json({ error: "Failed to upload file" });
+  }
+});
 
 // ─── POST /assets/complete-upload ─────────────────────────────────────────────
 // Called after the browser PUT to R2 succeeds. Marks r2_objects as ready
 // (idempotent — safe when two users upload the same hash concurrently) and
 // finalises the per-user asset record.
 
-app.post("/assets/complete-upload", async (req: Request, res: Response): Promise<void> => {
+app.post("/assets/complete-upload", heavyLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -944,7 +963,7 @@ app.post("/assets/complete-upload", async (req: Request, res: Response): Promise
   }
 });
 
-app.get("/storage", async (req: Request, res: Response): Promise<void> => {
+app.get("/storage", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -1012,14 +1031,14 @@ async function shouldDeleteR2Object(client: PoolClient, row: AssetDeleteRow): Pr
   return remainingDirect === 0;
 }
 
-app.delete("/projects/:projectId", async (req: Request, res: Response): Promise<void> => {
+app.delete("/projects/:projectId", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const { projectId } = req.params;
+  const projectId = routeParam(req, "projectId");
   const client = await db.connect();
   const r2KeysToDelete = new Set<string>();
 
@@ -1101,14 +1120,14 @@ app.delete("/projects/:projectId", async (req: Request, res: Response): Promise<
 // - For direct/copy assets (no content_hash): object is deleted only when no
 //   active row references the same r2_key.
 
-app.delete("/assets/:assetId", async (req: Request, res: Response): Promise<void> => {
+app.delete("/assets/:assetId", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const { assetId } = req.params;
+  const assetId = routeParam(req, "assetId");
   const client = await db.connect();
 
   try {
@@ -1166,14 +1185,14 @@ app.delete("/assets/:assetId", async (req: Request, res: Response): Promise<void
 // ─── POST /assets/:assetId/clone ──────────────────────────────────────────────
 // Server-side R2 copy, used for audio splitting.
 
-app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<void> => {
+app.post("/assets/:assetId/clone", heavyLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const { assetId } = req.params;
+  const assetId = routeParam(req, "assetId");
   const { suffix } = req.body as { suffix?: string };
 
   try {
@@ -1238,7 +1257,7 @@ app.post("/assets/:assetId/clone", async (req: Request, res: Response): Promise<
 // Enqueues a render job and returns { jobId } immediately.
 // Client opens GET /render/:jobId/events for SSE progress updates.
 
-app.post("/render", async (req: Request, res: Response): Promise<void> => {
+app.post("/render", heavyLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
@@ -1260,9 +1279,7 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const VALID_CODECS = new Set(["h264", "h265", "vp9"]);
   const codec = VALID_CODECS.has(req.body.codec) ? req.body.codec : "h264";
   const advancedMode = req.body.advancedMode === true;
-  const crf = typeof req.body.crf === "number"
-    ? clampExportCrf(req.body.crf, advancedMode)
-    : 28;
+  const crf = typeof req.body.crf === "number" ? clampExportCrf(req.body.crf, advancedMode) : 28;
   const VALID_PRESETS = new Set(["1080p", "720p", "source", "4k"]);
   const resolutionPreset: ExportResolutionPreset = VALID_PRESETS.has(req.body.resolutionPreset)
     ? req.body.resolutionPreset
@@ -1279,10 +1296,7 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   }
 
   let x264Preset: X264Preset | undefined;
-  if (
-    typeof req.body.x264Preset === "string" &&
-    (X264_PRESETS as readonly string[]).includes(req.body.x264Preset)
-  ) {
+  if (typeof req.body.x264Preset === "string" && (X264_PRESETS as readonly string[]).includes(req.body.x264Preset)) {
     x264Preset = req.body.x264Preset as X264Preset;
   }
 
@@ -1293,19 +1307,10 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
   const durationInFrames = Number(req.body.durationInFrames) || 30;
   const getPixelsPerSecond = Number(req.body.getPixelsPerSecond) || 100;
 
-  const cappedForFingerprint = capExportDimensions(
-    compositionWidth,
-    compositionHeight,
-    resolutionPreset,
-  );
-  const tuningDefaults = getRemotionRenderTuning(
-    cappedForFingerprint.width,
-    cappedForFingerprint.height,
-  );
-  const jpegForFingerprint =
-    typeof jpegQuality === "number" ? jpegQuality : tuningDefaults.jpegQuality;
-  const x264ForFingerprint =
-    codec === "h264" ? (x264Preset ?? tuningDefaults.x264Preset) : undefined;
+  const cappedForFingerprint = capExportDimensions(compositionWidth, compositionHeight, resolutionPreset);
+  const tuningDefaults = getRemotionRenderTuning(cappedForFingerprint.width, cappedForFingerprint.height);
+  const jpegForFingerprint = typeof jpegQuality === "number" ? jpegQuality : tuningDefaults.jpegQuality;
+  const x264ForFingerprint = codec === "h264" ? (x264Preset ?? tuningDefaults.x264Preset) : undefined;
 
   const contentFingerprint = computeExportFingerprint({
     timelineData: req.body.timelineData,
@@ -1368,14 +1373,14 @@ app.post("/render", async (req: Request, res: Response): Promise<void> => {
 
 // ─── GET /projects/:projectId/renders — export history ───────────────────────
 
-app.get("/projects/:projectId/renders", async (req: Request, res: Response): Promise<void> => {
+app.get("/projects/:projectId/renders", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  const { projectId } = req.params;
+  const projectId = routeParam(req, "projectId");
   if (!UUID_PATTERN.test(projectId)) {
     res.status(400).json({ error: "Invalid project id" });
     return;
@@ -1426,72 +1431,71 @@ app.get("/projects/:projectId/renders", async (req: Request, res: Response): Pro
 
 // ─── DELETE /projects/:projectId/renders/:renderId ───────────────────────────
 
-app.delete(
-  "/projects/:projectId/renders/:renderId",
-  async (req: Request, res: Response): Promise<void> => {
-    const userId = await getAuthenticatedUserId(req);
-    if (!userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
+app.delete("/projects/:projectId/renders/:renderId", apiLimiter, async (req: Request, res: Response): Promise<void> => {
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
 
-    const { projectId, renderId } = req.params;
-    if (!UUID_PATTERN.test(projectId) || !UUID_PATTERN.test(renderId)) {
-      res.status(400).json({ error: "Invalid id" });
-      return;
-    }
-    if (!(await assertProjectOwned(userId, projectId))) {
-      res.status(404).json({ error: "Project not found" });
-      return;
-    }
+  const projectId = routeParam(req, "projectId");
 
-    try {
-      const { rows } = await db.query(
-        `SELECT r2_video_key, r2_thumb_key
+  const renderId = routeParam(req, "renderId");
+  if (!UUID_PATTERN.test(projectId) || !UUID_PATTERN.test(renderId)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  if (!(await assertProjectOwned(userId, projectId))) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  try {
+    const { rows } = await db.query(
+      `SELECT r2_video_key, r2_thumb_key
          FROM project_renders
          WHERE id = $1::uuid AND project_id = $2::uuid AND user_id = $3`,
-        [renderId, projectId, userId],
-      );
-      if (rows.length === 0) {
-        res.status(404).json({ error: "Export not found" });
-        return;
-      }
-
-      const videoKey = rows[0].r2_video_key as string;
-      const thumbKey = (rows[0].r2_thumb_key as string | null) ?? null;
-
-      await db.query(
-        `DELETE FROM project_renders
-         WHERE id = $1::uuid AND project_id = $2::uuid AND user_id = $3`,
-        [renderId, projectId, userId],
-      );
-
-      try {
-        await deleteRenderR2Objects(userId, videoKey, thumbKey);
-        console.log(`🗑️ Export deleted: ${renderId} (${videoKey})`);
-      } catch (r2Err) {
-        console.warn(`⚠️ Export removed from DB but R2 delete failed for ${renderId}:`, r2Err);
-      }
-
-      res.status(204).send();
-    } catch (err) {
-      console.error("delete export error:", err);
-      res.status(500).json({ error: "Failed to delete export" });
+      [renderId, projectId, userId],
+    );
+    if (rows.length === 0) {
+      res.status(404).json({ error: "Export not found" });
+      return;
     }
-  },
-);
+
+    const videoKey = rows[0].r2_video_key as string;
+    const thumbKey = (rows[0].r2_thumb_key as string | null) ?? null;
+
+    await db.query(
+      `DELETE FROM project_renders
+         WHERE id = $1::uuid AND project_id = $2::uuid AND user_id = $3`,
+      [renderId, projectId, userId],
+    );
+
+    try {
+      await deleteRenderR2Objects(userId, videoKey, thumbKey);
+      console.log(`🗑️ Export deleted: ${renderId} (${videoKey})`);
+    } catch (r2Err) {
+      console.warn(`⚠️ Export removed from DB but R2 delete failed for ${renderId}:`, r2Err);
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error("delete export error:", err);
+    res.status(500).json({ error: "Failed to delete export" });
+  }
+});
 
 // ─── GET /render/:jobId/events ─────────────────────────────────────────────────
 // SSE stream of render progress. Server pushes events — no client polling.
 
-app.get("/render/:jobId/events", async (req: Request, res: Response): Promise<void> => {
+app.get("/render/:jobId/events", apiLimiter, async (req: Request, res: Response): Promise<void> => {
   const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     res.status(401).end();
     return;
   }
 
-  const { jobId } = req.params;
+  const jobId = routeParam(req, "jobId");
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");

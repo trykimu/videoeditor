@@ -61,10 +61,7 @@ export function PreviewFullscreenControls({
             setIsDragging(true);
             seekFromClientX(e.clientX);
           }}>
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-primary"
-            style={{ width: `${progress * 100}%` }}
-          />
+          <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${progress * 100}%` }} />
           <div
             className="absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ left: `calc(${progress * 100}% - 5px)` }}

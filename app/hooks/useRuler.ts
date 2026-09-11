@@ -131,9 +131,10 @@ export const useRuler = (
     (direction: "left" | "right", shiftKey: boolean) => {
       const frameDelta = shiftKey ? 10 : 1;
       const pixelDelta = (frameDelta / FPS) * pixelsPerSecond;
-      const newPx = direction === "left"
-        ? Math.max(0, rulerPositionPx - pixelDelta)
-        : Math.min(timelineWidth, rulerPositionPx + pixelDelta);
+      const newPx =
+        direction === "left"
+          ? Math.max(0, rulerPositionPx - pixelDelta)
+          : Math.min(timelineWidth, rulerPositionPx + pixelDelta);
       handleRulerDrag(newPx);
     },
     [rulerPositionPx, pixelsPerSecond, timelineWidth, handleRulerDrag],

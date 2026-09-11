@@ -105,7 +105,7 @@ export function TrackRows({
   onDeleteKeyframe,
   onRemoveKeyframeProperty,
 }: TrackRowsProps) {
-  const allScrubbers = useMemo(() => getAllScrubbers(), [getAllScrubbers, timeline]);
+  const allScrubbers = useMemo(() => getAllScrubbers(), [getAllScrubbers]);
 
   const totalHeight = useMemo(
     () => timeline.tracks.reduce((sum, t) => sum + getTrackVisualHeight(t), 0),
@@ -206,7 +206,7 @@ export function TrackRows({
               onDeleteKeyframe={onDeleteKeyframe}
               onRemoveProperty={onRemoveKeyframeProperty}
             />
-          </div>
+          </div>,
         );
       }
     }
@@ -225,10 +225,7 @@ export function TrackRows({
   ]);
 
   return (
-    <BoxSelection
-      getScrubberBounds={getScrubberBounds}
-      allScrubbers={allScrubbers}
-      onBoxSelect={onBoxSelect}>
+    <BoxSelection getScrubberBounds={getScrubberBounds} allScrubbers={allScrubbers} onBoxSelect={onBoxSelect}>
       <div
         className="relative bg-timeline-background"
         style={{ width: timelineWidth, height: totalHeight, minHeight: "100%" }}
@@ -237,7 +234,6 @@ export function TrackRows({
         onClick={(e) => {
           if (e.target === e.currentTarget) onSelectScrubber(null, false);
         }}>
-
         {timeline.tracks.map((track, trackIndex) => {
           const rowHeight = getTrackVisualHeight(track);
           const yOffset = trackOffsets[trackIndex] ?? 0;
@@ -269,31 +265,31 @@ export function TrackRows({
           if (!found) return null;
           const trackTopPx = trackOffsets[found.trackIndex] + 2;
           return (
-          <Scrubber
-            key={scrubber.id}
-            scrubber={scrubber}
-            trackTopPx={trackTopPx}
-            timelineWidth={timelineWidth}
-            otherScrubbers={allScrubbers.filter((s) => s.id !== scrubber.id)}
-            onUpdate={onUpdateScrubber}
-            onDelete={onDeleteScrubber}
-            isSelected={selectedScrubberIds.includes(scrubber.id)}
-            onSelect={onSelectScrubber}
-            onGroupScrubbers={onGroupScrubbers}
-            onUngroupScrubber={onUngroupScrubber}
-            onMoveToMediaBin={onMoveToMediaBin}
-            selectedScrubberIds={selectedScrubberIds}
-            containerRef={containerRef}
-            expandTimeline={expandTimeline}
-            snapConfig={{ enabled: snapEnabled, distance: 10 }}
-            trackCount={timeline.tracks.length}
-            pixelsPerSecond={pixelsPerSecond}
-            rulerPositionPx={rulerPositionPx}
-            onBeginTransform={onBeginScrubberTransform}
-            onRippleEdit={onRippleEdit}
-            onToggleKeyframeLanes={onToggleKeyframeLanes}
-            keyframesExpanded={expandedIds.has(scrubber.id)}
-          />
+            <Scrubber
+              key={scrubber.id}
+              scrubber={scrubber}
+              trackTopPx={trackTopPx}
+              timelineWidth={timelineWidth}
+              otherScrubbers={allScrubbers.filter((s) => s.id !== scrubber.id)}
+              onUpdate={onUpdateScrubber}
+              onDelete={onDeleteScrubber}
+              isSelected={selectedScrubberIds.includes(scrubber.id)}
+              onSelect={onSelectScrubber}
+              onGroupScrubbers={onGroupScrubbers}
+              onUngroupScrubber={onUngroupScrubber}
+              onMoveToMediaBin={onMoveToMediaBin}
+              selectedScrubberIds={selectedScrubberIds}
+              containerRef={containerRef}
+              expandTimeline={expandTimeline}
+              snapConfig={{ enabled: snapEnabled, distance: 10 }}
+              trackCount={timeline.tracks.length}
+              pixelsPerSecond={pixelsPerSecond}
+              rulerPositionPx={rulerPositionPx}
+              onBeginTransform={onBeginScrubberTransform}
+              onRippleEdit={onRippleEdit}
+              onToggleKeyframeLanes={onToggleKeyframeLanes}
+              keyframesExpanded={expandedIds.has(scrubber.id)}
+            />
           );
         })}
 
@@ -302,10 +298,10 @@ export function TrackRows({
           for (const track of timeline.tracks) {
             for (const transition of track.transitions) {
               const left = transition.leftScrubberId
-                ? allScrubbers.find((s) => s.id === transition.leftScrubberId) ?? null
+                ? (allScrubbers.find((s) => s.id === transition.leftScrubberId) ?? null)
                 : null;
               const right = transition.rightScrubberId
-                ? allScrubbers.find((s) => s.id === transition.rightScrubberId) ?? null
+                ? (allScrubbers.find((s) => s.id === transition.rightScrubberId) ?? null)
                 : null;
               if (left == null && right == null) continue;
               components.push(

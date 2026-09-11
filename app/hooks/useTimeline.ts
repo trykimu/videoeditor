@@ -11,6 +11,7 @@ import {
   type TimelineDataItem,
   type Transition,
   type Keyframe,
+  type KeyframeTrack,
   FPS,
 } from "../components/timeline/types";
 import { generateUUID } from "../utils/uuid";
@@ -1518,45 +1519,41 @@ export const useTimeline = () => {
   const toggleRippleEnabled = useCallback(() => setRippleEnabled((v) => !v), []);
 
   // Set zoom to an exact level (for the logarithmic slider)
-  const handleSetZoom = useCallback(
-    (newZoom: number) => {
-      const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-      const currentZoom = zoomLevelRef.current;
-      const zoomRatio = clampedZoom / currentZoom;
-      zoomLevelRef.current = clampedZoom;
-      setZoomLevel(clampedZoom);
-      setTimeline((currentTimeline) => ({
-        ...currentTimeline,
-        tracks: currentTimeline.tracks.map((track) => ({
-          ...track,
-          scrubbers: track.scrubbers.map((scrubber) => ({
-            ...scrubber,
-            left: scrubber.left * zoomRatio,
-            width: scrubber.width * zoomRatio,
-          })),
+  const handleSetZoom = useCallback((newZoom: number) => {
+    const clampedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+    const currentZoom = zoomLevelRef.current;
+    const zoomRatio = clampedZoom / currentZoom;
+    zoomLevelRef.current = clampedZoom;
+    setZoomLevel(clampedZoom);
+    setTimeline((currentTimeline) => ({
+      ...currentTimeline,
+      tracks: currentTimeline.tracks.map((track) => ({
+        ...track,
+        scrubbers: track.scrubbers.map((scrubber) => ({
+          ...scrubber,
+          left: scrubber.left * zoomRatio,
+          width: scrubber.width * zoomRatio,
         })),
-      }));
-    },
-    [],
-  );
+      })),
+    }));
+  }, []);
 
   // Track mute toggle
-  const handleToggleTrackHidden = useCallback((trackId: string) => {
-    snapshotTimeline();
-    setTimeline((prev) => ({
-      ...prev,
-      tracks: prev.tracks.map((track) =>
-        track.id === trackId ? { ...track, hidden: !track.hidden } : track,
-      ),
-    }));
-  }, [snapshotTimeline]);
+  const handleToggleTrackHidden = useCallback(
+    (trackId: string) => {
+      snapshotTimeline();
+      setTimeline((prev) => ({
+        ...prev,
+        tracks: prev.tracks.map((track) => (track.id === trackId ? { ...track, hidden: !track.hidden } : track)),
+      }));
+    },
+    [snapshotTimeline],
+  );
 
   const handleToggleTrackMute = useCallback((trackId: string) => {
     setTimeline((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((track) =>
-        track.id === trackId ? { ...track, muted: !track.muted } : track,
-      ),
+      tracks: prev.tracks.map((track) => (track.id === trackId ? { ...track, muted: !track.muted } : track)),
     }));
   }, []);
 
@@ -1564,19 +1561,13 @@ export const useTimeline = () => {
   const handleSetTrackName = useCallback((trackId: string, name: string) => {
     setTimeline((prev) => ({
       ...prev,
-      tracks: prev.tracks.map((track) =>
-        track.id === trackId ? { ...track, name } : track,
-      ),
+      tracks: prev.tracks.map((track) => (track.id === trackId ? { ...track, name } : track)),
     }));
   }, []);
 
   // Keyframe management
   const handleAddKeyframe = useCallback(
-    (
-      scrubberId: string,
-      property: Keyframe["value"] extends number | string ? string : never,
-      keyframe: Keyframe,
-    ) => {
+    (scrubberId: string, property: Keyframe["value"] extends number | string ? string : never, keyframe: Keyframe) => {
       snapshotTimeline();
       setTimeline((prev) => ({
         ...prev,
@@ -1596,7 +1587,7 @@ export const useTimeline = () => {
             } else {
               newKeyframeTracks = [
                 ...existingTracks,
-                { property: property as any, keyframes: [keyframe] },
+                { property: property as KeyframeTrack["property"], keyframes: [keyframe] },
               ];
             }
             return { ...s, keyframes: { tracks: newKeyframeTracks } };

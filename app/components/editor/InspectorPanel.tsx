@@ -13,11 +13,11 @@ interface InspectorPanelProps {
 const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2, 4];
 
 const MEDIA_TYPE_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  video:             { label: "Video",  icon: Film,   color: "text-blue-400" },
-  audio:             { label: "Audio",  icon: Music,  color: "text-purple-400" },
-  image:             { label: "Image",  icon: Image,  color: "text-green-400" },
-  text:              { label: "Text",   icon: Type,   color: "text-yellow-400" },
-  groupped_scrubber: { label: "Group",  icon: Layers, color: "text-orange-400" },
+  video: { label: "Video", icon: Film, color: "text-blue-400" },
+  audio: { label: "Audio", icon: Music, color: "text-purple-400" },
+  image: { label: "Image", icon: Image, color: "text-green-400" },
+  text: { label: "Text", icon: Type, color: "text-yellow-400" },
+  groupped_scrubber: { label: "Group", icon: Layers, color: "text-orange-400" },
 };
 
 function fmt(seconds: number) {
@@ -29,10 +29,14 @@ function fmt(seconds: number) {
   return `${seconds.toFixed(2)}s`;
 }
 
-export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPerSecond, onUpdate }: InspectorPanelProps) {
-  const scrubber = selectedScrubberIds.length === 1
-    ? getAllScrubbers().find((s) => s.id === selectedScrubberIds[0]) ?? null
-    : null;
+export function InspectorPanel({
+  selectedScrubberIds,
+  getAllScrubbers,
+  pixelsPerSecond,
+  onUpdate,
+}: InspectorPanelProps) {
+  const scrubber =
+    selectedScrubberIds.length === 1 ? (getAllScrubbers().find((s) => s.id === selectedScrubberIds[0]) ?? null) : null;
 
   const meta = scrubber ? (MEDIA_TYPE_META[scrubber.mediaType] ?? MEDIA_TYPE_META.video) : null;
   const Icon = meta?.icon;
@@ -83,8 +87,8 @@ export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPer
             <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Timing</div>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { label: "Start",    val: fmt(startSec) },
-                { label: "End",      val: fmt(endSec) },
+                { label: "Start", val: fmt(startSec) },
+                { label: "End", val: fmt(endSec) },
                 { label: "Duration", val: fmt(durationSec) },
               ].map(({ label, val }) => (
                 <div key={label} className="bg-muted/30 rounded-md p-2 text-center border border-border/30">
@@ -106,22 +110,23 @@ export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPer
                   <button
                     className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                     onClick={() => onUpdate({ ...scrubber, muted: !scrubber.muted })}>
-                    {scrubber.muted
-                      ? <VolumeX className="h-3 w-3" />
-                      : <Volume2 className="h-3 w-3" />}
+                    {scrubber.muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                   </button>
                 </div>
                 <div className="space-y-1.5">
                   <input
                     type="range"
-                    min={0} max={1} step={0.05}
+                    min={0}
+                    max={1}
+                    step={0.05}
                     value={scrubber.muted ? 0 : (scrubber.volume ?? 1)}
                     onChange={(e) => onUpdate({ ...scrubber, volume: parseFloat(e.target.value), muted: false })}
                     className="w-full h-1.5 accent-primary cursor-pointer"
                   />
                   <div className="flex justify-between text-[9px] text-muted-foreground">
                     <span>0%</span>
-                    <span className={`font-medium tabular-nums ${scrubber.muted ? "text-muted-foreground" : "text-foreground"}`}>
+                    <span
+                      className={`font-medium tabular-nums ${scrubber.muted ? "text-muted-foreground" : "text-foreground"}`}>
                       {scrubber.muted ? "Muted" : `${Math.round((scrubber.volume ?? 1) * 100)}%`}
                     </span>
                     <span>100%</span>
@@ -133,7 +138,9 @@ export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPer
 
               {/* Speed */}
               <div className="space-y-2">
-                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Playback Speed</div>
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Playback Speed
+                </div>
                 <div className="grid grid-cols-3 gap-1">
                   {SPEED_OPTIONS.map((rate) => {
                     const active = (scrubber.playbackRate ?? 1) === rate;
@@ -161,7 +168,9 @@ export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPer
 
               {/* Player Position */}
               <div className="space-y-2">
-                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Position &amp; Size</div>
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Position &amp; Size
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {(
                     [
@@ -171,7 +180,9 @@ export function InspectorPanel({ selectedScrubberIds, getAllScrubbers, pixelsPer
                       { label: "H", key: "height_player" as const },
                     ] as { label: string; key: keyof ScrubberState }[]
                   ).map(({ label, key }) => (
-                    <div key={key} className="flex items-center gap-1.5 bg-muted/30 border border-border/40 rounded px-2 h-7 focus-within:border-primary transition-colors">
+                    <div
+                      key={key}
+                      className="flex items-center gap-1.5 bg-muted/30 border border-border/40 rounded px-2 h-7 focus-within:border-primary transition-colors">
                       <span className="text-[9px] text-muted-foreground w-3 shrink-0">{label}</span>
                       <input
                         type="number"

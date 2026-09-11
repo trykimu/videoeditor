@@ -89,8 +89,7 @@ export function VirtualRuler({
     for (let i = 0; i <= Math.min(endTick, MAX_TICKS); i++) {
       const time = i * tickIntervalSeconds;
       const x = snapPlayheadPx(time * pixelsPerSecond);
-      const isLabel =
-        Math.abs(time % labelIntervalSeconds) < tickIntervalSeconds * 0.01 || time === 0;
+      const isLabel = Math.abs(time % labelIntervalSeconds) < tickIntervalSeconds * 0.01 || time === 0;
       result.push({
         x,
         isLabel,
@@ -107,17 +106,13 @@ export function VirtualRuler({
       style={{ width: timelineWidth, height: RULER_HEIGHT }}
       onMouseDown={onRulerMouseDown}
       onClick={onRulerClick}>
-
       {/* Tick marks — absolute positions in timeline space */}
       {ticks.map((tick) => (
         <div
           key={tick.key}
           className="absolute bottom-0 pointer-events-none"
           style={{ left: tick.x, transform: "translateX(-0.5px)" }}>
-          <div
-            className="absolute bottom-0 bg-border"
-            style={{ width: 1, height: tick.isLabel ? 10 : 5 }}
-          />
+          <div className="absolute bottom-0 bg-border" style={{ width: 1, height: tick.isLabel ? 10 : 5 }} />
           {tick.isLabel && (
             <div
               className="absolute text-[10px] text-muted-foreground font-mono"

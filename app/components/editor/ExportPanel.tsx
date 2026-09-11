@@ -6,13 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Switch } from "~/components/ui/switch";
 import { Progress } from "~/components/ui/progress";
 import { Separator } from "~/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { toast } from "sonner";
 import { type TimelineDataItem, type TimelineState } from "~/components/timeline/types";
 import { type RenderOptions } from "~/hooks/useRenderer";
@@ -44,8 +38,8 @@ interface ExportPanelProps {
     compositionWidth: number | null,
     compositionHeight: number | null,
     getPixelsPerSecond: () => number,
-    options?: RenderOptions,
-  ) => void;
+    options: RenderOptions,
+  ) => void | Promise<void>;
 }
 
 type QualityPreset = "web" | "balanced" | "high";
@@ -245,9 +239,7 @@ export function ExportPanel({
         )}
 
         <div className="space-y-2">
-          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            File name
-          </div>
+          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">File name</div>
           <div className="flex items-center gap-1">
             <Input
               value={fileNameBase}
@@ -267,9 +259,7 @@ export function ExportPanel({
         <Separator />
 
         <div className="space-y-2">
-          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            Resolution
-          </div>
+          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Resolution</div>
           <Select
             value={resolutionPreset}
             onValueChange={(v) => setResolutionPreset(v as ExportResolutionPreset)}
@@ -347,11 +337,7 @@ export function ExportPanel({
             <span>Encoding</span>
             <span className="flex items-center gap-1 normal-case font-normal text-muted-foreground">
               {advancedOpen ? "Advanced" : "Quality presets"}
-              {advancedOpen ? (
-                <ChevronDown className="h-3 w-3" />
-              ) : (
-                <ChevronRight className="h-3 w-3" />
-              )}
+              {advancedOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </span>
           </button>
 

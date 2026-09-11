@@ -28,43 +28,46 @@ export function useTimelineViewport({
     setScrollLeft(el.scrollLeft);
     setScrollTop(el.scrollTop);
     expandTimeline();
-  }, [expandTimeline]);
+  }, [containerRef, expandTimeline]);
 
   // Edge auto-scroll state
   const edgeScrollRafRef = useRef<number | null>(null);
   const mouseXRef = useRef(0);
 
-  const scheduleEdgeScroll = useCallback((mouseX: number) => {
-    mouseXRef.current = mouseX;
-    if (edgeScrollRafRef.current !== null) return;
+  const scheduleEdgeScroll = useCallback(
+    (mouseX: number) => {
+      mouseXRef.current = mouseX;
+      if (edgeScrollRafRef.current !== null) return;
 
-    const tick = () => {
-      const el = containerRef.current;
-      if (!el) {
-        edgeScrollRafRef.current = null;
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      const mx = mouseXRef.current;
-      const threshold = 100;
-      const speed = 12;
+      const tick = () => {
+        const el = containerRef.current;
+        if (!el) {
+          edgeScrollRafRef.current = null;
+          return;
+        }
+        const rect = el.getBoundingClientRect();
+        const mx = mouseXRef.current;
+        const threshold = 100;
+        const speed = 12;
 
-      if (mx < rect.left + threshold) {
-        el.scrollLeft = Math.max(0, el.scrollLeft - speed);
-        setScrollLeft(el.scrollLeft);
-        edgeScrollRafRef.current = requestAnimationFrame(tick);
-      } else if (mx > rect.right - threshold) {
-        el.scrollLeft += speed;
-        setScrollLeft(el.scrollLeft);
-        expandTimeline();
-        edgeScrollRafRef.current = requestAnimationFrame(tick);
-      } else {
-        edgeScrollRafRef.current = null;
-      }
-    };
+        if (mx < rect.left + threshold) {
+          el.scrollLeft = Math.max(0, el.scrollLeft - speed);
+          setScrollLeft(el.scrollLeft);
+          edgeScrollRafRef.current = requestAnimationFrame(tick);
+        } else if (mx > rect.right - threshold) {
+          el.scrollLeft += speed;
+          setScrollLeft(el.scrollLeft);
+          expandTimeline();
+          edgeScrollRafRef.current = requestAnimationFrame(tick);
+        } else {
+          edgeScrollRafRef.current = null;
+        }
+      };
 
-    edgeScrollRafRef.current = requestAnimationFrame(tick);
-  }, [expandTimeline]);
+      edgeScrollRafRef.current = requestAnimationFrame(tick);
+    },
+    [containerRef, expandTimeline],
+  );
 
   const stopEdgeScroll = useCallback(() => {
     if (edgeScrollRafRef.current !== null) {
@@ -119,7 +122,7 @@ export function useTimelineViewport({
     ro.observe(el);
     setViewportWidth(el.clientWidth);
     return () => ro.disconnect();
-  }, []);
+  }, [containerRef]);
 
   return {
     scrollLeft,
