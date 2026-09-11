@@ -4,23 +4,17 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from google import genai
 from pydantic import BaseModel, ConfigDict, Field
 
+from ai.provider import generate_ai_response
 from ai.schema import FunctionCallResponse
 from auth.routes import get_current_user
 from auth.schema import SessionUser
 from db import get_db_pool
-from utils import require_env
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ai"])
-
-_GEMINI_MODEL = "gemini-2.5-flash"
-
-GEMINI_API_KEY: str = require_env("GEMINI_API_KEY")
-gemini_client: genai.Client = genai.Client(api_key=GEMINI_API_KEY)
 
 _MAX_MESSAGE_LENGTH = 20_000
 _MAX_HISTORY_ITEMS = 50
@@ -115,7 +109,7 @@ async def process_ai_message(
 ) -> FunctionCallResponse:
     await _enforce_rate_limit(user.user_id)
 
-    # Bound the serialized payload before forwarding to Gemini to cap token spend.
+    # Bound the serialized payload before forwarding to the AI provider to cap spend.
     timeline_json = json.dumps(request.timeline_state or {}, ensure_ascii=False)
     if len(timeline_json) > _MAX_TIMELINE_BYTES:
         raise HTTPException(
@@ -193,15 +187,7 @@ Media bin: {mediabin_json}
 """
 
     try:
-        response = gemini_client.models.generate_content(
-            model=_GEMINI_MODEL,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": FunctionCallResponse,
-            },
-        )
-        return FunctionCallResponse.model_validate(response.parsed)
+        return generate_ai_response(prompt)
     except ValueError as exc:
         # Don't include user content (timeline / messages) in logs — log the type only.
         logger.warning("AI response validation failed: %s", type(exc).__name__)
